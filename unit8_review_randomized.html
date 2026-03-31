@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 8 Exam Review — Rational Functions</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  startup: { ready() { MathJax.startup.defaultReady(); } }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<style>
+  :root {
+    --ink:        #1a1814;
+    --ink-mid:    #4a4540;
+    --ink-light:  #8a857e;
+    --rule:       #d8d2c8;
+    --page:       #faf8f4;
+    --cream:      #f0ece4;
+    --accent:     #1a4a8a;
+    --accent-lt:  #e8eef7;
+    --green:      #1a6640;
+    --green-bg:   #eaf4ee;
+    --green-rule: #7abf9a;
+    --serif:      'Source Serif 4', Georgia, serif;
+    --sans:       'DM Sans', system-ui, sans-serif;
+    --mono:       'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; max-width: 100%; }
+    .answer-panel { display: none !important; }
+    .seed-banner { display: flex !important; }
+  }
+
+  body {
+    font-family: var(--serif);
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    padding: 24px 16px 60px;
+  }
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--page);
+    box-shadow: 0 2px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  }
+
+  /* ── Header ── */
+  .exam-head { padding: 32px 48px 22px; border-bottom: 2px solid var(--ink); }
+  .district { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 4px; }
+  .exam-title { font-size: 24px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 2px; }
+  .exam-sub { font-size: 13px; font-style: italic; color: var(--ink-mid); font-family: var(--sans); }
+
+  /* ── Seed banner ── */
+  .seed-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 48px;
+    background: #fff8e8;
+    border-bottom: 1px solid #e8d48a;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: #6b5500;
+  }
+  .seed-code {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    background: #fef0b0;
+    padding: 2px 10px;
+    border-radius: 4px;
+    border: 1px solid #d4b800;
+    color: #4a3a00;
+    letter-spacing: .06em;
+  }
+  .seed-note { font-size: 11px; color: #8a7030; }
+
+  /* ── Info bar ── */
+  .info-bar {
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; gap: 28px;
+    font-family: var(--sans); font-size: 13px; color: var(--ink-mid);
+    flex-wrap: wrap; align-items: center;
+  }
+  .info-field { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .info-line {
+    flex: 1; min-width: 60px;
+    border: none; border-bottom: 1px solid var(--ink-mid);
+    background: transparent; font-family: var(--serif); font-size: 14px;
+    color: var(--ink); outline: none; padding: 1px 2px;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    padding: 10px 48px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; gap: 10px; align-items: center;
+    background: var(--cream); flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    letter-spacing: .04em; padding: 6px 16px;
+    border: 1px solid var(--rule); border-radius: 2px;
+    cursor: pointer; background: var(--page); color: var(--ink-mid);
+    transition: all .15s;
+  }
+  .btn:hover { border-color: var(--ink-mid); color: var(--ink); }
+  .btn.green-btn { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.green-btn:hover { background: #134d30; }
+
+  /* ── Body ── */
+  .body-pad { padding: 0 48px 36px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; }
+
+  .problem { padding: 22px 24px 22px 0; border-bottom: 1px solid var(--rule); }
+  .problem.right { padding: 22px 0 22px 24px; border-left: 1px solid var(--rule); }
+  .problem.no-bottom, .problem.no-bottom.right { border-bottom: none; }
+
+  .p-num { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink-light); margin-bottom: 6px; letter-spacing: .06em; }
+  .p-text { font-size: 14.5px; line-height: 1.7; margin-bottom: 4px; }
+  .p-display { margin: 8px 0 6px; font-size: 14px; }
+
+  /* ── Personalised badge ── */
+  .personal-badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    padding: 1px 7px; border-radius: 3px;
+    background: #fef0b0; border: 1px solid #d4b800;
+    color: #4a3a00; margin-left: 6px; vertical-align: middle;
+    letter-spacing: .04em;
+  }
+
+  /* ── Answer inputs ── */
+  .answer-label {
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .05em; text-transform: uppercase;
+    color: var(--ink-light); margin-top: 14px; margin-bottom: 5px;
+  }
+  .answer-input {
+    width: 100%; border: 1px solid var(--rule); border-radius: 3px;
+    background: white; padding: 7px 10px;
+    font-family: var(--serif); font-size: 14px; color: var(--ink);
+    outline: none; resize: vertical; min-height: 42px;
+    transition: border-color .15s;
+  }
+  .answer-input:focus { border-color: var(--accent); }
+  .answer-input::placeholder { color: var(--ink-light); font-style: italic; }
+  .two-inputs { display: flex; flex-direction: column; gap: 6px; }
+  .sub-label { font-family: var(--sans); font-size: 11px; color: var(--ink-light); margin-bottom: 2px; }
+
+  /* ── Reveal button ── */
+  .reveal-btn {
+    margin-top: 8px;
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .04em; padding: 4px 12px;
+    border: 1px solid var(--green-rule); border-radius: 2px;
+    cursor: pointer; background: transparent; color: var(--green);
+    transition: all .15s; display: inline-block;
+  }
+  .reveal-btn:hover { background: var(--green-bg); }
+
+  /* ── Answer panel ── */
+  .answer-panel {
+    display: none; margin-top: 8px; padding: 10px 12px;
+    background: var(--green-bg); border: 1px solid var(--green-rule);
+    border-radius: 3px; font-size: 13.5px; line-height: 1.8; color: var(--green);
+  }
+  .answer-panel .ans-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--green); margin-bottom: 4px; display: block;
+  }
+
+  /* ── Graph grid ── */
+  .graph-wrap { margin-top: 12px; display: flex; justify-content: center; }
+  .graph-box {
+    position: relative; width: 240px; height: 240px;
+    border: 1.5px solid var(--ink-mid); background: white; overflow: hidden;
+  }
+  .graph-box svg { position: absolute; top:0; left:0; width:100%; height:100%; }
+
+  /* ── Footer ── */
+  .exam-footer {
+    padding: 16px 48px; border-top: 2px solid var(--rule);
+    font-family: var(--sans); font-size: 11px; color: var(--ink-light);
+    display: flex; justify-content: space-between;
+  }
+
+  @media (max-width: 620px) {
+    .exam-head,.info-bar,.controls,.body-pad,.exam-footer,.seed-banner { padding-left:18px; padding-right:18px; }
+    .two-col { grid-template-columns: 1fr; }
+    .problem.right { padding: 22px 0; border-left: none; border-bottom: 1px solid var(--rule); }
+    .problem.no-bottom.right { border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="exam-head">
+    <div class="district">Dallas ISD — Mathematics</div>
+    <div class="exam-title">Unit 8 Exam Review</div>
+    <div class="exam-sub">Rational Functions — 2025–2026</div>
+  </div>
+
+  <!-- Seed banner — visible to student, printable -->
+  <div class="seed-banner">
+    <span>Your assignment code:</span>
+    <span class="seed-code" id="seedDisplay">—</span>
+    <span class="seed-note">Write this on your paper. Your teacher uses this code to verify your version.</span>
+  </div>
+
+  <div class="info-bar">
+    <div class="info-field"><span>Name</span><input class="info-line" style="min-width:180px"></div>
+    <div class="info-field"><span>Class Period</span><input class="info-line" style="min-width:50px"></div>
+    <div class="info-field"><span>Phone Slot #</span><input class="info-line" style="min-width:50px"></div>
+  </div>
+
+  <div class="controls no-print">
+    <button class="btn green-btn" onclick="revealAll()">Show all answers</button>
+    <button class="btn" onclick="hideAll()">Hide all answers</button>
+    <button class="btn" onclick="window.print()">Print</button>
+  </div>
+
+  <div class="body-pad">
+  <div class="two-col" id="questionGrid">
+    <!-- Populated by JS -->
+  </div>
+  </div>
+
+  <div class="exam-footer">
+    <span>Dallas ISD — Unit 8 Exam Review — Rational Functions</span>
+    <span id="footerSeed"></span>
+  </div>
+
+</div><!-- .page -->
+
+<script>
+// ─────────────────────────────────────────────
+// Seeded pseudo-random number generator (Mulberry32)
+// Guarantees the same numbers for the same seed
+// ─────────────────────────────────────────────
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// Pick a random seed on page load (4-digit code students write down)
+const SEED = Math.floor(1000 + Math.random() * 9000);
+const rng  = mulberry32(SEED);
+
+document.getElementById('seedDisplay').textContent  = SEED;
+document.getElementById('footerSeed').textContent   = 'Code: ' + SEED;
+
+// ─────────────────────────────────────────────
+// Helper: pick integer from array using seeded rng
+// ─────────────────────────────────────────────
+function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
+function pickInt(lo, hi) { return lo + Math.floor(rng() * (hi - lo + 1)); }
+
+// ─────────────────────────────────────────────
+// Variable generation — all seeded
+// ─────────────────────────────────────────────
+
+// Q1: domain — f(x) = N / (x^2 + Bx + C), roots at -p and -q (both negative, p<q)
+const q1_p = pick([3,4,5,6,7]);
+const q1_q = q1_p + pick([2,3,4,5]);
+const q1_B = q1_p + q1_q;          // coefficient of x  (sum of roots, signs flip)
+const q1_C = q1_p * q1_q;          // constant term
+const q1_N = pick([2,3,5,7,9,11]);
+// roots of denominator: x = -p and x = -q
+// domain excludes x = -q (smaller) and x = -p (larger)
+const q1_r1 = -q1_q;  // more negative
+const q1_r2 = -q1_p;  // less negative
+
+// Q5: range — f(x) = A/(x - h) + k, range excludes k
+const q5_h = pick([1,2,3,4,5,6,-1,-2,-3]);
+const q5_k = pick([-6,-5,-4,-3,-2,2,3,4,5,6]);
+const q5_A = pick([1,2,3,4,5]);
+
+// Q6: domain & range — f(x) = A/(x + h) + k
+const q6_h = pick([1,2,3,4,5,6,7,-1,-2,-3,-4]);
+const q6_k = pick([2,3,4,5,6,7,8,-2,-3,-4,-5]);
+const q6_A = pick([1,2,3,4,5]);
+// domain excludes x = -h, range excludes y = k
+
+// Q2 graph: g(x) = a*f(x - h) + k  where f=1/x
+const q2_a = pick([-3,-2,-1,2,3]);   // includes reflection if negative
+const q2_h = pick([2,3,4,5,-2,-3,-4]);
+const q2_k = pick([-3,-2,2,3,4]);
+
+// Q3 transformation description
+const q3_a_num = pick([1,1,1,3,2]);   // numerator of compression factor
+const q3_a_den = pick([3,4,5,2,6]);   // denominator
+const q3_h = pick([-5,-4,-3,-2,2,3,4,5]);  // shift (neg = left, pos = right)
+const q3_k = pick([-8,-7,-6,-5,5,6,7,8]);  // vertical shift
+
+// Q4 graph: g(x) = (1/d)*f(x - h) + k
+const q4_d = pick([2,3,4,5]);
+const q4_h = pick([1,2,3,4,-1,-2,-3,-4]);
+const q4_k = pick([1,2,3,4,-1,-2,-3,-4]);
+
+// Q7: (a + p)/(a + m) + (a - p)/(a - m)   add rational expressions
+const q7_p = pick([3,4,5,6,7,8]);
+const q7_m = pick([1,2,3,4,5]);
+
+// Q8: subtraction of rationals with factorable denominators
+const q8_r = pick([2,3,4,5]);   // root for (3a+r) factor
+const q8_s = pick([2,3,4,5]);   // second factor (a+s)
+// denom1 = (3a+r)(a+s), denom2 = (3a+r)
+// expr: (Ba - C)/[(3a+r)(a+s)] - D/(3a+r)
+
+const q8_B = pick([4,5,6,7,8,9,10]);
+const q8_C = pick([5,6,7,8,9,10,12,14,15,18]);
+const q8_D = pick([2,3,4,5,6,7]);
+
+// Q11: vertical & horizontal asymptotes of (x^2 + Ax + B)/(x^2 - C)
+// numerator roots: x=r1, x=r2; denominator roots: x=±d
+const q11_r1 = pick([1,2,3,4,5,6]);
+const q11_r2 = pick([7,8,9,10,11,12]);
+const q11_A  = -(q11_r1 + q11_r2);   // wait — use standard form: roots give x^2 - (r1+r2)x + r1*r2
+// Actually build: num = (x - r1)(x - r2) = x^2 - (r1+r2)x + r1*r2
+const q11_numA = -(q11_r1 + q11_r2);
+const q11_numB = q11_r1 * q11_r2;
+const q11_d    = pick([2,3,4,5,6]);   // denom = x^2 - d^2, VA at ±d
+// Make sure roots of numerator ≠ ±d (no holes)
+// Horizontal asymptote = 1 (equal degrees, lead coefficients both 1)
+
+// Q12: VA and HA of f(x) = A/(x + h) + k
+const q12_h = pick([2,3,4,5,6,7,8,-2,-3,-4,-5,-6]);
+const q12_k = pick([5,6,7,8,9,10,11,12,13,14,15,-5,-6,-7,-8]);
+const q12_A2 = pick([1,2,3,4,5]);
+
+// Q13: zeros of f(x) = (x^3 + ax^2 + bx) / (x - c)
+// numerator = x(x^2 + ax + b) = x(x+p)(x+q)
+const q13_p = pick([3,4,5,6,7,8]);
+const q13_q = pick([-9,-8,-7,-6,-5,-4,-3]);
+const q13_a = q13_p + q13_q;
+const q13_b = q13_p * q13_q;
+// VA at x = c (c ≠ 0, -p, -q)
+let q13_c = pick([2,3,4,5,10,11,12]);
+// Ensure c doesn't equal a zero (0, -p, -q)
+while ([0, -q13_p, -q13_q].includes(q13_c)) q13_c++;
+
+// ─────────────────────────────────────────────
+// Sign helpers
+// ─────────────────────────────────────────────
+function pm(n) { return n < 0 ? `- ${Math.abs(n)}` : `+ ${n}`; }
+function pmCoef(n) { return n < 0 ? `- ${Math.abs(n)}` : `+ ${n}`; }
+function signedInt(n) { return n < 0 ? `${n}` : `+${n}`; }
+function frac(num, den) { return den === 1 ? `${num}` : `\\dfrac{${num}}{${den}}`; }
+
+// ─────────────────────────────────────────────
+// Graph SVG helper (reusable coordinate grid)
+// ─────────────────────────────────────────────
+function gridSVG() {
+  let lines = '';
+  for (let i = 1; i <= 11; i++) {
+    lines += `<line x1="${i*20}" y1="0" x2="${i*20}" y2="240" stroke="#e0dcd4" stroke-width="0.5"/>`;
+    lines += `<line x1="0" y1="${i*20}" x2="240" y2="${i*20}" stroke="#e0dcd4" stroke-width="0.5"/>`;
+  }
+  let ticks = '';
+  for (let i = 1; i <= 11; i++) {
+    if (i !== 6) {
+      ticks += `<line x1="${i*20}" y1="117" x2="${i*20}" y2="123" stroke="#555" stroke-width="1"/>`;
+      ticks += `<line x1="117" y1="${i*20}" x2="123" y2="${i*20}" stroke="#555" stroke-width="1"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+    ${lines}
+    <line x1="0" y1="120" x2="240" y2="120" stroke="#555" stroke-width="1.5"/>
+    <line x1="120" y1="0" x2="120" y2="240" stroke="#555" stroke-width="1.5"/>
+    ${ticks}
+    <polygon points="240,120 233,116 233,124" fill="#555"/>
+    <polygon points="120,0 116,7 124,7" fill="#555"/>
+  </svg>`;
+}
+
+function graphBox(svgContent) {
+  return `<div class="graph-wrap"><div class="graph-box">${svgContent}</div></div>`;
+}
+
+// ─────────────────────────────────────────────
+// Answer panel reveal helpers
+// ─────────────────────────────────────────────
+function revealBtn(id) {
+  return `<button class="reveal-btn no-print" onclick="reveal('${id}')">Show answer</button>`;
+}
+function answerPanel(id, html) {
+  return `<div class="answer-panel" id="${id}"><span class="ans-label">Answer</span>${html}</div>`;
+}
+function badge() {
+  return `<span class="personal-badge">personalized</span>`;
+}
+
+// ─────────────────────────────────────────────
+// Build question HTML strings
+// ─────────────────────────────────────────────
+
+// Q1
+const q1_expr = `\\frac{${q1_N}}{x^2 + ${q1_B}x + ${q1_C}}`;
+const q1_ans  = `Factor: \\((x ${pm(q1_r2)})(x ${pm(q1_r1)}) = 0\\) → \\(x=${q1_r2}\\) and \\(x=${q1_r1}\\).<br>
+\\(\\text{Domain: }(-\\infty,\\,${q1_r1})\\cup(${q1_r1},\\,${q1_r2})\\cup(${q1_r2},\\,\\infty)\\)`;
+
+// Q5
+const q5_sign = q5_h < 0 ? `+ ${Math.abs(q5_h)}` : `- ${q5_h}`;
+const q5_expr = `\\frac{${q5_A}}{x ${q5_sign}} ${pm(q5_k)}`;
+const q5_ans  = `The horizontal asymptote is \\(y=${q5_k}\\), so \\(f(x)\\) never equals \\(${q5_k}\\).<br>
+\\(\\text{Range: }(-\\infty,\\,${q5_k})\\cup(${q5_k},\\,\\infty)\\)`;
+
+// Q6
+const q6_hsign = q6_h < 0 ? `- ${Math.abs(q6_h)}` : `+ ${q6_h}`;
+const q6_va    = -q6_h;
+const q6_expr  = `\\frac{${q6_A}}{x ${q6_hsign}} ${pm(q6_k)}`;
+const q6_ans   = `Vertical asymptote at \\(x=${q6_va}\\); horizontal asymptote at \\(y=${q6_k}\\).<br>
+\\(\\text{Domain: }(-\\infty,\\,${q6_va})\\cup(${q6_va},\\,\\infty)\\)<br>
+\\(\\text{Range: }(-\\infty,\\,${q6_k})\\cup(${q6_k},\\,\\infty)\\)`;
+
+// Q2
+const q2_aStr  = q2_a === 1 ? '' : q2_a === -1 ? '-' : `${q2_a}`;
+const q2_hSign = q2_h < 0 ? `+ ${Math.abs(q2_h)}` : `- ${q2_h}`;
+const q2_expr  = `g(x) = ${q2_aStr}f(x ${q2_hSign}) ${pm(q2_k)}`;
+const q2_va    = q2_h;
+const q2_reflected = q2_a < 0 ? 'Reflected over \\(x\\)-axis. ' : '';
+const q2_stretch   = Math.abs(q2_a) > 1 ? `Vertically stretched by \\(${Math.abs(q2_a)}\\). ` :
+                     Math.abs(q2_a) < 1 ? `Vertically compressed by \\(${Math.abs(q2_a)}\\). ` : '';
+const q2_ans   = `Vertical asymptote: \\(x=${q2_va}\\)<br>
+Horizontal asymptote: \\(y=${q2_k}\\)<br>
+${q2_reflected}${q2_stretch}Shifted ${Math.abs(q2_h)} units ${q2_h>0?'right':'left'} and ${Math.abs(q2_k)} units ${q2_k>0?'up':'down'}.`;
+
+// Q3
+const q3_aFrac  = q3_a_num === 1 && q3_a_den === 1 ? '1' : `\\tfrac{${q3_a_num}}{${q3_a_den}}`;
+const q3_hSign  = q3_h < 0 ? `- ${Math.abs(q3_h)}` : `+ ${q3_h}`;
+const q3_expr   = `g(x) = ${q3_aFrac}\\,f(x ${q3_hSign}) ${pm(q3_k)}`;
+const q3_dir    = q3_h < 0 ? `${Math.abs(q3_h)} units left` : `${q3_h} units right`;
+const q3_vdir   = q3_k < 0 ? `${Math.abs(q3_k)} units down` : `${q3_k} units up`;
+const q3_compress = q3_a_num < q3_a_den ? `compressed by \\(\\tfrac{${q3_a_num}}{${q3_a_den}}\\)` : `stretched by \\(\\tfrac{${q3_a_num}}{${q3_a_den}}\\)`;
+const q3_ans    = `Vertically ${q3_compress}, translated ${q3_dir} and ${q3_vdir}.<br>
+New asymptotes: vertical \\(x=${-q3_h}\\), horizontal \\(y=${q3_k}\\).`;
+
+// Q4
+const q4_hSign = q4_h < 0 ? `+ ${Math.abs(q4_h)}` : `- ${q4_h}`;
+const q4_expr  = `g(x) = \\tfrac{1}{${q4_d}}\\,f(x ${q4_hSign}) ${pm(q4_k)}`;
+const q4_ans   = `Vertical asymptote: \\(x=${q4_h}\\)<br>
+Horizontal asymptote: \\(y=${q4_k}\\)<br>
+Compressed by \\(\\tfrac{1}{${q4_d}}\\), shifted ${Math.abs(q4_h)} units ${q4_h>0?'right':'left'} and ${Math.abs(q4_k)} units ${q4_k>0?'up':'down'}. No reflection.`;
+
+// Q7  (a-p)/(a+m) + (a+p)/(a-m)  — LCD = (a+m)(a-m)
+// Numerators: (a-p)(a-m) + (a+p)(a+m)
+// = a²-ma-pa+pm + a²+ma+pa+pm = 2a² + 2pm
+const q7_prod  = q7_p * q7_m;
+const q7_num   = `2a^2 + ${2*q7_prod}`;
+const q7_den   = `a^2 - ${q7_m**2}`;
+const q7_expr  = `\\frac{a-${q7_p}}{a+${q7_m}}+\\frac{a+${q7_p}}{a-${q7_m}}`;
+const q7_ans   = `LCD \\(=(a+${q7_m})(a-${q7_m})\\)<br>
+\\((a-${q7_p})(a-${q7_m})+(a+${q7_p})(a+${q7_m})\\)<br>
+\\(= (a^2-${q7_m+q7_p}a+${q7_p*q7_m})+(a^2+${q7_m+q7_p}a+${q7_p*q7_m})\\)<br>
+\\(= ${q7_num}\\)<br>
+\\[\\frac{${q7_num}}{${q7_den}} = \\frac{2(a^2+${q7_prod})}{(a+${q7_m})(a-${q7_m})}\\]`;
+
+// Q8
+const q8_denom1_expand_B = 3*q8_s + q8_r;
+const q8_denom1_expand_C = q8_r * q8_s;
+const q8_expr = `\\frac{${q8_B}a-${q8_C}}{3a^2+${q8_denom1_expand_B}a+${q8_denom1_expand_C}}-\\frac{${q8_D}}{3a+${q8_r}}`;
+// After combining: numerator = (Ba - C) - D(a + s) = (B-D)a - (C + D*s)
+const q8_resA = q8_B - q8_D;
+const q8_resB = q8_C + q8_D * q8_s;
+const q8_ans  = `Factor denominator: \\(3a^2+${q8_denom1_expand_B}a+${q8_denom1_expand_C}=(3a+${q8_r})(a+${q8_s})\\)<br>
+\\(\\dfrac{${q8_B}a-${q8_C}}{(3a+${q8_r})(a+${q8_s})}-\\dfrac{${q8_D}(a+${q8_s})}{(3a+${q8_r})(a+${q8_s})}\\)<br>
+Numerator: \\((${q8_B}a-${q8_C})-${q8_D}(a+${q8_s})=${q8_resA}a-${q8_resB}\\)<br>
+\\[\\frac{${q8_resA}a-${q8_resB}}{(3a+${q8_r})(a+${q8_s})}\\]`;
+
+// Q11
+const q11_expr = `\\frac{x^2 ${pm(q11_numA)}x ${pm(q11_numB)}}{x^2-${q11_d**2}}`;
+const q11_ans  = `Factor numerator: \\((x-${q11_r1})(x-${q11_r2})\\). Factor denominator: \\((x-${q11_d})(x+${q11_d})\\).<br>
+No common factors → no holes.<br>
+Vertical asymptotes: \\(x=${q11_d}\\) and \\(x=-${q11_d}\\)<br>
+Equal degrees → horizontal asymptote: \\(y=1\\)`;
+
+// Q12
+const q12_va   = -q12_h;
+const q12_hsign = q12_h < 0 ? `- ${Math.abs(q12_h)}` : `+ ${q12_h}`;
+const q12_expr = `\\frac{${q12_A2}}{x ${q12_hsign}} ${pm(q12_k)}`;
+const q12_ans  = `This is \\(\\dfrac{${q12_A2}}{x}\\) shifted ${Math.abs(q12_h)} units ${q12_h>0?'left':'right'} and ${Math.abs(q12_k)} units ${q12_k>0?'up':'down'}.<br>
+Vertical asymptote: \\(x=${q12_va}\\)<br>
+Horizontal asymptote: \\(y=${q12_k}\\)`;
+
+// Q13
+const q13_bSign = q13_b < 0 ? `- ${Math.abs(q13_b)}` : `+ ${q13_b}`;
+const q13_aSign = q13_a < 0 ? `- ${Math.abs(q13_a)}` : `+ ${q13_a}`;
+const q13_expr  = `\\frac{x^3 ${q13_aSign}x^2 ${q13_bSign}x}{x-${q13_c}}`;
+const q13_ans   = `Factor numerator: \\(x(x^2 ${q13_aSign}x ${q13_bSign}) = x(x+${q13_p})(x${pm(q13_q)})\\)<br>
+\\(x=${q13_c}\\) is a vertical asymptote (denominator only), not a zero.<br>
+Set numerator \\(=0\\):<br>
+\\[\\boxed{x=0,\\quad x=-${q13_p},\\quad x=${-q13_q}}\\]`;
+
+// ─────────────────────────────────────────────
+// Render questions into the grid
+// ─────────────────────────────────────────────
+const questions = [
+  // LEFT col, RIGHT col pairs
+  [
+    {
+      num: '1', right: false,
+      text: `What is the domain of the function ${badge()}`,
+      display: `\\[ f(x) = ${q1_expr} \\]`,
+      ansId: 'a1', ansHtml: q1_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Write your answer here…"></textarea>`
+    },
+    {
+      num: '5', right: true,
+      text: `What is the range of the function ${badge()}`,
+      display: `\\[ f(x) = ${q5_expr} \\]`,
+      ansId: 'a5', ansHtml: q5_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Write your answer here…"></textarea>`
+    }
+  ],
+  [
+    {
+      num: '2', right: false,
+      text: `Given \\(f(x)=\\dfrac{1}{x}\\), graph ${badge()}`,
+      display: `\\[ ${q2_expr} \\]`,
+      ansId: 'a2', ansHtml: q2_ans,
+      extra: graphBox(gridSVG()),
+      input: ''
+    },
+    {
+      num: '6', right: true,
+      text: `What is the domain and range of the function ${badge()}`,
+      display: `\\[ f(x) = ${q6_expr} \\]`,
+      ansId: 'a6', ansHtml: q6_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <div class="two-inputs">
+                <div><div class="sub-label">Domain</div><textarea class="answer-input" rows="2" placeholder="Domain…"></textarea></div>
+                <div><div class="sub-label">Range</div><textarea class="answer-input" rows="2" placeholder="Range…"></textarea></div>
+              </div>`
+    }
+  ],
+  [
+    {
+      num: '3', right: false,
+      text: `If \\(f(x)=\\dfrac{1}{x}\\) is changed to \\[${q3_expr}\\] how is the graph transformed? ${badge()}`,
+      display: '',
+      ansId: 'a3', ansHtml: q3_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="3" placeholder="Describe the transformations…"></textarea>`
+    },
+    {
+      num: '7', right: true,
+      text: `Simplify ${badge()}`,
+      display: `\\[ ${q7_expr} \\]`,
+      ansId: 'a7', ansHtml: q7_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`
+    }
+  ],
+  [
+    {
+      num: '4', right: false,
+      text: `Given \\(f(x)=\\dfrac{1}{x}\\), graph ${badge()}`,
+      display: `\\[ ${q4_expr} \\]`,
+      ansId: 'a4', ansHtml: q4_ans,
+      extra: graphBox(gridSVG()),
+      input: ''
+    },
+    {
+      num: '8', right: true,
+      text: `Simplify ${badge()}`,
+      display: `\\[ ${q8_expr} \\]`,
+      ansId: 'a8', ansHtml: q8_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`
+    }
+  ],
+  // Q9 and Q10 static (complex factoring — personalizing would require full poly solver)
+  [
+    {
+      num: '9', right: false,
+      text: 'Simplify',
+      display: `\\[ \\frac{2b^2-7b}{4b^2+9b-9} \\cdot \\frac{b^2+9b-10}{2b^2-9b+10} \\]`,
+      ansId: 'a9',
+      ansHtml: `Factor each polynomial:<br>
+        \\(2b^2-7b = b(2b-7)\\)<br>
+        \\(4b^2+9b-9 = (4b-3)(b+3)\\)<br>
+        \\(b^2+9b-10 = (b+10)(b-1)\\)<br>
+        \\(2b^2-9b+10 = (2b-5)(b-2)\\)<br>
+        No common factors cancel, so:<br>
+        \\[\\frac{b(2b-7)(b+10)(b-1)}{(4b-3)(b+3)(2b-5)(b-2)}\\]`,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`
+    },
+    {
+      num: '10', right: true,
+      text: 'Simplify',
+      display: `\\[ \\frac{2b^2+4b-30}{(b-1)^2+9} \\div \\frac{b^2+4b-5}{b-10} \\]`,
+      ansId: 'a10',
+      ansHtml: `Please verify this expression against your original worksheet — the PDF encoding was partially corrupted for Q10.`,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`
+    }
+  ],
+  [
+    {
+      num: '11', right: false,
+      text: `What are the vertical and horizontal asymptotes of the function ${badge()}`,
+      display: `\\[ f(x)=${q11_expr} \\]`,
+      ansId: 'a11', ansHtml: q11_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <div class="two-inputs">
+                <div><div class="sub-label">Vertical asymptote(s)</div><textarea class="answer-input" rows="2" placeholder="x = …"></textarea></div>
+                <div><div class="sub-label">Horizontal asymptote</div><textarea class="answer-input" rows="2" placeholder="y = …"></textarea></div>
+              </div>`
+    },
+    {
+      num: '12', right: true,
+      text: `What are the vertical and horizontal asymptotes of the function ${badge()}`,
+      display: `\\[ f(x)=${q12_expr} \\]`,
+      ansId: 'a12', ansHtml: q12_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <div class="two-inputs">
+                <div><div class="sub-label">Vertical asymptote</div><textarea class="answer-input" rows="2" placeholder="x = …"></textarea></div>
+                <div><div class="sub-label">Horizontal asymptote</div><textarea class="answer-input" rows="2" placeholder="y = …"></textarea></div>
+              </div>`
+    }
+  ],
+  [
+    {
+      num: '13', right: false, noBottom: true,
+      text: `What are the zeros of the function ${badge()}`,
+      display: `\\[ f(x)=${q13_expr} \\]`,
+      ansId: 'a13', ansHtml: q13_ans,
+      input: `<div class="answer-label">Your answer</div>
+              <textarea class="answer-input" rows="2" placeholder="List all zeros…"></textarea>`
+    },
+    { num: '', right: true, noBottom: true, text: '', display: '', ansId: '', ansHtml: '', input: '' }
+  ]
+];
+
+function renderQuestion(q) {
+  if (!q.num) return `<div class="problem right no-bottom"></div>`;
+  const classes = ['problem', q.right ? 'right' : '', q.noBottom ? 'no-bottom' : ''].filter(Boolean).join(' ');
+  const revBtn  = q.ansId ? revealBtn(q.ansId) : '';
+  const panel   = q.ansId ? answerPanel(q.ansId, q.ansHtml) : '';
+  return `
+    <div class="${classes}">
+      <div class="p-num">${q.num}</div>
+      <div class="p-text">${q.text}</div>
+      ${q.display ? `<div class="p-display">${q.display}</div>` : ''}
+      ${q.extra || ''}
+      ${q.input}
+      <div class="no-print">${revBtn}${panel}</div>
+    </div>`;
+}
+
+const grid = document.getElementById('questionGrid');
+grid.innerHTML = questions.map(pair => pair.map(renderQuestion).join('')).join('');
+
+// Typeset after rendering
+if (window.MathJax) MathJax.startup.promise.then(() => MathJax.typesetPromise([grid]));
+
+// ─────────────────────────────────────────────
+// Reveal controls
+// ─────────────────────────────────────────────
+function reveal(id) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const btn  = panel.previousElementSibling;
+  const open = panel.style.display === 'block';
+  panel.style.display = open ? 'none' : 'block';
+  if (btn && btn.classList.contains('reveal-btn')) btn.textContent = open ? 'Show answer' : 'Hide answer';
+  if (!open && window.MathJax) MathJax.typesetPromise([panel]);
+}
+
+function revealAll() {
+  document.querySelectorAll('.answer-panel').forEach(p => {
+    p.style.display = 'block';
+    const b = p.previousElementSibling;
+    if (b && b.classList.contains('reveal-btn')) b.textContent = 'Hide answer';
+  });
+  if (window.MathJax) MathJax.typesetPromise(document.querySelectorAll('.answer-panel'));
+}
+
+function hideAll() {
+  document.querySelectorAll('.answer-panel').forEach(p => {
+    p.style.display = 'none';
+    const b = p.previousElementSibling;
+    if (b && b.classList.contains('reveal-btn')) b.textContent = 'Show answer';
+  });
+}
+</script>
+</body>
+</html>
