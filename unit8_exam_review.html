@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 8 Exam Review — Rational Functions</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  startup: {
+    ready() {
+      MathJax.startup.defaultReady();
+    }
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<style>
+  :root {
+    --ink:        #1a1814;
+    --ink-mid:    #4a4540;
+    --ink-light:  #8a857e;
+    --rule:       #d8d2c8;
+    --page:       #faf8f4;
+    --cream:      #f0ece4;
+    --accent:     #1a4a8a;
+    --accent-lt:  #e8eef7;
+    --green:      #1a6640;
+    --green-bg:   #eaf4ee;
+    --green-rule: #7abf9a;
+    --serif:      'Source Serif 4', Georgia, serif;
+    --sans:       'DM Sans', system-ui, sans-serif;
+    --mono:       'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; max-width: 100%; }
+    .answer-panel { display: none !important; }
+  }
+
+  body {
+    font-family: var(--serif);
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    padding: 24px 16px 60px;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--page);
+    box-shadow: 0 2px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
+  }
+
+  /* ── Header ── */
+  .exam-head {
+    padding: 32px 48px 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .district {
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-light); margin-bottom: 4px;
+  }
+  .exam-title { font-size: 24px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 2px; }
+  .exam-sub   { font-size: 13px; font-style: italic; color: var(--ink-mid); font-family: var(--sans); }
+
+  /* ── Info bar ── */
+  .info-bar {
+    padding: 14px 48px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; gap: 28px;
+    font-family: var(--sans); font-size: 13px; color: var(--ink-mid);
+    flex-wrap: wrap; align-items: center;
+  }
+  .info-field { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .info-line {
+    flex: 1; min-width: 60px;
+    border: none; border-bottom: 1px solid var(--ink-mid);
+    background: transparent; font-family: var(--serif); font-size: 14px;
+    color: var(--ink); outline: none; padding: 1px 2px;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    padding: 10px 48px;
+    border-bottom: 1px solid var(--rule);
+    display: flex; gap: 10px; align-items: center;
+    background: var(--cream); flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    letter-spacing: .04em; padding: 6px 16px;
+    border: 1px solid var(--rule); border-radius: 2px;
+    cursor: pointer; background: var(--page); color: var(--ink-mid);
+    transition: all .15s;
+  }
+  .btn:hover { border-color: var(--ink-mid); color: var(--ink); }
+  .btn.green-btn { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.green-btn:hover { background: #134d30; }
+
+  /* ── Body / grid ── */
+  .body-pad { padding: 0 48px 36px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; }
+
+  /* ── Problem cell ── */
+  .problem {
+    padding: 22px 24px 22px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .problem.right {
+    padding: 22px 0 22px 24px;
+    border-left: 1px solid var(--rule);
+  }
+  .problem.no-bottom,
+  .problem.no-bottom.right { border-bottom: none; }
+
+  .p-num {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    color: var(--ink-light); margin-bottom: 6px; letter-spacing: .06em;
+  }
+  .p-text { font-size: 14.5px; line-height: 1.7; margin-bottom: 4px; }
+  .p-display { margin: 8px 0 6px; font-size: 14px; }
+
+  /* ── Student answer input ── */
+  .answer-label {
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .05em; text-transform: uppercase;
+    color: var(--ink-light); margin-top: 14px; margin-bottom: 5px;
+  }
+  .answer-input {
+    width: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: white;
+    padding: 7px 10px;
+    font-family: var(--serif); font-size: 14px;
+    color: var(--ink); outline: none;
+    resize: vertical; min-height: 42px;
+    transition: border-color .15s;
+  }
+  .answer-input:focus { border-color: var(--accent); }
+  .answer-input::placeholder { color: var(--ink-light); font-style: italic; }
+
+  .two-inputs { display: flex; flex-direction: column; gap: 6px; }
+  .sub-label {
+    font-family: var(--sans); font-size: 11px; color: var(--ink-light); margin-bottom: 2px;
+  }
+
+  /* ── Per-question reveal button ── */
+  .reveal-btn {
+    margin-top: 8px;
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
+    letter-spacing: .04em; padding: 4px 12px;
+    border: 1px solid var(--green-rule); border-radius: 2px;
+    cursor: pointer; background: transparent; color: var(--green);
+    transition: all .15s; display: inline-block;
+  }
+  .reveal-btn:hover { background: var(--green-bg); }
+
+  /* ── Answer panel ── */
+  .answer-panel {
+    display: none;
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--green-bg);
+    border: 1px solid var(--green-rule);
+    border-radius: 3px;
+    font-size: 13.5px; line-height: 1.8;
+    color: var(--green);
+  }
+  .answer-panel .ans-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--green); margin-bottom: 4px; display: block;
+  }
+
+  /* ── Graph grid ── */
+  .graph-wrap { margin-top: 12px; display: flex; justify-content: center; }
+  .graph-box {
+    position: relative; width: 240px; height: 240px;
+    border: 1.5px solid var(--ink-mid); background: white; overflow: hidden;
+  }
+  .graph-box svg { position: absolute; top:0; left:0; width:100%; height:100%; }
+
+  /* ── Footer ── */
+  .exam-footer {
+    padding: 16px 48px;
+    border-top: 2px solid var(--rule);
+    font-family: var(--sans); font-size: 11px; color: var(--ink-light);
+    display: flex; justify-content: space-between;
+  }
+
+  @media (max-width: 620px) {
+    .exam-head,.info-bar,.controls,.body-pad,.exam-footer { padding-left:18px; padding-right:18px; }
+    .two-col { grid-template-columns: 1fr; }
+    .problem.right { padding: 22px 0; border-left: none; border-bottom: 1px solid var(--rule); }
+    .problem.no-bottom.right { border-bottom: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="exam-head">
+    <div class="district">Dallas ISD — Mathematics</div>
+    <div class="exam-title">Unit 8 Exam Review</div>
+    <div class="exam-sub">Rational Functions — 2025–2026</div>
+  </div>
+
+  <!-- Student info -->
+  <div class="info-bar">
+    <div class="info-field">
+      <span>Name</span><input class="info-line" style="min-width:180px">
+    </div>
+    <div class="info-field">
+      <span>Class Period</span><input class="info-line" style="min-width:50px">
+    </div>
+    <div class="info-field">
+      <span>Phone Slot #</span><input class="info-line" style="min-width:50px">
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls no-print">
+    <button class="btn green-btn" onclick="revealAll()">Show all answers</button>
+    <button class="btn" onclick="hideAll()">Hide all answers</button>
+    <button class="btn" onclick="window.print()">Print</button>
+  </div>
+
+  <!-- ═══════════════ PROBLEMS ═══════════════ -->
+  <div class="body-pad">
+  <div class="two-col">
+
+    <!-- Q1 -->
+    <div class="problem">
+      <div class="p-num">1</div>
+      <div class="p-text">What is the domain of the function</div>
+      <div class="p-display">\[ f(x) = \frac{7}{x^2+12x+35} \]</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Write your answer here…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a1')">Show answer</button>
+      <div class="answer-panel" id="a1">
+        <span class="ans-label">Answer</span>
+        Factor the denominator: \((x+5)(x+7)=0\) gives \(x=-5\) and \(x=-7\).<br>
+        \(\text{Domain: }(-\infty,-7)\cup(-7,-5)\cup(-5,\infty)\)
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="problem right">
+      <div class="p-num">5</div>
+      <div class="p-text">What is the range of the function</div>
+      <div class="p-display">\[ f(x) = \frac{1}{x-2} - 4 \]</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Write your answer here…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a5')">Show answer</button>
+      <div class="answer-panel" id="a5">
+        <span class="ans-label">Answer</span>
+        The horizontal asymptote is \(y=-4\), so \(f(x)\) never equals \(-4\).<br>
+        \(\text{Range: }(-\infty,-4)\cup(-4,\infty)\)
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="problem">
+      <div class="p-num">2</div>
+      <div class="p-text">Given \(f(x)=\dfrac{1}{x}\), graph</div>
+      <div class="p-display">\[ g(x)=-2f(x-5)+2 \]</div>
+      <div class="graph-wrap">
+        <div class="graph-box">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#e0dcd4" stroke-width="0.5">
+              <line x1="20" y1="0" x2="20" y2="240"/><line x1="40" y1="0" x2="40" y2="240"/><line x1="60" y1="0" x2="60" y2="240"/><line x1="80" y1="0" x2="80" y2="240"/><line x1="100" y1="0" x2="100" y2="240"/><line x1="120" y1="0" x2="120" y2="240"/><line x1="140" y1="0" x2="140" y2="240"/><line x1="160" y1="0" x2="160" y2="240"/><line x1="180" y1="0" x2="180" y2="240"/><line x1="200" y1="0" x2="200" y2="240"/><line x1="220" y1="0" x2="220" y2="240"/>
+              <line x1="0" y1="20" x2="240" y2="20"/><line x1="0" y1="40" x2="240" y2="40"/><line x1="0" y1="60" x2="240" y2="60"/><line x1="0" y1="80" x2="240" y2="80"/><line x1="0" y1="100" x2="240" y2="100"/><line x1="0" y1="120" x2="240" y2="120"/><line x1="0" y1="140" x2="240" y2="140"/><line x1="0" y1="160" x2="240" y2="160"/><line x1="0" y1="180" x2="240" y2="180"/><line x1="0" y1="200" x2="240" y2="200"/><line x1="0" y1="220" x2="240" y2="220"/>
+            </g>
+            <line x1="0" y1="120" x2="240" y2="120" stroke="#555" stroke-width="1.5"/>
+            <line x1="120" y1="0" x2="120" y2="240" stroke="#555" stroke-width="1.5"/>
+            <g stroke="#555" stroke-width="1">
+              <line x1="20" y1="117" x2="20" y2="123"/><line x1="40" y1="117" x2="40" y2="123"/><line x1="60" y1="117" x2="60" y2="123"/><line x1="80" y1="117" x2="80" y2="123"/><line x1="100" y1="117" x2="100" y2="123"/><line x1="140" y1="117" x2="140" y2="123"/><line x1="160" y1="117" x2="160" y2="123"/><line x1="180" y1="117" x2="180" y2="123"/><line x1="200" y1="117" x2="200" y2="123"/><line x1="220" y1="117" x2="220" y2="123"/>
+              <line x1="117" y1="20" x2="123" y2="20"/><line x1="117" y1="40" x2="123" y2="40"/><line x1="117" y1="60" x2="123" y2="60"/><line x1="117" y1="80" x2="123" y2="80"/><line x1="117" y1="100" x2="123" y2="100"/><line x1="117" y1="140" x2="123" y2="140"/><line x1="117" y1="160" x2="123" y2="160"/><line x1="117" y1="180" x2="123" y2="180"/><line x1="117" y1="200" x2="123" y2="200"/><line x1="117" y1="220" x2="123" y2="220"/>
+            </g>
+            <polygon points="240,120 233,116 233,124" fill="#555"/>
+            <polygon points="120,0 116,7 124,7" fill="#555"/>
+          </svg>
+        </div>
+      </div>
+      <button class="reveal-btn no-print" onclick="reveal('a2')" style="margin-top:10px">Show answer</button>
+      <div class="answer-panel" id="a2">
+        <span class="ans-label">Key features of \(g(x)=-2f(x-5)+2\)</span>
+        Vertical asymptote: \(x=5\)<br>
+        Horizontal asymptote: \(y=2\)<br>
+        Stretch factor 2, reflected over \(x\)-axis, shifted right 5, up 2.<br>
+        Upper-left branch approaches \(y=2\) from above; lower-right from below.
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="problem right">
+      <div class="p-num">6</div>
+      <div class="p-text">What is the domain and range of the function</div>
+      <div class="p-display">\[ f(x) = \frac{2}{x+4} + 7 \]</div>
+      <div class="answer-label">Your answer</div>
+      <div class="two-inputs">
+        <div>
+          <div class="sub-label">Domain</div>
+          <textarea class="answer-input" rows="2" placeholder="Domain…"></textarea>
+        </div>
+        <div>
+          <div class="sub-label">Range</div>
+          <textarea class="answer-input" rows="2" placeholder="Range…"></textarea>
+        </div>
+      </div>
+      <button class="reveal-btn no-print" onclick="reveal('a6')">Show answer</button>
+      <div class="answer-panel" id="a6">
+        <span class="ans-label">Answer</span>
+        Vertical asymptote at \(x=-4\); horizontal asymptote at \(y=7\).<br>
+        \(\text{Domain: }(-\infty,-4)\cup(-4,\infty)\)<br>
+        \(\text{Range: }(-\infty,7)\cup(7,\infty)\)
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="problem">
+      <div class="p-num">3</div>
+      <div class="p-text">If \(f(x)=\dfrac{1}{x}\) is changed to \[g(x)=\tfrac{1}{4}\,f(x+3)-7\] how is the graph transformed?</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="3" placeholder="Describe the transformations…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a3')">Show answer</button>
+      <div class="answer-panel" id="a3">
+        <span class="ans-label">Answer</span>
+        The graph of \(f(x)\) is vertically compressed by a factor of \(\tfrac{1}{4}\),
+        then translated 3 units <em>left</em> and 7 units <em>down</em>.<br>
+        New asymptotes: vertical \(x=-3\), horizontal \(y=-7\).
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="problem right">
+      <div class="p-num">7</div>
+      <div class="p-text">Simplify</div>
+      <div class="p-display">\[ \frac{a-10}{a+2}+\frac{a+10}{a-2} \]</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a7')">Show answer</button>
+      <div class="answer-panel" id="a7">
+        <span class="ans-label">Answer</span>
+        LCD \(=(a+2)(a-2)\)<br>
+        \((a-10)(a-2)+(a+10)(a+2)\)<br>
+        \(=(a^2-12a+20)+(a^2+12a+20)=2a^2+40\)<br>
+        \[\frac{2(a^2+20)}{(a+2)(a-2)}=\frac{2(a^2+20)}{a^2-4}\]
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="problem">
+      <div class="p-num">4</div>
+      <div class="p-text">Given \(f(x)=\dfrac{1}{x}\), graph</div>
+      <div class="p-display">\[ g(x)=\tfrac{1}{4}\,f(x-2)+3 \]</div>
+      <div class="graph-wrap">
+        <div class="graph-box">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#e0dcd4" stroke-width="0.5">
+              <line x1="20" y1="0" x2="20" y2="240"/><line x1="40" y1="0" x2="40" y2="240"/><line x1="60" y1="0" x2="60" y2="240"/><line x1="80" y1="0" x2="80" y2="240"/><line x1="100" y1="0" x2="100" y2="240"/><line x1="120" y1="0" x2="120" y2="240"/><line x1="140" y1="0" x2="140" y2="240"/><line x1="160" y1="0" x2="160" y2="240"/><line x1="180" y1="0" x2="180" y2="240"/><line x1="200" y1="0" x2="200" y2="240"/><line x1="220" y1="0" x2="220" y2="240"/>
+              <line x1="0" y1="20" x2="240" y2="20"/><line x1="0" y1="40" x2="240" y2="40"/><line x1="0" y1="60" x2="240" y2="60"/><line x1="0" y1="80" x2="240" y2="80"/><line x1="0" y1="100" x2="240" y2="100"/><line x1="0" y1="120" x2="240" y2="120"/><line x1="0" y1="140" x2="240" y2="140"/><line x1="0" y1="160" x2="240" y2="160"/><line x1="0" y1="180" x2="240" y2="180"/><line x1="0" y1="200" x2="240" y2="200"/><line x1="0" y1="220" x2="240" y2="220"/>
+            </g>
+            <line x1="0" y1="120" x2="240" y2="120" stroke="#555" stroke-width="1.5"/>
+            <line x1="120" y1="0" x2="120" y2="240" stroke="#555" stroke-width="1.5"/>
+            <g stroke="#555" stroke-width="1">
+              <line x1="20" y1="117" x2="20" y2="123"/><line x1="40" y1="117" x2="40" y2="123"/><line x1="60" y1="117" x2="60" y2="123"/><line x1="80" y1="117" x2="80" y2="123"/><line x1="100" y1="117" x2="100" y2="123"/><line x1="140" y1="117" x2="140" y2="123"/><line x1="160" y1="117" x2="160" y2="123"/><line x1="180" y1="117" x2="180" y2="123"/><line x1="200" y1="117" x2="200" y2="123"/><line x1="220" y1="117" x2="220" y2="123"/>
+              <line x1="117" y1="20" x2="123" y2="20"/><line x1="117" y1="40" x2="123" y2="40"/><line x1="117" y1="60" x2="123" y2="60"/><line x1="117" y1="80" x2="123" y2="80"/><line x1="117" y1="100" x2="123" y2="100"/><line x1="117" y1="140" x2="123" y2="140"/><line x1="117" y1="160" x2="123" y2="160"/><line x1="117" y1="180" x2="123" y2="180"/><line x1="117" y1="200" x2="123" y2="200"/><line x1="117" y1="220" x2="123" y2="220"/>
+            </g>
+            <polygon points="240,120 233,116 233,124" fill="#555"/>
+            <polygon points="120,0 116,7 124,7" fill="#555"/>
+          </svg>
+        </div>
+      </div>
+      <button class="reveal-btn no-print" onclick="reveal('a4')" style="margin-top:10px">Show answer</button>
+      <div class="answer-panel" id="a4">
+        <span class="ans-label">Key features of \(g(x)=\frac{1}{4}f(x-2)+3\)</span>
+        Vertical asymptote: \(x=2\)<br>
+        Horizontal asymptote: \(y=3\)<br>
+        Compressed by \(\tfrac{1}{4}\), shifted right 2, up 3. No reflection.<br>
+        Standard upper-right / lower-left orientation, tightly compressed near asymptotes.
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="problem right">
+      <div class="p-num">8</div>
+      <div class="p-text">Simplify</div>
+      <div class="p-display">\[ \frac{8a-18}{3a^2+14a+8}-\frac{7}{3a+2} \]</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a8')">Show answer</button>
+      <div class="answer-panel" id="a8">
+        <span class="ans-label">Answer</span>
+        Factor: \(3a^2+14a+8=(3a+2)(a+4)\)<br>
+        \(\dfrac{8a-18}{(3a+2)(a+4)}-\dfrac{7(a+4)}{(3a+2)(a+4)}\)<br>
+        Numerator: \((8a-18)-7(a+4)=a-46\)<br>
+        \[\frac{a-46}{(3a+2)(a+4)}\]
+      </div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="problem">
+      <div class="p-num">9</div>
+      <div class="p-text">Simplify</div>
+      <div class="p-display">
+        \[ \frac{2b^2-7b}{4b^2+9b-9} \cdot \frac{b^2+9b-10}{2b^2-9b+10} \]
+      </div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a9')">Show answer</button>
+      <div class="answer-panel" id="a9">
+        <span class="ans-label">Answer</span>
+        Factor each polynomial:<br>
+        \(2b^2-7b = b(2b-7)\)<br>
+        \(4b^2+9b-9 = (4b-3)(b+3)\)<br>
+        \(b^2+9b-10 = (b+10)(b-1)\)<br>
+        \(2b^2-9b+10 = (2b-5)(b-2)\)<br>
+        No common factors cancel across the product, so:<br>
+        \[\frac{b(2b-7)(b+10)(b-1)}{(4b-3)(b+3)(2b-5)(b-2)}\]
+      </div>
+    </div>
+
+    <!-- Q10 -->
+    <div class="problem right">
+      <div class="p-num">10</div>
+      <div class="p-text">Simplify</div>
+      <div class="p-display">
+        \[ \frac{2b^2+4b-30}{(b-1)^2+9} \div \frac{b^2+4b-5}{b-10} \]
+      </div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a10')">Show answer</button>
+      <div class="answer-panel" id="a10">
+        <span class="ans-label">Note</span>
+        The PDF encoding for Q10 was partially corrupted. Please verify this expression
+        against your original worksheet — once confirmed, the worked solution can be added here.
+      </div>
+    </div>
+
+    <!-- Q11 -->
+    <div class="problem">
+      <div class="p-num">11</div>
+      <div class="p-text">What are the vertical and horizontal asymptotes of the function</div>
+      <div class="p-display">\[ f(x)=\frac{x^2-11x+10}{x^2-9} \]</div>
+      <div class="answer-label">Your answer</div>
+      <div class="two-inputs">
+        <div>
+          <div class="sub-label">Vertical asymptote(s)</div>
+          <textarea class="answer-input" rows="2" placeholder="e.g. x = …"></textarea>
+        </div>
+        <div>
+          <div class="sub-label">Horizontal asymptote</div>
+          <textarea class="answer-input" rows="2" placeholder="e.g. y = …"></textarea>
+        </div>
+      </div>
+      <button class="reveal-btn no-print" onclick="reveal('a11')">Show answer</button>
+      <div class="answer-panel" id="a11">
+        <span class="ans-label">Answer</span>
+        Numerator: \((x-1)(x-10)\). Denominator: \((x-3)(x+3)\).<br>
+        No shared factors → no holes.<br>
+        Vertical asymptotes: \(x=3\) and \(x=-3\)<br>
+        Equal degrees → horizontal asymptote: \(y=\dfrac{1}{1}=1\)
+      </div>
+    </div>
+
+    <!-- Q12 -->
+    <div class="problem right">
+      <div class="p-num">12</div>
+      <div class="p-text">What are the vertical and horizontal asymptotes of the function</div>
+      <div class="p-display">\[ f(x)=\frac{1}{x+5}+19 \]</div>
+      <div class="answer-label">Your answer</div>
+      <div class="two-inputs">
+        <div>
+          <div class="sub-label">Vertical asymptote</div>
+          <textarea class="answer-input" rows="2" placeholder="e.g. x = …"></textarea>
+        </div>
+        <div>
+          <div class="sub-label">Horizontal asymptote</div>
+          <textarea class="answer-input" rows="2" placeholder="e.g. y = …"></textarea>
+        </div>
+      </div>
+      <button class="reveal-btn no-print" onclick="reveal('a12')">Show answer</button>
+      <div class="answer-panel" id="a12">
+        <span class="ans-label">Answer</span>
+        This is \(\dfrac{1}{x}\) shifted left 5 and up 19.<br>
+        Vertical asymptote: \(x=-5\)<br>
+        Horizontal asymptote: \(y=19\)
+      </div>
+    </div>
+
+    <!-- Q13 -->
+    <div class="problem no-bottom">
+      <div class="p-num">13</div>
+      <div class="p-text">What are the zeros of the function</div>
+      <div class="p-display">\[ f(x)=\frac{x^3+6x^2-27x}{x-2} \]</div>
+      <div class="answer-label">Your answer</div>
+      <textarea class="answer-input" rows="2" placeholder="List all zeros…"></textarea>
+      <button class="reveal-btn no-print" onclick="reveal('a13')">Show answer</button>
+      <div class="answer-panel" id="a13">
+        <span class="ans-label">Answer</span>
+        Factor the numerator: \(x^3+6x^2-27x = x(x^2+6x-27) = x(x+9)(x-3)\)<br>
+        The denominator \((x-2)\) shares no factors with the numerator,
+        so \(x=2\) is a vertical asymptote, not a zero.<br>
+        Set numerator \(= 0\):<br>
+        \[\boxed{x=0,\quad x=-9,\quad x=3}\]
+      </div>
+    </div>
+
+    <!-- Balance cell -->
+    <div class="problem right no-bottom"></div>
+
+  </div><!-- .two-col -->
+  </div><!-- .body-pad -->
+
+  <div class="exam-footer">
+    <span>Dallas ISD — Unit 8 Exam Review — Rational Functions</span>
+    <span>13 problems</span>
+  </div>
+
+</div><!-- .page -->
+
+<script>
+  function reveal(id) {
+    const panel = document.getElementById(id);
+    const btn   = panel.previousElementSibling;
+    const open  = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+    if (btn && btn.classList.contains('reveal-btn')) {
+      btn.textContent = open ? 'Show answer' : 'Hide answer';
+    }
+    if (!open && window.MathJax) {
+      MathJax.typesetPromise([panel]);
+    }
+  }
+
+  function revealAll() {
+    document.querySelectorAll('.answer-panel').forEach(panel => {
+      panel.style.display = 'block';
+      const btn = panel.previousElementSibling;
+      if (btn && btn.classList.contains('reveal-btn')) btn.textContent = 'Hide answer';
+    });
+    if (window.MathJax) MathJax.typesetPromise(document.querySelectorAll('.answer-panel'));
+  }
+
+  function hideAll() {
+    document.querySelectorAll('.answer-panel').forEach(panel => {
+      panel.style.display = 'none';
+      const btn = panel.previousElementSibling;
+      if (btn && btn.classList.contains('reveal-btn')) btn.textContent = 'Show answer';
+    });
+  }
+</script>
+</body>
+</html>
