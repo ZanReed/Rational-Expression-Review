@@ -613,9 +613,18 @@ const questions = [
     {
       num: '10', right: true,
       text: 'Simplify',
-      display: `\\[ \\frac{2b^2+4b-30}{(b-1)^2+9} \\div \\frac{b^2+4b-5}{b-10} \\]`,
+      display: `\\[ \\frac{22c^2+4c-6}{4c^2-7c+3} \\div \\frac{16c^2+48c}{16c^2-9} \\]`,
       ansId: 'a10',
-      ansHtml: `Please verify this expression against your original worksheet — the PDF encoding was partially corrupted for Q10.`,
+      ansHtml: `Factor each polynomial:<br>
+        \\(22c^2+4c-6 = 2(11c^2+2c-3) = 2(11c-3)(c+1)\\)<br>
+        \\(4c^2-7c+3 = (4c-3)(c-1)\\)<br>
+        \\(16c^2+48c = 16c(c+3)\\)<br>
+        \\(16c^2-9 = (4c-3)(4c+3)\\)<br><br>
+        Flip the divisor and multiply:<br>
+        \\[\\frac{2(11c-3)(c+1)}{(4c-3)(c-1)} \\times \\frac{(4c-3)(4c+3)}{16c(c+3)}\\]<br>
+        Cancel \\((4c-3)\\):<br>
+        \\[\\frac{2(11c-3)(c+1)(4c+3)}{16c(c-1)(c+3)} = \\frac{(11c-3)(c+1)(4c+3)}{8c(c-1)(c+3)}\\]
+        Restrictions: \\(c \\neq 0,\\,\\tfrac{3}{4},\\,1,\\,-3\\)`,
       input: `<div class="answer-label">Your answer</div>
               <textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`
     }
