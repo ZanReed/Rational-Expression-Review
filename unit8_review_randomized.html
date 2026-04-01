@@ -226,9 +226,10 @@ MathJax = {
   </div>
 
   <div class="info-bar">
-    <div class="info-field"><span>Name</span><input class="info-line" style="min-width:180px"></div>
-    <div class="info-field"><span>Class Period</span><input class="info-line" style="min-width:50px"></div>
-    <div class="info-field"><span>Phone Slot #</span><input class="info-line" style="min-width:50px"></div>
+    <div class="info-field"><span>Name</span><input class="info-line" id="studentName" style="min-width:180px" placeholder="Full name"></div>
+    <div class="info-field"><span>Student ID</span><input class="info-line" id="studentId" style="min-width:80px" placeholder="ID #"></div>
+    <div class="info-field"><span>Class Period</span><input class="info-line" id="studentPeriod" style="min-width:50px" placeholder="Period"></div>
+    <div class="info-field"><span>Phone Slot #</span><input class="info-line" style="min-width:50px" placeholder="#"></div>
   </div>
 
   <div class="controls no-print">
@@ -241,6 +242,17 @@ MathJax = {
   <div class="two-col" id="questionGrid">
     <!-- Populated by JS -->
   </div>
+  </div>
+
+  <!-- Submit section -->
+  <div id="submitSection" style="padding:24px 48px;border-top:2px solid var(--rule);background:var(--cream)">
+    <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:12px">
+      When you have finished all questions, click the button below to submit your answers.
+    </div>
+    <button class="btn green-btn" onclick="submitAnswers()" id="submitBtn" style="font-size:13px;padding:8px 24px">
+      Submit answers
+    </button>
+    <div id="submitStatus" style="display:none;margin-top:12px;font-family:var(--sans);font-size:13px;padding:10px 14px;border-radius:4px"></div>
   </div>
 
   <div class="exam-footer">
@@ -716,6 +728,97 @@ function hideAll() {
     const b = p.previousElementSibling;
     if (b && b.classList.contains('reveal-btn')) b.textContent = 'Show answer';
   });
+}
+
+// ─────────────────────────────────────────────
+// Submission
+// ─────────────────────────────────────────────
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-29SU6xC-86K_hF59cWVFilz4cqKwkrWNdWOoGikStXD85pqqNUlHmmncUjiKgd4k/exec';
+
+function collectAnswers() {
+  // Collect all textarea and input values in document order
+  const textareas = [...document.querySelectorAll('textarea.answer-input')];
+  const inputs    = [...document.querySelectorAll('input.answer-input.short')];
+
+  // Map them by question using aria-label or placeholder as key hint
+  // We collect positionally since the questions are rendered in fixed order
+  const t = textareas.map(el => el.value.trim());
+  const s = inputs.map(el => el.value.trim());
+
+  return {
+    q1:    t[0]  || '',   // domain
+    q2:    t[1]  || '',   // graph Q2
+    q3:    t[2]  || '',   // transformation
+    q4:    t[3]  || '',   // graph Q4
+    q5:    t[4]  || '',   // range Q5
+    q6domain: t[5] || '',
+    q6range:  t[6] || '',
+    q7:    t[7]  || '',
+    q8:    t[8]  || '',
+    q9:    t[9]  || '',
+    q10:   t[10] || '',
+    q11va: t[11] || '',
+    q11ha: t[12] || '',
+    q12va: t[13] || '',
+    q12ha: t[14] || '',
+    q13:   t[15] || '',
+  };
+}
+
+async function submitAnswers() {
+  const name   = document.getElementById('studentName').value.trim();
+  const id     = document.getElementById('studentId').value.trim();
+  const period = document.getElementById('studentPeriod').value.trim();
+
+  if (!name || !id) {
+    const status = document.getElementById('submitStatus');
+    status.style.display = 'block';
+    status.style.background = '#f4e8e8';
+    status.style.color = '#8a1a1a';
+    status.style.border = '1px solid #d49090';
+    status.textContent = 'Please enter your name and student ID before submitting.';
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Submitting…';
+  btn.disabled = true;
+
+  const payload = {
+    worksheet:   'Unit 8 Exam Review',
+    studentName: name,
+    studentId:   id,
+    period:      period,
+    seedCode:    SEED.toString(),
+    answers:     collectAnswers()
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const status = document.getElementById('submitStatus');
+    status.style.display = 'block';
+    status.style.background = '#eaf4ee';
+    status.style.color = '#1a6640';
+    status.style.border = '1px solid #7abf9a';
+    status.textContent = '✓ Answers submitted successfully! Your assignment code was ' + SEED + '.';
+    btn.textContent = 'Submitted ✓';
+
+  } catch (err) {
+    const status = document.getElementById('submitStatus');
+    status.style.display = 'block';
+    status.style.background = '#f4e8e8';
+    status.style.color = '#8a1a1a';
+    status.style.border = '1px solid #d49090';
+    status.textContent = 'Submission failed — please try again or notify your teacher.';
+    btn.textContent = 'Submit answers';
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
