@@ -134,6 +134,16 @@ body{font-family:var(--serif);background:var(--cream);color:var(--ink);line-heig
 <div class="info-bar">
   <div class="info-field"><span>Name</span><input class="info-line" id="studentName" style="min-width:180px" placeholder="Full name"></div>
   <div class="info-field"><span>Student ID</span><input class="info-line" id="studentId" style="min-width:80px" placeholder="ID #"></div>
+  <div class="info-field"><span>Teacher</span>
+    <select class="info-line" id="studentTeacher" style="min-width:110px;border-bottom:1px solid var(--ink-mid);background:transparent;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;border-top:none;border-left:none;border-right:none;cursor:pointer">
+      <option value="">— select —</option>
+      <option value="Mueller">Mueller</option>
+      <option value="Reed">Reed</option>
+      <option value="Singleton">Singleton</option>
+      <option value="Pacayra">Pacayra</option>
+      <option value="Jafari">Jafari</option>
+    </select>
+  </div>
   <div class="info-field"><span>Class Period</span><input class="info-line" id="studentPeriod" style="min-width:50px" placeholder="Period"></div>
   <div class="info-field"><span>Phone Slot #</span><input class="info-line" style="min-width:50px" placeholder="#"></div>
 </div>
@@ -383,6 +393,49 @@ function q8SelectHTML() {
     <div style="text-align:center;margin:4px 0;font-size:18px;color:var(--ink-mid)">─────────────</div>
     <div class="answer-label">Denominator</div>
     ${makeSelect('q8den', denOpts, denCorrect)}`;
+}
+
+// Q9: factor-by-factor dropdowns
+// Numerator: b(2b-7)(b+10)(b-1)  Denominator: (4b-3)(b+3)(2b-5)(b-2)
+function q9SelectHTML() {
+  function fSel(id, correct, opts) {
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px">
+      ${makeSelect(id, shuffle(opts, rng), correct)}
+    </div>`;
+  }
+  // Numerator factors
+  const n1o = [{label:'b',value:'b'},{label:'b²',value:'b²'},{label:'2b',value:'2b'},{label:'b-1',value:'b-1'}];
+  const n2o = [{label:'(2b-7)',value:'(2b-7)'},{label:'(2b+7)',value:'(2b+7)'},{label:'(b-7)',value:'(b-7)'},{label:'(2b-1)',value:'(2b-1)'}];
+  const n3o = [{label:'(b+10)',value:'(b+10)'},{label:'(b-10)',value:'(b-10)'},{label:'(b+9)',value:'(b+9)'},{label:'(2b+10)',value:'(2b+10)'}];
+  const n4o = [{label:'(b-1)',value:'(b-1)'},{label:'(b+1)',value:'(b+1)'},{label:'(b-2)',value:'(b-2)'},{label:'(2b-1)',value:'(2b-1)'}];
+  // Denominator factors
+  const d1o = [{label:'(4b-3)',value:'(4b-3)'},{label:'(4b+3)',value:'(4b+3)'},{label:'(2b-3)',value:'(2b-3)'},{label:'(4b-1)',value:'(4b-1)'}];
+  const d2o = [{label:'(b+3)',value:'(b+3)'},{label:'(b-3)',value:'(b-3)'},{label:'(b+9)',value:'(b+9)'},{label:'(2b+3)',value:'(2b+3)'}];
+  const d3o = [{label:'(2b-5)',value:'(2b-5)'},{label:'(2b+5)',value:'(2b+5)'},{label:'(b-5)',value:'(b-5)'},{label:'(2b-1)',value:'(2b-1)'}];
+  const d4o = [{label:'(b-2)',value:'(b-2)'},{label:'(b+2)',value:'(b+2)'},{label:'(b-5)',value:'(b-5)'},{label:'(2b-2)',value:'(2b-2)'}];
+
+  return `
+    <div class="answer-label">Select each factor of the numerator</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      ${fSel('q9n1','b',n1o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9n2','(2b-7)',n2o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9n3','(b+10)',n3o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9n4','(b-1)',n4o)}
+    </div>
+    <div style="border-top:1.5px solid var(--ink-mid);margin:4px 0 8px"></div>
+    <div class="answer-label">Select each factor of the denominator</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+      ${fSel('q9d1','(4b-3)',d1o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9d2','(b+3)',d2o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9d3','(2b-5)',d3o)}
+      <span class="factor-sep">·</span>
+      ${fSel('q9d4','(b-2)',d4o)}
+    </div>`;
 }
 
 // Q10: factor-by-factor for numerator factors and denominator factors
@@ -783,8 +836,7 @@ grid.innerHTML = [
   renderQ('9', false, false,
     'Simplify',
     `\\[ \\frac{2b^2-7b}{4b^2+9b-9} \\cdot \\frac{b^2+9b-10}{2b^2-9b+10} \\]`,
-    `<div class="answer-label">Your answer</div><textarea class="answer-input" rows="2" placeholder="Simplified expression…"></textarea>`,
-    'a9', q9Ans),
+    q9SelectHTML(), 'a9', q9Ans),
   renderQ('10', true, false,
     'Simplify',
     `\\[ \\frac{22c^2+4c-6}{4c^2-7c+3} \\div \\frac{16c^2+48c}{16c^2-9} \\]`,
@@ -850,15 +902,16 @@ function gradeGraph(qid, correct_h, correct_k, correct_a) {
 // ═══════════════════════════════════
 // SUBMISSION
 // ═══════════════════════════════════
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmCdgB6SX58mh-pNDrqkLDpz1Zl3ZklilaPRO6-e6w5WHScYAq7eBEneENl5_-UEl5/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyav8RDvIkCU6GWYVZF0uRhxoAUgeJXxTWYH34D6pHYojSnzevVG9VvL1sKf_C30GA/exec';
 
 async function submitAnswers() {
   const name   = document.getElementById('studentName').value.trim();
   const id     = document.getElementById('studentId').value.trim();
   const period = document.getElementById('studentPeriod').value.trim();
 
-  if (!name || !id) {
-    showStatus('Please enter your name and student ID before submitting.', false);
+  const teacher = document.getElementById('studentTeacher').value.trim();
+  if (!name || !id || !teacher) {
+    showStatus('Please enter your name, student ID, and select your teacher before submitting.', false);
     return;
   }
 
@@ -877,8 +930,20 @@ async function submitAnswers() {
   const q7dg = gradeSelect('q7den',   `a²-${q7_m**2}`);
   const q8ng = gradeSelect('q8num',   `${q8_resA}a-${q8_resB}`);
   const q8dg = gradeSelect('q8den',   `(3a+${q8_r})(a+${q8_s})`);
-  const q9el = document.querySelector('#questionGrid .problem:nth-child(9) textarea');
-  const q9g  = { answer: q9el ? q9el.value.trim() : '', correct: null }; // manual grade
+  const q9n1g = gradeSelect('q9n1', 'b');
+  const q9n2g = gradeSelect('q9n2', '(2b-7)');
+  const q9n3g = gradeSelect('q9n3', '(b+10)');
+  const q9n4g = gradeSelect('q9n4', '(b-1)');
+  const q9d1g = gradeSelect('q9d1', '(4b-3)');
+  const q9d2g = gradeSelect('q9d2', '(b+3)');
+  const q9d3g = gradeSelect('q9d3', '(2b-5)');
+  const q9d4g = gradeSelect('q9d4', '(b-2)');
+  const q9correct = q9n1g.correct && q9n2g.correct && q9n3g.correct && q9n4g.correct &&
+                    q9d1g.correct && q9d2g.correct && q9d3g.correct && q9d4g.correct;
+  const q9g = {
+    answer: `n:(${q9n1g.answer})(${q9n2g.answer})(${q9n3g.answer})(${q9n4g.answer}) d:(${q9d1g.answer})(${q9d2g.answer})(${q9d3g.answer})(${q9d4g.answer})`,
+    correct: q9correct
+  };
   const q10n1g = gradeSelect('q10n1', '(11c-3)');
   const q10n2g = gradeSelect('q10n2', '(c+1)');
   const q10n3g = gradeSelect('q10n3', '(4c+3)');
@@ -893,12 +958,13 @@ async function submitAnswers() {
   const q13g  = gradeSelect('q13zeros', `0,${zero2},${zero3}`);
 
   const score = [q1g,q5g,q6dg,q6rg,q7ng,q7dg,q8ng,q8dg,q11vg,q11hg,q12vg,q12hg,q13g,
-    {correct:q2g.correct},{correct:q3g.correct},{correct:q4g.correct},{correct:q10correct}]
+    {correct:q2g.correct},{correct:q3g.correct},{correct:q4g.correct},
+    {correct:q10correct},{correct:q9correct}]
     .filter(g => g.correct !== null).reduce((s,g) => s + (g.correct?1:0), 0);
 
   const payload = {
     worksheet: 'Unit 8 Exam Review',
-    studentName: name, studentId: id, period, seedCode: SEED.toString(),
+    studentName: name, studentId: id, teacher, period, seedCode: SEED.toString(),
     score: `${score}`,
     answers: {
       q1_answer: q1g.answer,      q1_correct: q1g.correct,
@@ -912,7 +978,7 @@ async function submitAnswers() {
       q7den_answer: q7dg.answer,  q7den_correct: q7dg.correct,
       q8num_answer: q8ng.answer,  q8num_correct: q8ng.correct,
       q8den_answer: q8dg.answer,  q8den_correct: q8dg.correct,
-      q9_answer: q9g.answer,      q9_correct: 'manual',
+      q9_answer: q9g.answer,      q9_correct: q9g.correct,
       q10_answer: `n:(${q10n1g.answer})(${q10n2g.answer})(${q10n3g.answer}) d:(${q10d1g.answer})(${q10d2g.answer})(${q10d3g.answer})`,
       q10_correct: q10correct,
       q11va_answer: q11vg.answer, q11va_correct: q11vg.correct,
