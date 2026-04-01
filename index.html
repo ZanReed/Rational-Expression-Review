@@ -145,6 +145,7 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
   <div class="teacher-banner" id="teacherBanner">
     <span class="teacher-banner-dot"></span>
     <span><strong>Teacher mode active</strong> — you can add units, create activities, and remove resources.</span>
+    <button onclick="toggleSettings()" style="margin-left:auto;font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid #d4b800;border-radius:3px;cursor:pointer;background:white;color:var(--amber);white-space:nowrap">⚙ Settings</button>
   </div>
 
   <!-- Add unit row (teacher only) -->
@@ -174,6 +175,29 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
     <span>Dallas ISD — Algebra II Resources — 2025–2026</span>
     <span id="resourceCount"></span>
   </footer>
+</div>
+
+<!-- Settings panel (teacher mode) -->
+<div id="settingsPanel" style="display:none;background:var(--amber-bg);border:1px solid #d4b800;border-radius:6px;padding:20px 24px;margin-bottom:24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--amber)">⚙ Settings</div>
+      <div style="font-family:var(--sans);font-size:12px;color:var(--amber);margin-top:2px">Changes apply to all newly generated activities.</div>
+    </div>
+    <button onclick="document.getElementById('settingsPanel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--amber);padding:0 4px">×</button>
+  </div>
+  <div style="margin-bottom:12px">
+    <label style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:6px">Google Apps Script Web App URL</label>
+    <div style="display:flex;gap:8px">
+      <input id="appsScriptInput" type="text" placeholder="https://script.google.com/macros/s/…/exec"
+        style="flex:1;padding:8px 10px;border:1px solid #d4b800;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;background:white">
+      <button onclick="saveAppsScriptURL()" class="modal-btn save" style="font-size:12px;white-space:nowrap">Save URL</button>
+    </div>
+    <div id="urlSavedMsg" style="display:none;font-family:var(--sans);font-size:11px;color:var(--green);margin-top:6px">✓ URL saved. New activities will use this URL.</div>
+  </div>
+  <div style="font-family:var(--sans);font-size:11px;color:var(--amber);padding-top:10px;border-top:1px solid #d4b800">
+    For already-generated activities: open the file in teacher mode and click "Sync URL from index" to pull the latest URL.
+  </div>
 </div>
 
 <!-- PIN modal -->
@@ -337,6 +361,13 @@ function load() {
   resources = [...defaults, ...customOnly];
 }
 
+function getAppsScriptURL() {
+  return localStorage.getItem('appsScriptURL') || '';
+}
+function setAppsScriptURL(url) {
+  localStorage.setItem('appsScriptURL', url.trim());
+}
+
 function saveCustoms() {
   const customs = resources.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
   localStorage.setItem('mathResources', JSON.stringify(customs));
@@ -442,6 +473,9 @@ function enterTeacher() {
   document.getElementById('teacherToggleBtn').classList.add('active');
   document.getElementById('teacherToggleBtn').textContent = 'Exit teacher mode';
   document.getElementById('teacherBanner').classList.add('visible');
+  // Pre-fill settings input with saved URL
+  const saved = getAppsScriptURL();
+  if (saved) document.getElementById('appsScriptInput').value = saved;
   render();
 }
 function exitTeacher() {
@@ -450,7 +484,23 @@ function exitTeacher() {
   document.getElementById('teacherToggleBtn').classList.remove('active');
   document.getElementById('teacherToggleBtn').textContent = 'Teacher mode';
   document.getElementById('teacherBanner').classList.remove('visible');
+  document.getElementById('settingsPanel').style.display = 'none';
   render();
+}
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') {
+    const saved = getAppsScriptURL();
+    if (saved) document.getElementById('appsScriptInput').value = saved;
+  }
+}
+function saveAppsScriptURL() {
+  const url = document.getElementById('appsScriptInput').value.trim();
+  setAppsScriptURL(url);
+  const msg = document.getElementById('urlSavedMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 3000);
 }
 
 // ═══════════════════════════════════════
@@ -722,7 +772,7 @@ body{font-family:var(--serif);background:var(--cream);color:var(--ink);line-heig
     <h4 id="builderTitle">Configure question</h4>
     <div id="builderFields"></div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn green-btn" onclick="addQuestion()" style="font-size:12px">Add question</button>
+      <button id="addQBtn" class="btn green-btn" onclick="addQuestion()" style="font-size:12px">Add question</button>
       <button class="btn" onclick="closeBuilder()" style="font-size:12px">Cancel</button>
     </div>
   </div>
@@ -730,9 +780,13 @@ body{font-family:var(--serif);background:var(--cream);color:var(--ink);line-heig
   <!-- Added questions list -->
   <div class="q-added-list" id="qAddedList"></div>
 
-  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <button class="btn green-btn" onclick="saveAndDownload()" style="font-size:13px;padding:8px 20px">💾 Save &amp; download updated file</button>
+    <button class="btn" onclick="syncURLFromIndex()" style="font-size:12px" title="Pull the Apps Script URL from the index page localStorage">🔗 Sync URL from index</button>
     <button class="btn" onclick="exitTeacher()" style="font-size:12px">Exit teacher mode</button>
+  </div>
+  <div style="margin-top:10px;font-family:var(--sans);font-size:11px;color:var(--amber)">
+    Tip: Click any question in the list above to edit it. Use the question type buttons to add new questions.
   </div>
 </div>
 
@@ -901,7 +955,7 @@ function revealAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.st
 function hideAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='none';p.previousElementSibling.textContent='Show answer'})}
 
 // ── Submit ──
-const APPS_SCRIPT_URL='${APPS_SCRIPT_URL}';
+const APPS_SCRIPT_URL='${getAppsScriptURL() || 'PASTE_YOUR_WEB_APP_URL_HERE'}';
 async function submitAnswers(){
   const name=document.getElementById('studentName').value.trim();
   const id=document.getElementById('studentId').value.trim();
@@ -929,9 +983,7 @@ const BUILDER_CONFIGS={
   range:{title:'Range — interval notation',fields:[
     {id:'expr',label:'Function expression (LaTeX)',placeholder:'e.g. \\\\frac{3}{x-2}-5'},
     {id:'correct',label:'Correct answer',placeholder:'e.g. (-∞,-5)∪(-5,∞)'},
-    {id:'d1',label:'Distractor 1',placeholder:''},
-    {id:'d2',label:'Distractor 2',placeholder:''},
-    {id:'d3',label:'Distractor 3',placeholder:''},
+    {id:'d1',label:'Distractor 1',placeholder:''},{id:'d2',label:'Distractor 2',placeholder:''},{id:'d3',label:'Distractor 3',placeholder:''},
     {id:'ans',label:'Answer explanation (optional)',placeholder:''}
   ]},
   graph:{title:'Graph slider — 1/x transform',fields:[
@@ -943,46 +995,34 @@ const BUILDER_CONFIGS={
   transform:{title:'Transformation description (multiple choice)',fields:[
     {id:'expr',label:'g(x) expression (for display)',placeholder:'e.g. g(x) = \\\\tfrac{1}{3}f(x+4)-2'},
     {id:'opt0',label:'Correct description',placeholder:'Compressed by 1/3, shifted 4 left and 2 down'},
-    {id:'opt1',label:'Wrong option 1',placeholder:''},
-    {id:'opt2',label:'Wrong option 2',placeholder:''},
-    {id:'opt3',label:'Wrong option 3',placeholder:''}
+    {id:'opt1',label:'Wrong option 1',placeholder:''},{id:'opt2',label:'Wrong option 2',placeholder:''},{id:'opt3',label:'Wrong option 3',placeholder:''}
   ]},
   simplify:{title:'Simplify — numerator/denominator dropdowns',fields:[
     {id:'expr',label:'Expression (LaTeX)',placeholder:'e.g. \\\\frac{a-3}{a+2}+\\\\frac{a+3}{a-2}'},
     {id:'num_correct',label:'Correct numerator',placeholder:'e.g. 2a²+12'},
-    {id:'num_d1',label:'Numerator distractor 1',placeholder:''},
-    {id:'num_d2',label:'Numerator distractor 2',placeholder:''},
-    {id:'num_d3',label:'Numerator distractor 3',placeholder:''},
+    {id:'num_d1',label:'Numerator distractor 1',placeholder:''},{id:'num_d2',label:'Numerator distractor 2',placeholder:''},{id:'num_d3',label:'Numerator distractor 3',placeholder:''},
     {id:'den_correct',label:'Correct denominator',placeholder:'e.g. a²-4'},
-    {id:'den_d1',label:'Denominator distractor 1',placeholder:''},
-    {id:'den_d2',label:'Denominator distractor 2',placeholder:''},
-    {id:'den_d3',label:'Denominator distractor 3',placeholder:''},
+    {id:'den_d1',label:'Denominator distractor 1',placeholder:''},{id:'den_d2',label:'Denominator distractor 2',placeholder:''},{id:'den_d3',label:'Denominator distractor 3',placeholder:''},
     {id:'ans',label:'Answer explanation (optional)',placeholder:''}
   ]},
   factors:{title:'Factor-by-factor dropdowns',fields:[
     {id:'expr',label:'Expression (LaTeX)',placeholder:'e.g. \\\\frac{x^2-4}{x^2-x-6}'},
-    {id:'n_factors',label:'Numerator factors (comma separated, first is correct for each, use | to separate groups)',placeholder:'e.g. (x-2),(x+2),(x-3)|(x+3),(x+1),(x-1)   ← each group is one dropdown'},
+    {id:'n_factors',label:'Numerator factors (use | between dropdowns, comma between options, first = correct)',placeholder:'e.g. (x-2),(x+2),(x-3)|(x+3),(x-3),(x+1)'},
     {id:'d_factors',label:'Denominator factors (same format)',placeholder:'e.g. (x-3),(x+3),(x-1)|(x+2),(x-2),(x+1)'},
     {id:'ans',label:'Answer explanation (optional)',placeholder:''}
   ]},
   asymptotes:{title:'Asymptotes (VA and HA)',fields:[
     {id:'expr',label:'Function expression (LaTeX)',placeholder:'e.g. \\\\frac{x^2-1}{x^2-9}'},
-    {id:'va_correct',label:'Correct vertical asymptote(s)',placeholder:'e.g. x=3,-3'},
-    {id:'va_d1',label:'VA distractor 1',placeholder:''},
-    {id:'va_d2',label:'VA distractor 2',placeholder:''},
-    {id:'va_d3',label:'VA distractor 3',placeholder:''},
-    {id:'ha_correct',label:'Correct horizontal asymptote',placeholder:'e.g. y=1'},
-    {id:'ha_d1',label:'HA distractor 1',placeholder:'e.g. y=0'},
-    {id:'ha_d2',label:'HA distractor 2',placeholder:''},
-    {id:'ha_d3',label:'HA distractor 3',placeholder:''},
+    {id:'va_correct',label:'Correct VA',placeholder:'e.g. x=3,-3'},
+    {id:'va_d1',label:'VA distractor 1',placeholder:''},{id:'va_d2',label:'VA distractor 2',placeholder:''},{id:'va_d3',label:'VA distractor 3',placeholder:''},
+    {id:'ha_correct',label:'Correct HA',placeholder:'e.g. y=1'},
+    {id:'ha_d1',label:'HA distractor 1',placeholder:'e.g. y=0'},{id:'ha_d2',label:'HA distractor 2',placeholder:''},{id:'ha_d3',label:'HA distractor 3',placeholder:''},
     {id:'ans',label:'Answer explanation (optional)',placeholder:''}
   ]},
   zeros:{title:'Zeros dropdown',fields:[
     {id:'expr',label:'Function expression (LaTeX)',placeholder:'e.g. \\\\frac{x^3-4x}{x-3}'},
     {id:'correct',label:'Correct zeros',placeholder:'e.g. x=0,2,-2'},
-    {id:'d1',label:'Distractor 1',placeholder:''},
-    {id:'d2',label:'Distractor 2',placeholder:''},
-    {id:'d3',label:'Distractor 3',placeholder:''},
+    {id:'d1',label:'Distractor 1',placeholder:''},{id:'d2',label:'Distractor 2',placeholder:''},{id:'d3',label:'Distractor 3',placeholder:''},
     {id:'ans',label:'Answer explanation (optional)',placeholder:''}
   ]},
   freetext:{title:'Free text / short answer',fields:[
@@ -993,29 +1033,76 @@ const BUILDER_CONFIGS={
 };
 
 let addedQuestions=[];
+let editingIndex=-1;   // -1 = new question, >=0 = editing existing
+let currentBuilderType='';
 
-function openBuilder(type){
+function openBuilder(type,editIdx){
   currentBuilderType=type;
+  editingIndex=(editIdx!==undefined?editIdx:-1);
   const cfg=BUILDER_CONFIGS[type];
-  document.getElementById('builderTitle').textContent=cfg.title;
-  document.getElementById('builderFields').innerHTML=cfg.fields.map(f=>'<label>'+f.label+'</label><input id="bf_'+f.id+'" placeholder="'+(f.placeholder||'')+'" style="margin-bottom:10px">').join('');
+  document.getElementById('builderTitle').textContent=(editingIndex>=0?'Edit: ':'')+cfg.title;
+  // Build fields
+  document.getElementById('builderFields').innerHTML=cfg.fields.map(f=>
+    '<label>'+f.label+'</label><input id="bf_'+f.id+'" placeholder="'+(f.placeholder||'')+'" style="margin-bottom:10px">'
+  ).join('');
+  // Pre-fill if editing
+  if(editingIndex>=0){
+    const allQ=[...questions,...addedQuestions];
+    const q=allQ[editingIndex];
+    if(q){prefillBuilder(type,q)}
+  }
+  document.getElementById('addQBtn').textContent=editingIndex>=0?'Save changes':'Add question';
   document.getElementById('qBuilder').classList.add('visible');
-  document.getElementById('bf_'+cfg.fields[0].id).focus();
+  const firstField=cfg.fields[0];
+  const el=document.getElementById('bf_'+firstField.id);
+  if(el)el.focus();
 }
-function closeBuilder(){document.getElementById('qBuilder').classList.remove('visible');currentBuilderType=''}
 
-function addQuestion(){
-  if(!currentBuilderType)return;
+function prefillBuilder(type,q){
+  const set=(id,val)=>{const el=document.getElementById('bf_'+id);if(el&&val!==undefined)el.value=val};
+  if(type==='freetext'){set('question',q.question_text);set('expr',q.display_math);set('ans',q.answer_text)}
+  else if(type==='graph'){
+    // strip LaTeX wrapping from question_text to get expr back
+    set('expr',q.display_math||'');set('h',q.correct_h);set('k',q.correct_k);set('a',q.correct_a)
+  } else if(type==='transform'){
+    set('expr',q.display_math||'');
+    (q.options||[]).forEach((o,i)=>set('opt'+i,o))
+  } else if(type==='simplify'){
+    set('expr',q.display_math);set('num_correct',q.num_correct);set('den_correct',q.den_correct);
+    (q.distractors_num||[]).forEach((d,i)=>set('num_d'+(i+1),d));
+    (q.distractors_den||[]).forEach((d,i)=>set('den_d'+(i+1),d));
+    set('ans',q.answer_text)
+  } else if(type==='factors'){
+    set('expr',q.display_math);
+    const serFacs=facs=>facs.map(f=>[f.correct,...f.opts.filter(o=>o!==f.correct)].join(',')).join('|');
+    set('n_factors',serFacs(q.num_factors||[]));
+    set('d_factors',serFacs(q.den_factors||[]));
+    set('ans',q.answer_text)
+  } else if(type==='asymptotes'){
+    set('expr',q.display_math);set('va_correct',q.va_correct);set('ha_correct',q.ha_correct);
+    (q.distractors_va||[]).forEach((d,i)=>set('va_d'+(i+1),d));
+    (q.distractors_ha||[]).forEach((d,i)=>set('ha_d'+(i+1),d));
+    set('ans',q.answer_text)
+  } else {
+    set('expr',q.display_math);set('correct',q.correct_value);
+    (q.distractors||[]).forEach((d,i)=>set('d'+(i+1),d));
+    set('ans',q.answer_text)
+  }
+}
+
+function closeBuilder(){document.getElementById('qBuilder').classList.remove('visible');currentBuilderType='';editingIndex=-1}
+
+function buildQFromForm(){
   const get=id=>{const el=document.getElementById('bf_'+id);return el?el.value.trim():''};
   let q={type:currentBuilderType};
-
   if(currentBuilderType==='freetext'){
     q.question_text=get('question');q.display_math=get('expr');q.answer_text=get('ans');
   } else if(currentBuilderType==='graph'){
-    q.question_text='Given \\\\(f(x)=\\\\dfrac{1}{x}\\\\), use the sliders to graph \\\\['+get('expr')+'\\\\]';
+    q.question_text='Given \\\\(f(x)=\\\\dfrac{1}{x}\\\\), use the sliders to graph';
+    q.display_math=get('expr');
     q.correct_h=parseInt(get('h'))||0;q.correct_k=parseInt(get('k'))||0;q.correct_a=parseInt(get('a'))||1;
   } else if(currentBuilderType==='transform'){
-    q.question_text='How is the graph of \\\\(f(x)=\\\\tfrac{1}{x}\\\\) transformed to create \\\\['+get('expr')+'\\\\]';
+    q.question_text='How is the graph transformed?';q.display_math=get('expr');
     q.options=[get('opt0'),get('opt1'),get('opt2'),get('opt3')].filter(Boolean);
     q.answer_text=q.options[0]||'';
   } else if(currentBuilderType==='simplify'){
@@ -1026,49 +1113,88 @@ function addQuestion(){
     q.answer_text=get('ans');
   } else if(currentBuilderType==='factors'){
     q.question_text='Simplify';q.display_math=get('expr');
-    const parseFactorGroups=s=>s.split('|').map(g=>{const parts=g.split(',').map(p=>p.trim()).filter(Boolean);return{correct:parts[0]||'',opts:parts.length>0?parts:[parts[0]]||[]}});
-    q.num_factors=parseFactorGroups(get('n_factors'));
-    q.den_factors=parseFactorGroups(get('d_factors'));
+    const parseFG=s=>s.split('|').map(g=>{const p=g.split(',').map(x=>x.trim()).filter(Boolean);return{correct:p[0]||'',opts:p}});
+    q.num_factors=parseFG(get('n_factors'));q.den_factors=parseFG(get('d_factors'));
     q.answer_text=get('ans');
   } else if(currentBuilderType==='asymptotes'){
-    q.question_text='Find the vertical and horizontal asymptotes of';q.display_math=get('expr');
+    q.question_text='Find the vertical and horizontal asymptotes';q.display_math=get('expr');
     q.va_correct=get('va_correct');q.ha_correct=get('ha_correct');
     q.distractors_va=[get('va_d1'),get('va_d2'),get('va_d3')].filter(Boolean);
     q.distractors_ha=[get('ha_d1'),get('ha_d2'),get('ha_d3')].filter(Boolean);
     q.answer_text=get('ans');
   } else {
-    // domain, range, zeros
     const labelMap={domain:'What is the domain of',range:'What is the range of',zeros:'What are the zeros of'};
-    q.question_text=(labelMap[currentBuilderType]||'Answer')+' \\\\['+get('expr')+'\\\\]';
-    q.display_math='';q.correct_value=get('correct');
+    q.question_text=(labelMap[currentBuilderType]||'Answer');q.display_math=get('expr');
+    q.correct_value=get('correct');
     q.distractors=[get('d1'),get('d2'),get('d3')].filter(Boolean);
     q.answer_text=get('ans')||('Correct: '+q.correct_value);
   }
+  return q;
+}
 
-  addedQuestions.push(q);
+function addQuestion(){
+  if(!currentBuilderType)return;
+  const q=buildQFromForm();
+  if(editingIndex>=0){
+    // editing existing
+    const totalExisting=questions.length;
+    if(editingIndex<totalExisting){questions[editingIndex]=q}
+    else{addedQuestions[editingIndex-totalExisting]=q}
+  } else {
+    addedQuestions.push(q);
+  }
   renderAddedList();
   closeBuilder();
 }
 
 function renderAddedList(){
   const list=document.getElementById('qAddedList');
-  if(addedQuestions.length===0){list.innerHTML='';return}
-  list.innerHTML='<div style="font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:6px">Questions added this session</div>'+
-    addedQuestions.map((q,i)=>'<div class="q-added-item"><span class="q-label">'+('Question '+(i+1)+': '+q.type+(q.display_math?' — '+q.display_math.substring(0,30)+'…':''))+'</span><button class="q-remove-btn" onclick="removeAddedQ('+i+')">×</button></div>').join('');
+  const allQ=[...questions,...addedQuestions];
+  if(allQ.length===0){list.innerHTML='';return}
+  list.innerHTML='<div style="font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:8px">All questions ('+allQ.length+' total)</div>'+
+    allQ.map((q,i)=>{
+      const isNew=i>=questions.length;
+      const label='Q'+(i+1)+': '+q.type+(q.display_math?' — '+q.display_math.substring(0,28)+'…':q.question_text?' — '+q.question_text.substring(0,28)+'…':'');
+      return '<div class="q-added-item" style="'+(isNew?'border-color:var(--green-rule)':'')+'">'+
+        '<span class="q-label">'+label+(isNew?' <span style="color:var(--green);font-size:10px">NEW</span>':'')+'</span>'+
+        '<button onclick="openBuilder(\''+q.type+'\','+i+')" style="font-family:var(--sans);font-size:10px;padding:2px 8px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:var(--accent-lt);color:var(--accent);margin-right:4px">Edit</button>'+
+        '<button class="q-remove-btn" onclick="removeQ('+i+')">×</button>'+
+        '</div>';
+    }).join('');
 }
-function removeAddedQ(i){addedQuestions.splice(i,1);renderAddedList()}
+
+function removeQ(i){
+  const totalExisting=questions.length;
+  if(i<totalExisting){questions.splice(i,1)}
+  else{addedQuestions.splice(i-totalExisting,1)}
+  renderAddedList();
+}
+
+function syncURLFromIndex(){
+  // Read URL stored by the index page in localStorage
+  const url=localStorage.getItem('appsScriptURL')||'';
+  if(!url){alert('No URL found in index. Open the index page in teacher mode, go to Settings, and save the URL first.');return}
+  alert('URL synced: '+url.substring(0,60)+'…\n\nClick "Save & download" to bake it into the file.');
+  // Store temporarily for use in saveAndDownload
+  window._syncedURL=url;
+}
 
 function saveAndDownload(){
-  // Merge with existing baked-in questions
   const allQ=[...questions,...addedQuestions];
   const jsonStr=JSON.stringify(allQ,null,2);
-  // Re-build the file with updated QUESTION_DATA
-  const fullHTML=document.documentElement.outerHTML
-    .replace(/<script id="QUESTION_DATA"[^>]*>[\\s\\S]*?<\\/script>/,
-      '<script id="QUESTION_DATA" type="application/json">'+jsonStr+'<\\/script>');
+  const syncedURL=window._syncedURL||null;
+  let fullHTML=document.documentElement.outerHTML;
+  // Update QUESTION_DATA
+  fullHTML=fullHTML.replace(/<script id="QUESTION_DATA"[^>]*>[\s\S]*?<\/script>/,
+    '<script id="QUESTION_DATA" type="application/json">'+jsonStr+'<\/script>');
+  // Update APPS_SCRIPT_URL if synced
+  if(syncedURL){
+    fullHTML=fullHTML.replace(/const APPS_SCRIPT_URL='[^']*'/,
+      "const APPS_SCRIPT_URL='"+syncedURL+"'");
+  }
   const blob=new Blob([fullHTML],{type:'text/html'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='${escJs(filename)}';a.click();
+  const a=document.createElement('a');a.href=url;a.download=window.location.pathname.split('/').pop()||'activity.html';a.click();
   URL.revokeObjectURL(url);
   alert('Downloaded! Upload this file to GitHub to publish your changes.');
 }
