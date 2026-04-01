@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Resources — Dallas ISD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink:       #1a1814;
+    --ink-mid:   #4a4540;
+    --ink-light: #8a857e;
+    --rule:      #d8d2c8;
+    --page:      #faf8f4;
+    --cream:     #f0ece4;
+    --accent:    #1a4a8a;
+    --accent-lt: #e8eef7;
+    --green:     #1a6640;
+    --green-bg:  #eaf4ee;
+    --serif:     'Source Serif 4', Georgia, serif;
+    --sans:      'DM Sans', system-ui, sans-serif;
+    --mono:      'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 40px 16px 80px;
+  }
+
+  /* ── Page shell ── */
+  .shell {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ── Site header ── */
+  .site-header {
+    margin-bottom: 40px;
+  }
+  .district-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 10px;
+  }
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .site-title {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .site-sub {
+    font-size: 15px;
+    color: var(--ink-mid);
+    font-weight: 300;
+  }
+
+  /* ── Search / filter bar ── */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-light);
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--page);
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--ink-light); }
+
+  .filter-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    cursor: pointer;
+    background: var(--page);
+    color: var(--ink-mid);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── Unit sections ── */
+  .unit-section { margin-bottom: 36px; }
+  .unit-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .unit-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    background: var(--cream);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    color: var(--ink-light);
+  }
+
+  /* ── Resource cards ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--page);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color .15s, box-shadow .15s, transform .12s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .card:hover {
+    border-color: #b0bfd4;
+    box-shadow: 0 4px 16px rgba(26,74,138,.08);
+    transform: translateY(-1px);
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-type {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .type-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .type-dot.review   { background: #2563a8; }
+  .type-dot.practice { background: var(--green); }
+  .type-dot.exam     { background: #a83225; }
+  .type-dot.notes    { background: #8a6a1a; }
+
+  .card-title {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .card-desc {
+    font-size: 12.5px;
+    color: var(--ink-mid);
+    line-height: 1.5;
+    flex: 1;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .card-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--accent-lt);
+    color: var(--accent);
+    border-radius: 3px;
+  }
+  .card-arrow {
+    font-size: 16px;
+    color: var(--ink-light);
+    transition: transform .15s, color .15s;
+  }
+  .card:hover .card-arrow { transform: translateX(3px); color: var(--accent); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--ink-light);
+    display: none;
+  }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Add new resource button ── */
+  .add-card {
+    background: transparent;
+    border: 1.5px dashed var(--rule);
+    border-radius: 6px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--ink-light);
+    font-size: 13px;
+    font-family: var(--sans);
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .add-card:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-lt);
+  }
+
+  /* ── Modal for adding resources ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,24,20,.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--page);
+    border-radius: 8px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.18);
+  }
+  .modal h3 {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .modal-field { margin-bottom: 14px; }
+  .modal-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    display: block;
+    margin-bottom: 5px;
+  }
+  .modal-input, .modal-select, .modal-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: white;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .modal-input:focus, .modal-select:focus, .modal-textarea:focus { border-color: var(--accent); }
+  .modal-textarea { resize: vertical; min-height: 70px; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  .modal-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 4px;
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    background: var(--page);
+    color: var(--ink-mid);
+    transition: all .15s;
+  }
+  .modal-btn.save {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .modal-btn.save:hover { background: #153e75; }
+
+  /* ── Site footer ── */
+  .site-footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-light);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 500px) {
+    .site-title { font-size: 26px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="district-badge">
+      <span class="badge-dot"></span>
+      Dallas ISD — Mathematics
+    </div>
+    <div class="site-title">Math Resources</div>
+    <div class="site-sub">Algebra II — 2025–2026</div>
+  </header>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by title, unit, or standard…" oninput="filterCards()">
+    </div>
+    <div class="filter-chips">
+      <button class="chip active" onclick="setFilter('all', this)">All</button>
+      <button class="chip" onclick="setFilter('review', this)">Reviews</button>
+      <button class="chip" onclick="setFilter('practice', this)">Practice</button>
+      <button class="chip" onclick="setFilter('exam', this)">Exams</button>
+    </div>
+  </div>
+
+  <!-- Resource list -->
+  <div id="resourceList"></div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">◻</div>
+    <p>No resources match your search.</p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <span>Dallas ISD — Algebra II Resources — 2025–2026</span>
+    <span id="resourceCount"></span>
+  </footer>
+
+</div>
+
+<!-- Add resource modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h3>Add a resource</h3>
+    <div class="modal-field">
+      <label class="modal-label">Title</label>
+      <input class="modal-input" id="newTitle" placeholder="e.g. Unit 9 Exam Review">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Description</label>
+      <textarea class="modal-textarea" id="newDesc" placeholder="Brief description of what's covered…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">File name (in this same GitHub folder)</label>
+      <input class="modal-input" id="newFile" placeholder="e.g. unit9_exam_review.html">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Unit</label>
+      <input class="modal-input" id="newUnit" placeholder="e.g. Unit 9 — Exponentials">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Type</label>
+      <select class="modal-select" id="newType">
+        <option value="review">Review</option>
+        <option value="practice">Practice</option>
+        <option value="exam">Exam</option>
+        <option value="notes">Notes</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Standards (comma separated)</label>
+      <input class="modal-input" id="newTags" placeholder="e.g. A2.6(K), A2.7(F)">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveResource()">Add resource</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Default resources (edit these to match your actual filenames on GitHub) ──
+const DEFAULT_RESOURCES = [
+  {
+    id: 'r1',
+    title: 'Unit 8 Exam Review',
+    desc: 'Domain & range, graph transformations of 1/x, asymptotes, zeros, and operations on rational expressions.',
+    file: 'unit8_exam_review.html',
+    unit: 'Unit 8 — Rational Functions',
+    type: 'review',
+    tags: ['A2.2(A)', 'A2.6(G)', 'A2.6(K)', 'A2.7(F)']
+  },
+  {
+    id: 'r2',
+    title: 'Alg 2 Rationals Practice Exam',
+    desc: '13-question multiple choice practice exam covering rational function standards with interactive answer checking.',
+    file: 'alg2_rationals_practice.html',
+    unit: 'Unit 8 — Rational Functions',
+    type: 'practice',
+    tags: ['A2.2(A)', 'A2.6(G)', 'A2.6(K)', 'A2.7(F)']
+  }
+];
+
+const TYPE_LABELS = { review: 'Review', practice: 'Practice', exam: 'Exam', notes: 'Notes' };
+
+let resources = [];
+let activeFilter = 'all';
+
+// ── Load from localStorage, merge with defaults ──
+function loadResources() {
+  const saved = JSON.parse(localStorage.getItem('mathResources') || '[]');
+  const savedIds = saved.map(r => r.id);
+  // Keep defaults that haven't been deleted
+  const deletedIds = JSON.parse(localStorage.getItem('deletedIds') || '[]');
+  const defaults = DEFAULT_RESOURCES.filter(r => !deletedIds.includes(r.id));
+  // Merge: defaults first, then any custom additions
+  const customs = saved.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
+  resources = [...defaults, ...customs];
+}
+
+function saveResources() {
+  const customs = resources.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
+  localStorage.setItem('mathResources', JSON.stringify(customs));
+}
+
+// ── Group by unit ──
+function groupByUnit(list) {
+  const groups = {};
+  list.forEach(r => {
+    if (!groups[r.unit]) groups[r.unit] = [];
+    groups[r.unit].push(r);
+  });
+  return groups;
+}
+
+// ── Render ──
+function render() {
+  const query  = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = resources.filter(r => {
+    const matchType = activeFilter === 'all' || r.type === activeFilter;
+    const matchSearch = !query ||
+      r.title.toLowerCase().includes(query) ||
+      r.unit.toLowerCase().includes(query) ||
+      r.desc.toLowerCase().includes(query) ||
+      r.tags.some(t => t.toLowerCase().includes(query));
+    return matchType && matchSearch;
+  });
+
+  const list = document.getElementById('resourceList');
+  const empty = document.getElementById('emptyState');
+  const count = document.getElementById('resourceCount');
+
+  count.textContent = `${resources.length} resource${resources.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const groups = groupByUnit(filtered);
+  list.innerHTML = Object.entries(groups).map(([unit, items]) => `
+    <div class="unit-section" data-unit="${unit}">
+      <div class="unit-label">
+        ${unit}
+        <span class="unit-count">${items.length}</span>
+      </div>
+      <div class="cards">
+        ${items.map(r => cardHTML(r)).join('')}
+        <button class="add-card" onclick="openModal('${encodeURIComponent(unit)}')">
+          <span>+</span> Add resource
+        </button>
+      </div>
+    </div>
+  `).join('') + `
+    <div class="unit-section">
+      <div class="unit-label">New unit</div>
+      <div class="cards">
+        <button class="add-card" onclick="openModal('')">
+          <span>+</span> Add resource to new unit
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function cardHTML(r) {
+  return `
+    <a class="card" href="${r.file}" target="_blank" data-type="${r.type}" data-id="${r.id}">
+      <div class="card-type" style="color: var(--ink-light)">
+        <span class="type-dot ${r.type}"></span>
+        ${TYPE_LABELS[r.type] || r.type}
+      </div>
+      <div class="card-title">${r.title}</div>
+      <div class="card-desc">${r.desc}</div>
+      <div class="card-footer">
+        <div class="card-tags">
+          ${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+  `;
+}
+
+// ── Filter ──
+function setFilter(type, btn) {
+  activeFilter = type;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function filterCards() { render(); }
+
+// ── Modal ──
+let modalUnit = '';
+function openModal(unit) {
+  modalUnit = decodeURIComponent(unit);
+  document.getElementById('newUnit').value = modalUnit;
+  document.getElementById('modalBackdrop').classList.add('open');
+  document.getElementById('newTitle').focus();
+}
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+  ['newTitle','newDesc','newFile','newUnit','newTags'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('newType').value = 'review';
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+function saveResource() {
+  const title = document.getElementById('newTitle').value.trim();
+  const file  = document.getElementById('newFile').value.trim();
+  const unit  = document.getElementById('newUnit').value.trim() || 'Uncategorized';
+  if (!title || !file) {
+    alert('Please fill in at least a title and file name.');
+    return;
+  }
+  const tagsRaw = document.getElementById('newTags').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const newRes = {
+    id: 'r' + Date.now(),
+    title,
+    desc: document.getElementById('newDesc').value.trim(),
+    file,
+    unit,
+    type: document.getElementById('newType').value,
+    tags
+  };
+  resources.push(newRes);
+  saveResources();
+  closeModal();
+  render();
+}
+
+// ── Init ──
+loadResources();
+render();
+</script>
+</body>
+</html>
