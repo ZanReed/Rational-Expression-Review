@@ -142,7 +142,14 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
       <div class="site-title">Math Resources</div>
       <div class="site-sub">Algebra II — 2025–2026</div>
     </div>
-    <button class="teacher-btn" id="teacherToggleBtn" onclick="handleTeacherToggle()">Teacher mode</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <button class="teacher-btn" id="teacherToggleBtn" onclick="handleTeacherToggle()">Teacher mode</button>
+      <div id="teacherGoogleStatus" style="display:none;font-family:var(--sans);font-size:11px;color:var(--ink-mid);display:flex;align-items:center;gap:6px">
+        <img id="teacherAvatar" src="" style="width:18px;height:18px;border-radius:50%;display:none">
+        <span id="teacherGoogleName"></span>
+        <button onclick="signOutTeacher()" style="font-family:var(--mono);font-size:10px;padding:2px 6px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:transparent;color:var(--ink-light)">sign out</button>
+      </div>
+    </div>
   </header>
 
   <div class="teacher-banner" id="teacherBanner">
@@ -194,6 +201,28 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
       <div style="font-family:var(--sans);font-size:12px;color:var(--amber);margin-top:2px">Changes here apply to all newly generated activities.</div>
     </div>
     <button onclick="document.getElementById('settingsPanel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--amber);padding:0 4px">×</button>
+  </div>
+
+  <!-- Google Account -->
+  <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #d4b800">
+    <label style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:6px">Google Account</label>
+    <div style="font-family:var(--sans);font-size:11px;color:var(--amber);margin-bottom:10px">
+      Sign in to load your teacher config (Apps Script URL, teacher list, GitHub token) from Google Drive. Your config syncs automatically across all devices.
+    </div>
+    <div id="teacherSignInArea">
+      <div id="googleSignInTarget"></div>
+      <div id="teacherSignedInInfo" style="display:none;padding:10px 12px;background:white;border:1px solid #d4b800;border-radius:4px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <img id="settingsAvatar" src="" style="width:32px;height:32px;border-radius:50%">
+          <div>
+            <div id="settingsName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)"></div>
+            <div id="settingsEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)"></div>
+          </div>
+          <button onclick="signOutTeacher()" class="modal-btn" style="margin-left:auto;font-size:11px;padding:4px 10px">Sign out</button>
+        </div>
+        <div id="driveConfigStatus" style="margin-top:8px;font-family:var(--sans);font-size:11px;color:var(--green)"></div>
+      </div>
+    </div>
   </div>
 
   <!-- GitHub Token -->
@@ -435,67 +464,219 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
 const PIN_HASH = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
 const GITHUB_OWNER = 'ZanReed';
 const GITHUB_REPO  = 'Rational-Expression-Review';
+const GOOGLE_CLIENT_ID = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
+const DRIVE_CONFIG_FILENAME = 'math_resources_teacher_config.json';
 
-// ── Crypto helpers ──────────────────────────────────────────────
-// All token encryption/decryption uses AES-256-GCM with a key
-// derived from the PIN via PBKDF2. The token is never stored in
-// plaintext — only the encrypted blob lives in the HTML/localStorage.
-
+// ── Crypto helpers ───────────────────────────────────────────────
 async function hashPin(pin) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
   return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,'0')).join('');
 }
-
 async function deriveKey(pin, saltHex) {
-  const enc   = new TextEncoder();
-  const salt  = hexToBytes(saltHex);
+  const enc = new TextEncoder();
   const keyMat = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name:'PBKDF2', salt, iterations:310000, hash:'SHA-256' },
-    keyMat,
-    { name:'AES-GCM', length:256 },
-    false,
-    ['encrypt','decrypt']
+    { name:'PBKDF2', salt:hexToBytes(saltHex), iterations:310000, hash:'SHA-256' },
+    keyMat, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
   );
 }
-
 function bytesToHex(buf) { return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function hexToBytes(hex) { const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++)a[i]=parseInt(hex.substr(i*2,2),16); return a; }
-
 async function encryptToken(pin, token) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv   = crypto.getRandomValues(new Uint8Array(12));
-  const key  = await deriveKey(pin, bytesToHex(salt));
-  const enc  = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(token));
-  // Pack: saltHex + ivHex + ciphertextHex
-  return bytesToHex(salt) + ':' + bytesToHex(iv) + ':' + bytesToHex(enc);
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pin,bytesToHex(salt));
+  const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(token));
+  return bytesToHex(salt)+':'+bytesToHex(iv)+':'+bytesToHex(enc);
 }
-
 async function decryptToken(pin, blob) {
   try {
-    const parts = blob.split(':');
-    if (parts.length !== 3) return null;
-    const [saltHex, ivHex, ctHex] = parts;
-    const key = await deriveKey(pin, saltHex);
-    const pt  = await crypto.subtle.decrypt(
-      { name:'AES-GCM', iv: hexToBytes(ivHex) },
-      key,
-      hexToBytes(ctHex)
-    );
+    const [saltHex,ivHex,ctHex]=blob.split(':');
+    if(!ctHex) return null;
+    const key=await deriveKey(pin,saltHex);
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:hexToBytes(ivHex)},key,hexToBytes(ctHex));
     return new TextDecoder().decode(pt);
-  } catch(e) { return null; }
+  } catch(e){ return null; }
 }
-
-// Encrypted token lives in localStorage under this key
 const TOKEN_STORAGE_KEY = 'ghTokenBlob';
-
-// Decrypted token held in memory only during teacher session
 let _decryptedToken = null;
-
 async function getDecryptedToken(pin) {
   const blob = localStorage.getItem(TOKEN_STORAGE_KEY);
   if (!blob) return null;
   return decryptToken(pin, blob);
+}
+
+// ── Google Auth (Teacher) ────────────────────────────────────────
+let _teacherGoogleUser = null;  // { name, email, picture, sub, accessToken }
+let _driveConfigFileId = null;
+let _tokenClient = null;
+let _tokenResolve = null;
+let _gsiLoaded = false;
+
+function loadGSI() {
+  return new Promise(resolve => {
+    if (_gsiLoaded || (window.google && google.accounts)) { _gsiLoaded=true; resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = () => { _gsiLoaded=true; resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+function initTeacherTokenClient() {
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+    callback: resp => {
+      if (_teacherGoogleUser) _teacherGoogleUser.accessToken = resp.error ? null : resp.access_token;
+      if (_tokenResolve) { _tokenResolve(resp.error ? null : resp.access_token); _tokenResolve = null; }
+    }
+  });
+}
+
+function requestTeacherToken() {
+  return new Promise(resolve => {
+    _tokenResolve = resolve;
+    _tokenClient.requestAccessToken({ prompt:'' });
+  });
+}
+
+async function ensureTeacherToken() {
+  if (_teacherGoogleUser?.accessToken) return _teacherGoogleUser.accessToken;
+  return await requestTeacherToken();
+}
+
+async function signInTeacherGoogle() {
+  await loadGSI();
+  return new Promise(resolve => {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async resp => {
+        const p = parseJwt(resp.credential);
+        _teacherGoogleUser = { name:p.name, email:p.email, picture:p.picture, sub:p.sub, accessToken:null };
+        sessionStorage.setItem('teacherGoogleUser', JSON.stringify(_teacherGoogleUser));
+        initTeacherTokenClient();
+        resolve(_teacherGoogleUser);
+      },
+      auto_select: true
+    });
+    // Render button in settings panel
+    const target = document.getElementById('googleSignInTarget');
+    if (target) google.accounts.id.renderButton(target, { theme:'outline', size:'large', text:'sign_in_with', width:300 });
+    google.accounts.id.prompt();
+  });
+}
+
+function parseJwt(token) {
+  const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(b64));
+}
+
+function signOutTeacher() {
+  if (_teacherGoogleUser) google.accounts.id.revoke(_teacherGoogleUser.email, ()=>{});
+  _teacherGoogleUser = null;
+  _driveConfigFileId = null;
+  sessionStorage.removeItem('teacherGoogleUser');
+  updateTeacherGoogleUI(null);
+}
+
+function updateTeacherGoogleUI(user) {
+  const statusDiv = document.getElementById('teacherGoogleStatus');
+  const signedIn  = document.getElementById('teacherSignedInInfo');
+  const signInBtn = document.getElementById('googleSignInTarget');
+  if (user) {
+    if (statusDiv) {
+      statusDiv.style.display = 'flex';
+      const av = document.getElementById('teacherAvatar');
+      if (av && user.picture) { av.src=user.picture; av.style.display='block'; }
+      const nm = document.getElementById('teacherGoogleName');
+      if (nm) nm.textContent = user.name;
+    }
+    if (signedIn) {
+      signedIn.style.display = 'block';
+      const sa = document.getElementById('settingsAvatar'); if(sa&&user.picture) sa.src=user.picture;
+      const sn = document.getElementById('settingsName');   if(sn) sn.textContent=user.name;
+      const se = document.getElementById('settingsEmail');  if(se) se.textContent=user.email;
+    }
+    if (signInBtn) signInBtn.style.display = 'none';
+  } else {
+    if (statusDiv) statusDiv.style.display = 'none';
+    if (signedIn) signedIn.style.display = 'none';
+    if (signInBtn) signInBtn.style.display = 'block';
+  }
+}
+
+// ── Drive config load/save ───────────────────────────────────────
+async function loadTeacherConfigFromDrive() {
+  const token = await ensureTeacherToken();
+  if (!token) return null;
+  const q = encodeURIComponent(`name='${DRIVE_CONFIG_FILENAME}' and trashed=false`);
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+      { headers:{ Authorization:`Bearer ${token}` } }
+    );
+    if (!res.ok) return null;
+    const list = await res.json();
+    if (!list.files || list.files.length === 0) return null;
+    _driveConfigFileId = list.files[0].id;
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${_driveConfigFileId}?alt=media`,
+      { headers:{ Authorization:`Bearer ${token}` } }
+    );
+    if (!fileRes.ok) return null;
+    return await fileRes.json();
+  } catch(e) { return null; }
+}
+
+async function saveTeacherConfigToDrive(config) {
+  const token = await ensureTeacherToken();
+  if (!token) return false;
+  const content = JSON.stringify(config);
+  try {
+    if (_driveConfigFileId) {
+      await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${_driveConfigFileId}?uploadType=media`,
+        { method:'PATCH', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:content }
+      );
+    } else {
+      const meta = JSON.stringify({ name:DRIVE_CONFIG_FILENAME, parents:['appDataFolder'] });
+      const form = new FormData();
+      form.append('metadata', new Blob([meta],{type:'application/json'}));
+      form.append('file', new Blob([content],{type:'application/json'}));
+      const res = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        { method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:form }
+      );
+      if (res.ok) { const d=await res.json(); _driveConfigFileId=d.id; }
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+function buildTeacherConfig() {
+  return {
+    appsScriptURL:  getAppsScriptURL(),
+    spreadsheetURL: getSpreadsheetURL(),
+    teacherList:    getTeachers(),
+    ghTokenBlob:    localStorage.getItem(TOKEN_STORAGE_KEY) || null,
+    savedAt:        new Date().toISOString()
+  };
+}
+
+async function applyTeacherConfig(config) {
+  if (!config) return;
+  if (config.appsScriptURL)  { setAppsScriptURL(config.appsScriptURL); }
+  if (config.spreadsheetURL) { setSpreadsheetURL(config.spreadsheetURL); }
+  if (config.teacherList)    { setTeachers(config.teacherList); }
+  if (config.ghTokenBlob)    { localStorage.setItem(TOKEN_STORAGE_KEY, config.ghTokenBlob); }
+}
+
+// Auto-save config to Drive whenever a setting changes
+async function autoSaveConfig() {
+  if (!_teacherGoogleUser) return;
+  const config = buildTeacherConfig();
+  await saveTeacherConfigToDrive(config);
 }
 
 // ═══════════════════════════════════════
@@ -652,9 +833,24 @@ async function checkPin() {
   const pin = document.getElementById('pinInput').value.trim();
   const h   = await hashPin(pin);
   if (h === PIN_HASH) {
-    // Decrypt GitHub token into memory if one is stored
     _decryptedToken = await getDecryptedToken(pin);
     closePinModal();
+    // If teacher is signed in to Google, load config from Drive
+    if (_teacherGoogleUser) {
+      const status = document.getElementById('driveConfigStatus');
+      if (status) status.textContent = '⟳ Loading config from Drive…';
+      const config = await loadTeacherConfigFromDrive();
+      if (config) {
+        await applyTeacherConfig(config);
+        // Re-decrypt token from Drive config if we didn't have it locally
+        if (!_decryptedToken && config.ghTokenBlob) {
+          _decryptedToken = await decryptToken(pin, config.ghTokenBlob);
+        }
+        if (status) status.textContent = '✓ Config loaded from Google Drive.';
+      } else {
+        if (status) status.textContent = 'No saved config found — settings will be saved on next change.';
+      }
+    }
     enterTeacher();
   } else {
     document.getElementById('pinError').style.display = 'block';
@@ -670,6 +866,41 @@ function enterTeacher() {
   document.getElementById('teacherBanner').classList.add('visible');
   prefillSettings();
   updateGradebookButton();
+  // Restore Google session if available
+  const stored = sessionStorage.getItem('teacherGoogleUser');
+  if (stored && !_teacherGoogleUser) {
+    _teacherGoogleUser = JSON.parse(stored);
+    loadGSI().then(() => { initTeacherTokenClient(); updateTeacherGoogleUI(_teacherGoogleUser); });
+  } else if (_teacherGoogleUser) {
+    updateTeacherGoogleUI(_teacherGoogleUser);
+  } else {
+    // Render sign-in button in settings panel
+    loadGSI().then(() => {
+      const target = document.getElementById('googleSignInTarget');
+      if (target && GOOGLE_CLIENT_ID !== 'PASTE_YOUR_CLIENT_ID_HERE') {
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async resp => {
+            const p = parseJwt(resp.credential);
+            _teacherGoogleUser = { name:p.name, email:p.email, picture:p.picture, sub:p.sub, accessToken:null };
+            sessionStorage.setItem('teacherGoogleUser', JSON.stringify(_teacherGoogleUser));
+            initTeacherTokenClient();
+            updateTeacherGoogleUI(_teacherGoogleUser);
+            // Auto-load config from Drive
+            const config = await loadTeacherConfigFromDrive();
+            if (config) {
+              await applyTeacherConfig(config);
+              prefillSettings();
+              const st = document.getElementById('driveConfigStatus');
+              if (st) st.textContent = '✓ Config loaded from Google Drive.';
+            }
+          },
+          auto_select: false
+        });
+        google.accounts.id.renderButton(target, { theme:'outline', size:'large', text:'sign_in_with', width:280 });
+      }
+    });
+  }
   render();
 }
 function prefillSettings() {
@@ -846,6 +1077,7 @@ function saveSpreadsheetURL() {
   const msg = document.getElementById('sheetSavedMsg');
   msg.style.display = 'block';
   setTimeout(() => msg.style.display = 'none', 3000);
+  autoSaveConfig();
 }
 function saveTeachers() {
   const raw = document.getElementById('teacherListInput').value;
@@ -854,6 +1086,7 @@ function saveTeachers() {
   const msg = document.getElementById('teacherSavedMsg');
   msg.style.display = 'block';
   setTimeout(() => msg.style.display = 'none', 3000);
+  autoSaveConfig();
 }
 function addTeacherRow() {
   const ta = document.getElementById('teacherListInput');
@@ -866,6 +1099,7 @@ function saveAppsScriptURL() {
   const msg = document.getElementById('urlSavedMsg');
   msg.style.display = 'block';
   setTimeout(() => msg.style.display = 'none', 3000);
+  autoSaveConfig();
 }
 
 // ═══════════════════════════════════════
@@ -1151,7 +1385,24 @@ body.mode-review .review-controls{display:contents}
   <span style="font-size:11px;color:#8a7030">Write this on your paper.</span>
 </div>
 
-<div class="info-bar">
+<!-- Student Google sign-in bar -->
+<div id="studentSignInBar" style="padding:10px 48px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;background:var(--cream);flex-wrap:wrap">
+  <div id="studentGoogleBtn" style="display:flex;align-items:center;gap:10px">
+    <div id="studentSignInTarget"></div>
+    <span style="font-family:var(--sans);font-size:11px;color:var(--ink-light)">or fill in manually below</span>
+  </div>
+  <div id="studentSignedInBadge" style="display:none;align-items:center;gap:10px">
+    <img id="studentAvatar" src="" style="width:28px;height:28px;border-radius:50%">
+    <div>
+      <div id="studentGoogleName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)"></div>
+      <div id="studentGoogleEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)"></div>
+    </div>
+    <button onclick="studentSignOut()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:transparent;color:var(--ink-light);margin-left:4px">sign out</button>
+    <div id="progressSaveStatus" style="font-family:var(--sans);font-size:11px;color:var(--green);margin-left:8px"></div>
+  </div>
+</div>
+
+<div class="info-bar" id="manualInfoBar">
   <div class="info-field"><span>Name</span><input class="info-line" id="studentName" style="min-width:180px" placeholder="Full name"></div>
   <div class="info-field"><span>Student ID</span><input class="info-line" id="studentId" style="min-width:80px" placeholder="ID #"></div>
   <div class="info-field"><span>Teacher</span>
@@ -1449,6 +1700,183 @@ function toggleAnswer(id){const p=document.getElementById(id);if(!p)return;const
 function revealAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='block';p.previousElementSibling.textContent='Hide answer'});if(window.MathJax)MathJax.typesetPromise(document.querySelectorAll('.answer-panel')).catch(()=>{})}
 function hideAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='none';p.previousElementSibling.textContent='Show answer'})}
 
+// ── Student Google Auth ──
+const GOOGLE_CLIENT_ID_ACT = '${escJs(GOOGLE_CLIENT_ID)}';
+const ACTIVITY_FILENAME = '${escJs(filename)}';
+const PROGRESS_KEY = 'math_progress_' + ACTIVITY_FILENAME.replace(/[^a-z0-9]/gi,'_');
+
+let _studentUser = null;  // { name, email, picture, accessToken }
+let _progressFileId = null;
+let _saveTimer = null;
+let _submitted = false;
+let _gsiLoaded = false;
+
+function loadGSI(){
+  return new Promise(resolve=>{
+    if(_gsiLoaded||(window.google&&google.accounts)){_gsiLoaded=true;resolve();return}
+    const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';
+    s.onload=()=>{_gsiLoaded=true;resolve()};document.head.appendChild(s);
+  });
+}
+
+let _studentTokenClient=null, _studentTokenResolve=null;
+function initStudentTokenClient(){
+  _studentTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID_ACT,
+    scope:'https://www.googleapis.com/auth/drive.appdata',
+    callback:resp=>{
+      if(_studentUser)_studentUser.accessToken=resp.error?null:resp.access_token;
+      if(_studentTokenResolve){_studentTokenResolve(resp.error?null:resp.access_token);_studentTokenResolve=null}
+    }
+  });
+}
+function getStudentToken(){return new Promise(r=>{_studentTokenResolve=r;_studentTokenClient.requestAccessToken({prompt:''})})}
+async function ensureStudentToken(){if(_studentUser?.accessToken)return _studentUser.accessToken;return getStudentToken()}
+
+async function initStudentSignIn(){
+  if(GOOGLE_CLIENT_ID_ACT==='PASTE_YOUR_CLIENT_ID_HERE')return;
+  await loadGSI();
+  // Restore session
+  const stored=sessionStorage.getItem('studentGoogleUser');
+  if(stored){
+    _studentUser=JSON.parse(stored);
+    initStudentTokenClient();
+    showStudentSignedIn(_studentUser);
+    await loadProgress();
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id:GOOGLE_CLIENT_ID_ACT,
+    callback:async resp=>{
+      const p=parseStudentJwt(resp.credential);
+      _studentUser={name:p.name,email:p.email,picture:p.picture,sub:p.sub,accessToken:null};
+      sessionStorage.setItem('studentGoogleUser',JSON.stringify(_studentUser));
+      initStudentTokenClient();
+      showStudentSignedIn(_studentUser);
+      await loadProgress();
+    },
+    auto_select:false
+  });
+  const target=document.getElementById('studentSignInTarget');
+  if(target)google.accounts.id.renderButton(target,{theme:'outline',size:'medium',text:'sign_in_with',width:240});
+  google.accounts.id.prompt();
+}
+
+function parseStudentJwt(t){const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(b))}
+
+function showStudentSignedIn(user){
+  document.getElementById('studentGoogleBtn').style.display='none';
+  const badge=document.getElementById('studentSignedInBadge');badge.style.display='flex';
+  const av=document.getElementById('studentAvatar');if(av&&user.picture)av.src=user.picture;
+  document.getElementById('studentGoogleName').textContent=user.name;
+  document.getElementById('studentGoogleEmail').textContent=user.email;
+  // Lock manual fields and pre-fill with Google info
+  const nameEl=document.getElementById('studentName');
+  const idEl=document.getElementById('studentId');
+  if(nameEl){nameEl.value=user.name;nameEl.readOnly=true;nameEl.style.opacity='.5'}
+  if(idEl){idEl.value=user.email;idEl.readOnly=true;idEl.style.opacity='.5'}
+}
+
+function studentSignOut(){
+  if(_studentUser)google.accounts.id.revoke(_studentUser.email,()=>{});
+  _studentUser=null;_progressFileId=null;
+  sessionStorage.removeItem('studentGoogleUser');
+  document.getElementById('studentGoogleBtn').style.display='flex';
+  document.getElementById('studentSignedInBadge').style.display='none';
+  const nameEl=document.getElementById('studentName'),idEl=document.getElementById('studentId');
+  if(nameEl){nameEl.value='';nameEl.readOnly=false;nameEl.style.opacity='1'}
+  if(idEl){idEl.value='';idEl.readOnly=false;idEl.style.opacity='1'}
+}
+
+// ── Progress Save/Load ──
+function collectCurrentAnswers(){
+  const ans={};
+  document.querySelectorAll('.answer-select').forEach(el=>{if(el.id&&el.value)ans[el.id]=el.value});
+  document.querySelectorAll('.answer-input').forEach((el,i)=>{if(el.value)ans['freetext_'+i]=el.value});
+  Object.keys(graphState).forEach(gid=>{ans['graph_'+gid]=graphState[gid]});
+  ans['teacher']=document.getElementById('studentTeacher')?.value||'';
+  ans['period']=document.getElementById('studentPeriod')?.value||'';
+  return ans;
+}
+
+async function saveProgress(){
+  if(!_studentUser||_submitted)return;
+  const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:false,answers:collectCurrentAnswers()};
+  const token=await ensureStudentToken();if(!token)return;
+  const content=JSON.stringify(data);
+  const setSt=msg=>{const el=document.getElementById('progressSaveStatus');if(el)el.textContent=msg};
+  setSt('Saving…');
+  try{
+    if(_progressFileId){
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media`,
+        {method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:content});
+    } else {
+      const meta=JSON.stringify({name:PROGRESS_KEY,parents:['appDataFolder']});
+      const form=new FormData();
+      form.append('metadata',new Blob([meta],{type:'application/json'}));
+      form.append('file',new Blob([content],{type:'application/json'}));
+      const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        {method:'POST',headers:{Authorization:`Bearer ${token}`},body:form});
+      if(res.ok){const d=await res.json();_progressFileId=d.id}
+    }
+    setSt('✓ Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  } catch(e){setSt('Save failed')}
+}
+
+async function loadProgress(){
+  if(!_studentUser)return;
+  const token=await ensureStudentToken();if(!token)return;
+  const q=encodeURIComponent(`name='${PROGRESS_KEY}' and trashed=false`);
+  try{
+    const res=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+      {headers:{Authorization:`Bearer ${token}`}});
+    if(!res.ok)return;
+    const list=await res.json();
+    if(!list.files||list.files.length===0)return;
+    _progressFileId=list.files[0].id;
+    const fileRes=await fetch(`https://www.googleapis.com/drive/v3/files/${_progressFileId}?alt=media`,
+      {headers:{Authorization:`Bearer ${token}`}});
+    if(!fileRes.ok)return;
+    const data=await fileRes.json();
+    if(data.submitted){_submitted=true}
+    // Restore answers
+    if(data.answers){
+      Object.entries(data.answers).forEach(([k,v])=>{
+        if(k==='teacher'){const el=document.getElementById('studentTeacher');if(el)el.value=v}
+        else if(k==='period'){const el=document.getElementById('studentPeriod');if(el)el.value=v}
+        else if(k.startsWith('graph_')){
+          const gid=k.replace('graph_','');
+          if(v&&typeof v==='object'){
+            graphState[gid]=v;
+            const hs=document.getElementById(`gs-h-${gid}`);if(hs)hs.value=v.h;
+            const ks=document.getElementById(`gs-k-${gid}`);if(ks)ks.value=v.k;
+            const as=document.getElementById(`gs-a-${gid}`);if(as)as.value=v.a;
+            const hv=document.getElementById(`sv-h-${gid}`);if(hv)hv.textContent=v.h;
+            const kv=document.getElementById(`sv-k-${gid}`);if(kv)kv.textContent=v.k;
+            const av=document.getElementById(`sv-a-${gid}`);if(av)av.textContent=v.a;
+            drawGraph(gid);
+          }
+        } else if(k.startsWith('freetext_')){
+          const inputs=document.querySelectorAll('.answer-input');
+          const idx=parseInt(k.replace('freetext_',''));
+          if(inputs[idx])inputs[idx].value=v;
+        } else {
+          const el=document.getElementById(k);
+          if(el){el.value=v;chk(el,el.dataset.correct||'')}
+        }
+      });
+    }
+    const el=document.getElementById('progressSaveStatus');
+    if(el)el.textContent='✓ Progress restored from '+new Date(data.savedAt).toLocaleDateString();
+  } catch(e){}
+}
+
+function scheduleSave(){
+  if(!_studentUser||_submitted)return;
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveProgress,2000);
+}
+
 // ── Submit ──
 const APPS_SCRIPT_URL='${appsURL}';
 async function submitAnswers(){
@@ -1457,10 +1885,26 @@ async function submitAnswers(){
   const teacher=document.getElementById('studentTeacher').value.trim();
   if(!name||!id||!teacher){showStatus('Please fill in name, student ID, and teacher.',false);return}
   const btn=document.getElementById('submitBtn');btn.textContent='Submitting…';btn.disabled=true;
-  const payload={worksheet:'${escJs(title)}',studentName:name,studentId:id,teacher,period:document.getElementById('studentPeriod').value.trim(),seedCode:String(SEED),answers:{}};
+  const googleEmail=_studentUser?_studentUser.email:null;
+  const payload={
+    worksheet:'${escJs(title)}',studentName:name,studentId:id,teacher,
+    period:document.getElementById('studentPeriod').value.trim(),
+    seedCode:String(SEED),googleEmail:googleEmail||'',
+    answers:{}
+  };
   try{
     await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(JSON.stringify(payload))});
     showStatus('✓ Submitted! Code: '+SEED,true);btn.textContent='Submitted ✓';
+    _submitted=true;
+    // Mark progress as submitted in Drive
+    if(_studentUser&&_progressFileId){
+      const token=await ensureStudentToken();
+      if(token){
+        const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:true,answers:collectCurrentAnswers()};
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media`,
+          {method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(data)});
+      }
+    }
   }catch(e){showStatus('Submission failed — try again.',false);btn.textContent='Submit answers';btn.disabled=false}
 }
 function showStatus(msg,ok){const s=document.getElementById('submitStatus');s.style.display='block';s.style.background=ok?'#eaf4ee':'#f4e8e8';s.style.color=ok?'#1a6640':'#8a1a1a';s.style.border='1px solid '+(ok?'#7abf9a':'#d49090');s.textContent=msg}
@@ -1751,6 +2195,18 @@ function saveAndDownload(){
 renderQuestions();
 function tryTypeset(){if(window.MathJax&&MathJax.startup&&MathJax.startup.promise){MathJax.startup.promise.then(()=>MathJax.typesetPromise([document.body]).catch(()=>{}))}else{setTimeout(tryTypeset,150)}}
 tryTypeset();
+
+// Auto-save on any answer change
+document.addEventListener('change', e => {
+  if(e.target.classList.contains('answer-select')||e.target.classList.contains('answer-input')||e.target.id==='studentTeacher'||e.target.id==='studentPeriod')
+    scheduleSave();
+});
+document.addEventListener('input', e => {
+  if(e.target.classList.contains('answer-input')) scheduleSave();
+});
+
+// Init student Google sign-in
+initStudentSignIn();
 <\/script>
 </body>
 </html>`;
