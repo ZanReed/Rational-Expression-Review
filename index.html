@@ -375,10 +375,11 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
 </div>
 
 <!-- New activity modal -->
+<!-- FIX: Updated subtitle and button label to reflect auto-publish behavior -->
 <div class="modal-backdrop" id="activityBackdrop" onclick="closeModalOutside(event,'activityBackdrop')">
   <div class="modal">
     <h3>New activity</h3>
-    <div class="modal-sub">Generates a blank worksheet with your header. Download and upload to GitHub, then add questions in teacher mode.</div>
+    <div class="modal-sub" id="actModalSub">Generates a blank worksheet. If a GitHub token is saved, it will be published directly — otherwise downloaded for manual upload.</div>
     <div class="modal-field">
       <label class="modal-label">Activity title</label>
       <input class="modal-input" id="actTitle" placeholder="e.g. Unit 9 Exponentials Practice">
@@ -414,7 +415,7 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
     </div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="closeActivityModal()">Cancel</button>
-      <button class="modal-btn green" onclick="generateActivity()">Generate &amp; download</button>
+      <button class="modal-btn green" id="actGenerateBtn" onclick="generateActivity()">☁ Publish activity</button>
     </div>
   </div>
 </div>
@@ -560,7 +561,6 @@ async function signInTeacherGoogle() {
       },
       auto_select: true
     });
-    // Render button in settings panel
     const target = document.getElementById('googleSignInTarget');
     if (target) google.accounts.id.renderButton(target, { theme:'outline', size:'large', text:'sign_in_with', width:300 });
     google.accounts.id.prompt();
@@ -672,7 +672,6 @@ async function applyTeacherConfig(config) {
   if (config.ghTokenBlob)    { localStorage.setItem(TOKEN_STORAGE_KEY, config.ghTokenBlob); }
 }
 
-// Auto-save config to Drive whenever a setting changes
 async function autoSaveConfig() {
   if (!_teacherGoogleUser) return;
   const config = buildTeacherConfig();
@@ -691,7 +690,7 @@ const DEFAULT_RESOURCES = [
 const TYPE_LABELS = { review:'Review', practice:'Practice', exam:'Exam', notes:'Notes', activity:'Activity' };
 
 let resources    = [];
-let customUnits  = [];  // units added by teacher beyond defaults
+let customUnits  = [];
 let activeFilter = 'all';
 let teacherMode  = false;
 let pendingRemoveId = null;
@@ -706,7 +705,6 @@ function load() {
   const customs          = JSON.parse(localStorage.getItem('mathResources') || '[]');
   const customizedDefs   = JSON.parse(localStorage.getItem('customizedDefaults') || '{}');
   customUnits            = JSON.parse(localStorage.getItem('customUnits') || '[]');
-  // Apply any teacher edits on top of defaults
   const defaults = DEFAULT_RESOURCES
     .filter(r => !deletedIds.includes(r.id))
     .map(r => customizedDefs[r.id] ? { ...r, ...customizedDefs[r.id] } : r);
@@ -714,25 +712,15 @@ function load() {
   resources = [...defaults, ...customOnly];
 }
 
-function getAppsScriptURL() {
-  return localStorage.getItem('appsScriptURL') || '';
-}
-function setAppsScriptURL(url) {
-  localStorage.setItem('appsScriptURL', url.trim());
-}
-function getSpreadsheetURL() {
-  return localStorage.getItem('spreadsheetURL') || '';
-}
-function setSpreadsheetURL(url) {
-  localStorage.setItem('spreadsheetURL', url.trim());
-}
+function getAppsScriptURL() { return localStorage.getItem('appsScriptURL') || ''; }
+function setAppsScriptURL(url) { localStorage.setItem('appsScriptURL', url.trim()); }
+function getSpreadsheetURL() { return localStorage.getItem('spreadsheetURL') || ''; }
+function setSpreadsheetURL(url) { localStorage.setItem('spreadsheetURL', url.trim()); }
 function getTeachers() {
   const saved = localStorage.getItem('teacherList');
   return saved ? JSON.parse(saved) : ['Mueller','Reed','Singleton','Pacayra','Jafari'];
 }
-function setTeachers(list) {
-  localStorage.setItem('teacherList', JSON.stringify(list));
-}
+function setTeachers(list) { localStorage.setItem('teacherList', JSON.stringify(list)); }
 
 function saveCustoms() {
   const customs = resources.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
@@ -835,14 +823,12 @@ async function checkPin() {
   if (h === PIN_HASH) {
     _decryptedToken = await getDecryptedToken(pin);
     closePinModal();
-    // If teacher is signed in to Google, load config from Drive
     if (_teacherGoogleUser) {
       const status = document.getElementById('driveConfigStatus');
       if (status) status.textContent = '⟳ Loading config from Drive…';
       const config = await loadTeacherConfigFromDrive();
       if (config) {
         await applyTeacherConfig(config);
-        // Re-decrypt token from Drive config if we didn't have it locally
         if (!_decryptedToken && config.ghTokenBlob) {
           _decryptedToken = await decryptToken(pin, config.ghTokenBlob);
         }
@@ -866,7 +852,7 @@ function enterTeacher() {
   document.getElementById('teacherBanner').classList.add('visible');
   prefillSettings();
   updateGradebookButton();
-  // Restore Google session if available
+  updateActivityModalBtn();
   const stored = sessionStorage.getItem('teacherGoogleUser');
   if (stored && !_teacherGoogleUser) {
     _teacherGoogleUser = JSON.parse(stored);
@@ -874,7 +860,6 @@ function enterTeacher() {
   } else if (_teacherGoogleUser) {
     updateTeacherGoogleUI(_teacherGoogleUser);
   } else {
-    // Render sign-in button in settings panel
     loadGSI().then(() => {
       const target = document.getElementById('googleSignInTarget');
       if (target && GOOGLE_CLIENT_ID !== 'PASTE_YOUR_CLIENT_ID_HERE') {
@@ -886,7 +871,6 @@ function enterTeacher() {
             sessionStorage.setItem('teacherGoogleUser', JSON.stringify(_teacherGoogleUser));
             initTeacherTokenClient();
             updateTeacherGoogleUI(_teacherGoogleUser);
-            // Auto-load config from Drive
             const config = await loadTeacherConfigFromDrive();
             if (config) {
               await applyTeacherConfig(config);
@@ -903,13 +887,27 @@ function enterTeacher() {
   }
   render();
 }
+
+// Update the activity modal button label based on whether a token is available
+function updateActivityModalBtn() {
+  const btn = document.getElementById('actGenerateBtn');
+  const sub = document.getElementById('actModalSub');
+  if (!btn) return;
+  if (_decryptedToken) {
+    btn.textContent = '☁ Publish activity';
+    if (sub) sub.textContent = 'Generates the activity and publishes it directly to GitHub (~30s to go live), then updates the index.';
+  } else {
+    btn.textContent = '⬇ Download activity';
+    if (sub) sub.textContent = 'No GitHub token found — the activity will be downloaded for manual upload. Add a token in Settings to enable auto-publish.';
+  }
+}
+
 function prefillSettings() {
   const url = getAppsScriptURL();
   if (url) document.getElementById('appsScriptInput').value = url;
   const sheet = getSpreadsheetURL();
   if (sheet) document.getElementById('spreadsheetInput').value = sheet;
   document.getElementById('teacherListInput').value = getTeachers().join('\n');
-  // Show token status
   const hasToken = !!localStorage.getItem(TOKEN_STORAGE_KEY);
   const ind = document.getElementById('tokenSavedIndicator');
   const stat = document.getElementById('tokenStatus');
@@ -957,6 +955,7 @@ function toggleSettings() {
     if (saved) document.getElementById('appsScriptInput').value = saved;
   }
 }
+
 // ── GitHub token save/test/publish ──────────────────────────────
 async function saveGitHubToken() {
   const raw = document.getElementById('ghTokenInput').value.trim();
@@ -964,19 +963,19 @@ async function saveGitHubToken() {
   if (!raw.startsWith('github_pat_') && !raw.startsWith('ghp_')) {
     if (!confirm('This does not look like a GitHub token (should start with github_pat_ or ghp_). Save anyway?')) return;
   }
-  // We need the PIN to encrypt — prompt for it
   const pin = prompt('Re-enter your PIN to encrypt the token:');
   if (!pin) return;
   const h = await hashPin(pin);
   if (h !== PIN_HASH) { alert('Incorrect PIN. Token not saved.'); return; }
   const blob = await encryptToken(pin, raw);
   localStorage.setItem(TOKEN_STORAGE_KEY, blob);
-  _decryptedToken = raw; // already in memory since PIN is correct
+  _decryptedToken = raw;
   document.getElementById('ghTokenInput').value = '';
   document.getElementById('tokenSavedIndicator').style.display = 'block';
   const stat = document.getElementById('tokenStatus');
   stat.style.color = 'var(--green)';
   stat.textContent = '🔓 Token encrypted and unlocked for this session.';
+  updateActivityModalBtn();
 }
 
 async function testGitHubToken() {
@@ -1028,7 +1027,6 @@ async function publishToGitHub(filename, htmlContent, statusElId) {
     'Content-Type': 'application/json'
   };
 
-  // Get current file SHA (required for updates)
   let sha = null;
   try {
     const getRes = await fetch(apiBase, { headers });
@@ -1045,7 +1043,6 @@ async function publishToGitHub(filename, htmlContent, statusElId) {
     return false;
   }
 
-  // Encode content as base64
   const b64 = btoa(unescape(encodeURIComponent(htmlContent)));
 
   setStatus('⟳ Publishing to GitHub…', null);
@@ -1170,6 +1167,7 @@ function openActivityModal(unit) {
   pendingActivityUnit = unit;
   ['actTitle','actDesc','actTags','actFile'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('actType').value = 'activity';
+  updateActivityModalBtn();
   document.getElementById('activityBackdrop').classList.add('open');
   setTimeout(() => document.getElementById('actTitle').focus(), 80);
 }
@@ -1186,40 +1184,54 @@ async function generateActivity() {
   const tags  = document.getElementById('actTags').value.trim().split(',').map(t=>t.trim()).filter(Boolean);
   const mode  = document.getElementById('actMode').value;
 
-  // Activities always go in activities/ subfolder
   const actPath = 'activities/' + file;
   const html = buildActivityHTML(title, actPath, mode);
 
-  // Add card to index with subfolder path
+  // Add card to index
   resources.push({ id:'r'+Date.now(), title, desc: desc || title, file: actPath, unit:pendingActivityUnit, type, tags });
   saveCustoms(); closeActivityModal(); render();
 
-  // Offer publish or download
+  // Create a persistent status toast
+  const statusDiv = document.createElement('div');
+  statusDiv.id = 'publishStatusTemp';
+  statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:6px;font-family:var(--sans);font-size:13px;background:var(--page);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-width:340px';
+  document.body.appendChild(statusDiv);
+
   if (_decryptedToken) {
-    const choice = confirm(`Publish "${actPath}" directly to GitHub?\n\nClick OK to publish (live in ~30s).\nClick Cancel to download instead.`);
-    if (choice) {
-      const statusDiv = document.createElement('div');
-      statusDiv.id = 'publishStatusTemp';
-      statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:6px;font-family:var(--sans);font-size:13px;background:var(--page);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999';
-      document.body.appendChild(statusDiv);
-      await publishToGitHub(actPath, html, 'publishStatusTemp');
+    // Auto-publish: activity first, then index
+    const ok = await publishToGitHub(actPath, html, 'publishStatusTemp');
+    if (ok) {
       setTimeout(async () => {
-        await publishIndexToGitHub();
-        setTimeout(() => statusDiv.remove(), 4000);
-      }, 1000);
-      return;
+        statusDiv.textContent = '⟳ Updating index on GitHub…';
+        await publishToGitHub('index.html', document.documentElement.outerHTML, 'publishStatusTemp');
+        setTimeout(() => statusDiv.remove(), 5000);
+      }, 800);
+    } else {
+      // Publish failed — offer download fallback
+      setTimeout(() => {
+        statusDiv.textContent = '';
+        const fallbackBtn = document.createElement('button');
+        fallbackBtn.textContent = '⬇ Download instead';
+        fallbackBtn.className = 'modal-btn';
+        fallbackBtn.style.cssText = 'font-size:12px;margin-top:8px';
+        fallbackBtn.onclick = () => { downloadFile(file, html); statusDiv.remove(); };
+        statusDiv.appendChild(document.createTextNode('Publish failed. '));
+        statusDiv.appendChild(fallbackBtn);
+        setTimeout(() => statusDiv.remove(), 12000);
+      }, 200);
     }
+  } else {
+    // No token — download directly, no confirm dialog needed
+    statusDiv.remove();
+    downloadFile(file, html);
   }
-  downloadFile(file, html);
 }
 
-// Publish the index.html itself to GitHub (with updated resource list baked in)
 async function publishIndexToGitHub() {
   const html = document.documentElement.outerHTML;
   return publishToGitHub('index.html', html, 'publishStatusTemp');
 }
 
-// Called from a "Publish index" button in teacher banner
 async function publishIndex() {
   const statusDiv = document.getElementById('bannerPublishStatus');
   if (!_decryptedToken) {
@@ -1245,13 +1257,12 @@ function downloadFile(filename, content) {
 // ═══════════════════════════════════════
 // ACTIVITY HTML GENERATOR
 // ═══════════════════════════════════════
-const APPS_SCRIPT_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 const PIN_HASH_EXPORT = PIN_HASH;
 
 function buildActivityHTML(title, filename, mode) {
   mode = mode || 'review';
   const teacherList = getTeachers();
-  const teacherOpts = teacherList.map(t => `<option value="${t}">${t}</option>`).join('');
+  const teacherOpts = teacherList.map(t => '<option value="' + t + '">' + t + '</option>').join('');
   const appsURL = getAppsScriptURL() || 'PASTE_YOUR_WEB_APP_URL_HERE';
   const isReview = mode === 'review';
 
@@ -1305,7 +1316,6 @@ body{font-family:var(--serif);background:var(--cream);color:var(--ink);line-heig
 .q-display{margin:8px 0 6px;font-size:14px}
 .personal-badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:500;padding:1px 7px;border-radius:3px;background:#fef0b0;border:1px solid #d4b800;color:#4a3a00;margin-left:6px;vertical-align:middle}
 .answer-label{font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-light);margin-top:14px;margin-bottom:5px}
-/* Dropdowns — feedback only shown in review mode */
 .answer-select{width:100%;border:1px solid var(--rule);border-radius:3px;background:white;padding:8px 10px;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;cursor:pointer;transition:border-color .15s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a857e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 body.mode-review .answer-select.correct{border-color:var(--green-rule);background-color:var(--green-bg)}
 body.mode-review .answer-select.incorrect{border-color:var(--red-rule);background-color:var(--red-bg)}
@@ -1315,16 +1325,13 @@ body.mode-review .answer-select.incorrect{border-color:var(--red-rule);backgroun
 .two-inputs{display:flex;flex-direction:column;gap:6px}
 .sub-label{font-family:var(--sans);font-size:11px;color:var(--ink-light);margin-bottom:2px}
 .factor-sep{font-family:var(--mono);font-size:14px;color:var(--ink-mid);padding-bottom:8px;margin:0 2px}
-/* Reveal — only visible in review mode */
 .reveal-btn{margin-top:8px;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.04em;padding:4px 12px;border:1px solid var(--green-rule);border-radius:2px;cursor:pointer;background:transparent;color:var(--green);transition:all .15s;display:none}
 body.mode-review .reveal-btn{display:inline-block}
 .reveal-btn:hover{background:var(--green-bg)}
 .answer-panel{display:none;margin-top:8px;padding:10px 12px;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:3px;font-size:13.5px;line-height:1.8;color:var(--green)}
 .answer-panel .ans-label{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px;display:block}
-/* Show/hide all only in review mode */
 .review-controls{display:none}
 body.mode-review .review-controls{display:contents}
-/* Graph widget */
 .graph-widget{margin-top:12px}
 .graph-canvas-wrap{position:relative;width:260px;height:260px;border:1.5px solid var(--ink-mid);background:white;border-radius:2px;overflow:hidden}
 .graph-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
@@ -1333,12 +1340,9 @@ body.mode-review .review-controls{display:contents}
 .slider-row label{min-width:20px;font-weight:500;font-family:var(--mono);color:var(--accent)}
 .slider-row input[type=range]{flex:1;accent-color:var(--accent)}
 .slider-val{min-width:32px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--ink)}
-/* Image block */
 .q-image{max-width:100%;border-radius:4px;margin:10px 0;display:block;border:1px solid var(--rule)}
-/* Embed block */
 .q-embed-wrap{position:relative;width:100%;padding-bottom:56.25%;height:0;margin:10px 0;border-radius:4px;overflow:hidden;border:1px solid var(--rule)}
 .q-embed-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
-/* Teacher panel */
 .teacher-panel{display:none;padding:24px 48px;background:var(--amber-bg);border-top:2px solid #d4b800}
 .teacher-panel.visible{display:block}
 .teacher-panel h3{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:4px;color:var(--amber)}
@@ -1367,16 +1371,16 @@ body.mode-review .review-controls{display:contents}
 @media(max-width:620px){.exam-head,.info-bar,.controls,.body-pad,.exam-footer,.seed-banner,.submit-section,.teacher-panel{padding-left:18px;padding-right:18px}}
 <\/style>
 </head>
-<body class="mode-${mode}">
+<body class="mode-` + mode + `">
 <div class="page">
 
 <div class="exam-head">
   <div class="head-left">
     <div class="district">Dallas ISD — Mathematics</div>
-    <div class="exam-title">${escHtml(title)}</div>
+    <div class="exam-title">` + escHtml(title) + `</div>
     <div class="exam-sub">2025–2026</div>
   </div>
-  <span class="mode-badge ${mode}" id="modeBadge">${isReview ? 'Review mode' : 'Activity mode'}</span>
+  <span class="mode-badge ` + mode + `" id="modeBadge">` + (isReview ? 'Review mode' : 'Activity mode') + `</span>
 </div>
 
 <div class="seed-banner">
@@ -1385,7 +1389,6 @@ body.mode-review .review-controls{display:contents}
   <span style="font-size:11px;color:#8a7030">Write this on your paper.</span>
 </div>
 
-<!-- Student Google sign-in bar -->
 <div id="studentSignInBar" style="padding:10px 48px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;background:var(--cream);flex-wrap:wrap">
   <div id="studentGoogleBtn" style="display:flex;align-items:center;gap:10px">
     <div id="studentSignInTarget"></div>
@@ -1408,7 +1411,7 @@ body.mode-review .review-controls{display:contents}
   <div class="info-field"><span>Teacher</span>
     <select id="studentTeacher" class="teacher-select">
       <option value="">— select teacher —</option>
-      ${teacherOpts}
+      ` + teacherOpts + `
     </select>
   </div>
   <div class="info-field"><span>Period</span><input class="info-line" id="studentPeriod" style="min-width:50px" placeholder="Period"></div>
@@ -1438,19 +1441,17 @@ body.mode-review .review-controls{display:contents}
   <div id="submitStatus" style="display:none;margin-top:12px;font-family:var(--sans);font-size:13px;padding:10px 14px;border-radius:4px"></div>
 </div>
 
-<!-- Teacher panel -->
 <div class="teacher-panel" id="teacherPanel">
   <h3>Question builder</h3>
   <div class="teacher-panel-sub">Add or edit questions below. Click "Save &amp; download" when done, then re-upload to GitHub.</div>
 
-  <!-- Mode toggle -->
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 14px;background:white;border:1px solid #d4b800;border-radius:6px">
     <span style="font-family:var(--sans);font-size:12px;font-weight:600;color:var(--amber)">Activity mode:</span>
     <label style="display:flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;color:var(--ink-mid);cursor:pointer">
-      <input type="radio" name="modeToggle" value="review" id="modeReview" ${isReview?'checked':''} onchange="setMode('review')"> Review (show answer buttons + feedback)
+      <input type="radio" name="modeToggle" value="review" id="modeReview" ` + (isReview ? 'checked' : '') + ` onchange="setMode('review')"> Review (show answer buttons + feedback)
     </label>
     <label style="display:flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;color:var(--ink-mid);cursor:pointer">
-      <input type="radio" name="modeToggle" value="activity" id="modeActivity" ${!isReview?'checked':''} onchange="setMode('activity')"> Activity (no feedback, clean submit)
+      <input type="radio" name="modeToggle" value="activity" id="modeActivity" ` + (!isReview ? 'checked' : '') + ` onchange="setMode('activity')"> Activity (no feedback, clean submit)
     </label>
   </div>
 
@@ -1490,13 +1491,13 @@ body.mode-review .review-controls{display:contents}
 </div>
 
 <div class="exam-footer">
-  <span>Dallas ISD — ${escHtml(title)}</span>
+  <span>Dallas ISD — ` + escHtml(title) + `</span>
   <span id="footerSeed"></span>
 </div>
-</div><!-- .page -->
+</div>
 
 <script id="QUESTION_DATA" type="application/json">[]<\/script>
-<script id="ACTIVITY_META" type="application/json">${JSON.stringify({mode,title,filename})}<\/script>
+<script id="ACTIVITY_META" type="application/json">` + JSON.stringify({mode, title, filename}) + `<\/script>
 
 <script>
 // ── RNG ──
@@ -1520,7 +1521,7 @@ function setMode(m){
 }
 
 // ── PIN ──
-const PIN_HASH='${PIN_HASH_EXPORT}';
+const PIN_HASH='` + PIN_HASH_EXPORT + `';
 let teacherModeOn=false;
 async function hashPin(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function handleTeacherToggle(){
@@ -1544,7 +1545,6 @@ let addedQuestions=[];
 function resolvePersonalized(q){
   if(!q.personalized)return q;
   const out={...q};
-  // For domain/range/zeros: randomize the key values within a small range of the typed value
   if(['domain','range','zeros'].includes(q.type)&&q.personalize_ranges){
     const ranges=q.personalize_ranges;
     const newVals={};
@@ -1552,7 +1552,6 @@ function resolvePersonalized(q){
       const r=ranges[k];
       newVals[k]=pickInt(r.min,r.max);
     });
-    // Rebuild correct_value and distractors by substituting
     let cv=q.correct_value_template||q.correct_value;
     Object.keys(newVals).forEach(k=>{cv=cv.replace(new RegExp('{'+k+'}','g'),newVals[k])});
     out.correct_value=cv;
@@ -1701,11 +1700,11 @@ function revealAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.st
 function hideAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='none';p.previousElementSibling.textContent='Show answer'})}
 
 // ── Student Google Auth ──
-const GOOGLE_CLIENT_ID_ACT = '${escJs(GOOGLE_CLIENT_ID)}';
-const ACTIVITY_FILENAME = '${escJs(filename)}';
+const GOOGLE_CLIENT_ID_ACT = '` + escJs(GOOGLE_CLIENT_ID) + `';
+const ACTIVITY_FILENAME = '` + escJs(filename) + `';
 const PROGRESS_KEY = 'math_progress_' + ACTIVITY_FILENAME.replace(/[^a-z0-9]/gi,'_');
 
-let _studentUser = null;  // { name, email, picture, accessToken }
+let _studentUser = null;
 let _progressFileId = null;
 let _saveTimer = null;
 let _submitted = false;
@@ -1731,12 +1730,11 @@ function initStudentTokenClient(){
   });
 }
 function getStudentToken(){return new Promise(r=>{_studentTokenResolve=r;_studentTokenClient.requestAccessToken({prompt:''})})}
-async function ensureStudentToken(){if(_studentUser?.accessToken)return _studentUser.accessToken;return getStudentToken()}
+async function ensureStudentToken(){if(_studentUser&&_studentUser.accessToken)return _studentUser.accessToken;return getStudentToken()}
 
 async function initStudentSignIn(){
   if(GOOGLE_CLIENT_ID_ACT==='PASTE_YOUR_CLIENT_ID_HERE')return;
   await loadGSI();
-  // Restore session
   const stored=sessionStorage.getItem('studentGoogleUser');
   if(stored){
     _studentUser=JSON.parse(stored);
@@ -1770,7 +1768,6 @@ function showStudentSignedIn(user){
   const av=document.getElementById('studentAvatar');if(av&&user.picture)av.src=user.picture;
   document.getElementById('studentGoogleName').textContent=user.name;
   document.getElementById('studentGoogleEmail').textContent=user.email;
-  // Lock manual fields and pre-fill with Google info
   const nameEl=document.getElementById('studentName');
   const idEl=document.getElementById('studentId');
   if(nameEl){nameEl.value=user.name;nameEl.readOnly=true;nameEl.style.opacity='.5'}
@@ -1794,8 +1791,8 @@ function collectCurrentAnswers(){
   document.querySelectorAll('.answer-select').forEach(el=>{if(el.id&&el.value)ans[el.id]=el.value});
   document.querySelectorAll('.answer-input').forEach((el,i)=>{if(el.value)ans['freetext_'+i]=el.value});
   Object.keys(graphState).forEach(gid=>{ans['graph_'+gid]=graphState[gid]});
-  ans['teacher']=document.getElementById('studentTeacher')?.value||'';
-  ans['period']=document.getElementById('studentPeriod')?.value||'';
+  ans['teacher']=document.getElementById('studentTeacher')&&document.getElementById('studentTeacher').value||'';
+  ans['period']=document.getElementById('studentPeriod')&&document.getElementById('studentPeriod').value||'';
   return ans;
 }
 
@@ -1804,19 +1801,19 @@ async function saveProgress(){
   const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:false,answers:collectCurrentAnswers()};
   const token=await ensureStudentToken();if(!token)return;
   const content=JSON.stringify(data);
-  const setSt=msg=>{const el=document.getElementById('progressSaveStatus');if(el)el.textContent=msg};
+  const setSt=function(msg){const el=document.getElementById('progressSaveStatus');if(el)el.textContent=msg};
   setSt('Saving…');
   try{
     if(_progressFileId){
-      await fetch(('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media'),
-        {method:'PATCH',headers:{Authorization:('Bearer '+token),'Content-Type':'application/json'},body:content});
+      await fetch('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media',
+        {method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:content});
     } else {
       const meta=JSON.stringify({name:PROGRESS_KEY,parents:['appDataFolder']});
       const form=new FormData();
       form.append('metadata',new Blob([meta],{type:'application/json'}));
       form.append('file',new Blob([content],{type:'application/json'}));
       const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
-        {method:'POST',headers:{Authorization:('Bearer '+token)},body:form});
+        {method:'POST',headers:{Authorization:'Bearer '+token},body:form});
       if(res.ok){const d=await res.json();_progressFileId=d.id}
     }
     setSt('✓ Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
@@ -1826,34 +1823,34 @@ async function saveProgress(){
 async function loadProgress(){
   if(!_studentUser)return;
   const token=await ensureStudentToken();if(!token)return;
-  const q=encodeURIComponent(('name=\''+PROGRESS_KEY+'\' and trashed=false'));
+  const q=encodeURIComponent('name=\''+PROGRESS_KEY+'\' and trashed=false');
   try{
-    const res=await fetch(('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)'),
-      {headers:{Authorization:('Bearer '+token)}});
+    const res=await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)',
+      {headers:{Authorization:'Bearer '+token}});
     if(!res.ok)return;
     const list=await res.json();
     if(!list.files||list.files.length===0)return;
     _progressFileId=list.files[0].id;
-    const fileRes=await fetch(('https://www.googleapis.com/drive/v3/files/'+_progressFileId+'?alt=media'),
-      {headers:{Authorization:('Bearer '+token)}});
+    const fileRes=await fetch('https://www.googleapis.com/drive/v3/files/'+_progressFileId+'?alt=media',
+      {headers:{Authorization:'Bearer '+token}});
     if(!fileRes.ok)return;
     const data=await fileRes.json();
     if(data.submitted){_submitted=true}
-    // Restore answers
     if(data.answers){
-      Object.entries(data.answers).forEach(([k,v])=>{
+      Object.entries(data.answers).forEach(function(pair){
+        const k=pair[0], v=pair[1];
         if(k==='teacher'){const el=document.getElementById('studentTeacher');if(el)el.value=v}
         else if(k==='period'){const el=document.getElementById('studentPeriod');if(el)el.value=v}
         else if(k.startsWith('graph_')){
           const gid=k.replace('graph_','');
           if(v&&typeof v==='object'){
             graphState[gid]=v;
-            const hs=document.getElementById(('gs-h-'+gid));if(hs)hs.value=v.h;
-            const ks=document.getElementById(('gs-k-'+gid));if(ks)ks.value=v.k;
-            const as=document.getElementById(('gs-a-'+gid));if(as)as.value=v.a;
-            const hv=document.getElementById(('sv-h-'+gid));if(hv)hv.textContent=v.h;
-            const kv=document.getElementById(('sv-k-'+gid));if(kv)kv.textContent=v.k;
-            const av=document.getElementById(('sv-a-'+gid));if(av)av.textContent=v.a;
+            const hs=document.getElementById('gs-h-'+gid);if(hs)hs.value=v.h;
+            const ks=document.getElementById('gs-k-'+gid);if(ks)ks.value=v.k;
+            const as_=document.getElementById('gs-a-'+gid);if(as_)as_.value=v.a;
+            const hv=document.getElementById('sv-h-'+gid);if(hv)hv.textContent=v.h;
+            const kv=document.getElementById('sv-k-'+gid);if(kv)kv.textContent=v.k;
+            const av=document.getElementById('sv-a-'+gid);if(av)av.textContent=v.a;
             drawGraph(gid);
           }
         } else if(k.startsWith('freetext_')){
@@ -1878,7 +1875,7 @@ function scheduleSave(){
 }
 
 // ── Submit ──
-const APPS_SCRIPT_URL='${appsURL}';
+const APPS_SCRIPT_URL='` + appsURL + `';
 async function submitAnswers(){
   const name=document.getElementById('studentName').value.trim();
   const id=document.getElementById('studentId').value.trim();
@@ -1887,7 +1884,7 @@ async function submitAnswers(){
   const btn=document.getElementById('submitBtn');btn.textContent='Submitting…';btn.disabled=true;
   const googleEmail=_studentUser?_studentUser.email:null;
   const payload={
-    worksheet:'${escJs(title)}',studentName:name,studentId:id,teacher,
+    worksheet:'` + escJs(title) + `',studentName:name,studentId:id,teacher,
     period:document.getElementById('studentPeriod').value.trim(),
     seedCode:String(SEED),googleEmail:googleEmail||'',
     answers:{}
@@ -1896,13 +1893,12 @@ async function submitAnswers(){
     await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(JSON.stringify(payload))});
     showStatus('✓ Submitted! Code: '+SEED,true);btn.textContent='Submitted ✓';
     _submitted=true;
-    // Mark progress as submitted in Drive
     if(_studentUser&&_progressFileId){
       const token=await ensureStudentToken();
       if(token){
         const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:true,answers:collectCurrentAnswers()};
-        await fetch(\`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media\`,
-          {method:'PATCH',headers:{Authorization:\`Bearer ${token}\`,'Content-Type':'application/json'},body:JSON.stringify(data)});
+        await fetch('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media',
+          {method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(data)});
       }
     }
   }catch(e){showStatus('Submission failed — try again.',false);btn.textContent='Submit answers';btn.disabled=false}
@@ -1982,7 +1978,6 @@ function openBuilder(type,editIdx){
   const cfg=BUILDER_CONFIGS[type];
   document.getElementById('builderTitle').textContent=(editingIndex>=0?'Edit: ':'')+cfg.title;
 
-  // Build fields including the personalized toggle (not for image/embed)
   const showPersonalized=!['image','embed','freetext','graph'].includes(type);
   let fieldsHTML='';
   if(showPersonalized){
@@ -1992,7 +1987,7 @@ function openBuilder(type,editIdx){
       '<textarea id="bf_ranges" rows="3" placeholder=\'{"v1":{"min":2,"max":8},"v2":{"min":1,"max":5}}\'></textarea>'+
       '</div>';
   }
-  fieldsHTML+=cfg.fields.map(f=>{
+  fieldsHTML+=cfg.fields.map(function(f){
     if(f.type==='file'){
       return '<label>'+f.label+'</label><input type="file" id="bf_'+f.id+'" accept="image/*" onchange="handleImageUpload(this)" style="margin-bottom:10px">';
     }
@@ -2019,57 +2014,54 @@ function handleImageUpload(input){
   if(!input.files||!input.files[0])return;
   const file=input.files[0];
   const reader=new FileReader();
-  reader.onload=e=>{
-    // Store base64 in a hidden input
+  reader.onload=function(e){
     let hidden=document.getElementById('bf_img_b64');
     if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.id='bf_img_b64';input.parentNode.appendChild(hidden)}
-    hidden.value=e.target.result; // data:image/…;base64,…
+    hidden.value=e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 function convertYouTubeURL(url){
-  // Convert watch URLs to embed URLs
-  const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  const m=url.match(/(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]+)/);
   if(m)return 'https://www.youtube.com/embed/'+m[1];
-  // Google Slides: convert /pub to /embed
   if(url.includes('docs.google.com/presentation')&&!url.includes('/embed')){
-    return url.replace('/pub','/embed').replace(/\?.*$/,'')+'?start=false&loop=false&delayms=3000';
+    return url.replace('/pub','/embed').replace(/\\?.*$/,'')+'?start=false&loop=false&delayms=3000';
   }
   return url;
 }
 
 function prefillBuilder(type,q){
-  const set=(id,val)=>{const el=document.getElementById('bf_'+id);if(el&&val!==undefined)el.value=val};
+  const set=function(id,val){const el=document.getElementById('bf_'+id);if(el&&val!==undefined)el.value=val};
   const cbP=document.getElementById('bf_personalized');
   if(cbP&&q.personalized){cbP.checked=true;togglePersonalizedFields();if(q.personalize_ranges)set('ranges',JSON.stringify(q.personalize_ranges,null,2))}
   if(type==='image'){set('caption',q.caption);set('img_url',q.src||'')}
   else if(type==='embed'){set('caption',q.caption);set('embed_url',q.embed_url)}
   else if(type==='freetext'){set('question',q.question_text);set('expr',q.display_math);set('ans',q.answer_text)}
   else if(type==='graph'){set('expr',q.display_math);set('h',q.correct_h);set('k',q.correct_k);set('a',q.correct_a)}
-  else if(type==='transform'){set('expr',q.display_math);(q.options||[]).forEach((o,i)=>set('opt'+i,o))}
+  else if(type==='transform'){set('expr',q.display_math);(q.options||[]).forEach(function(o,i){set('opt'+i,o)})}
   else if(type==='simplify'){
     set('expr',q.display_math);set('num_correct',q.num_correct);set('den_correct',q.den_correct);
-    (q.distractors_num||[]).forEach((d,i)=>set('num_d'+(i+1),d));
-    (q.distractors_den||[]).forEach((d,i)=>set('den_d'+(i+1),d));set('ans',q.answer_text)
+    (q.distractors_num||[]).forEach(function(d,i){set('num_d'+(i+1),d)});
+    (q.distractors_den||[]).forEach(function(d,i){set('den_d'+(i+1),d)});set('ans',q.answer_text)
   } else if(type==='factors'){
     set('expr',q.display_math);
-    const ser=facs=>facs.map(f=>[f.correct,...f.opts.filter(o=>o!==f.correct)].join(',')).join('|');
+    const ser=function(facs){return facs.map(function(f){return[f.correct,...f.opts.filter(function(o){return o!==f.correct})].join(',')}).join('|')};
     set('n_factors',ser(q.num_factors||[]));set('d_factors',ser(q.den_factors||[]));set('ans',q.answer_text)
   } else if(type==='asymptotes'){
     set('expr',q.display_math);set('va_correct',q.va_correct);set('ha_correct',q.ha_correct);
-    (q.distractors_va||[]).forEach((d,i)=>set('va_d'+(i+1),d));
-    (q.distractors_ha||[]).forEach((d,i)=>set('ha_d'+(i+1),d));set('ans',q.answer_text)
+    (q.distractors_va||[]).forEach(function(d,i){set('va_d'+(i+1),d)});
+    (q.distractors_ha||[]).forEach(function(d,i){set('ha_d'+(i+1),d)});set('ans',q.answer_text)
   } else {
     set('expr',q.display_math);set('correct',q.correct_value);
-    (q.distractors||[]).forEach((d,i)=>set('d'+(i+1),d));set('ans',q.answer_text)
+    (q.distractors||[]).forEach(function(d,i){set('d'+(i+1),d)});set('ans',q.answer_text)
   }
 }
 
 function closeBuilder(){document.getElementById('qBuilder').classList.remove('visible');currentBuilderType='';editingIndex=-1}
 
 function buildQFromForm(){
-  const get=id=>{const el=document.getElementById('bf_'+id);return el?el.value.trim():''};
+  const get=function(id){const el=document.getElementById('bf_'+id);return el?el.value.trim():''};
   const isPersonalized=document.getElementById('bf_personalized')&&document.getElementById('bf_personalized').checked;
   let ranges=null;
   if(isPersonalized){try{ranges=JSON.parse(get('ranges'))}catch(e){ranges=null}}
@@ -2102,7 +2094,7 @@ function buildQFromForm(){
     q.answer_text=get('ans');
   } else if(currentBuilderType==='factors'){
     q.question_text='Simplify';q.display_math=get('expr');
-    const parseFG=s=>s.split('|').map(g=>{const p=g.split(',').map(x=>x.trim()).filter(Boolean);return{correct:p[0]||'',opts:p}});
+    const parseFG=function(s){return s.split('|').map(function(g){const p=g.split(',').map(function(x){return x.trim()}).filter(Boolean);return{correct:p[0]||'',opts:p}})};
     q.num_factors=parseFG(get('n_factors'));q.den_factors=parseFG(get('d_factors'));
     q.answer_text=get('ans');
   } else if(currentBuilderType==='asymptotes'){
@@ -2139,7 +2131,7 @@ function renderAddedList(){
   const allQ=[...questions,...addedQuestions];
   if(allQ.length===0){list.innerHTML='';return}
   list.innerHTML='<div style="font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:8px">All questions ('+allQ.length+' total — click to edit)</div>'+
-    allQ.map((q,i)=>{
+    allQ.map(function(q,i){
       const isNew=i>=questions.length;
       const icon={domain:'📐',range:'📏',graph:'📈',transform:'🔄',simplify:'➗',factors:'🔢',asymptotes:'📉',zeros:'0️⃣',freetext:'✏️',image:'🖼',embed:'▶️'}[q.type]||'❓';
       const lbl=icon+' Q'+(i+1)+': '+(q.display_math||q.question_text||q.caption||q.type).substring(0,35)+'…';
@@ -2170,18 +2162,13 @@ function saveAndDownload(){
   const meta=JSON.parse(document.getElementById('ACTIVITY_META').textContent||'{}');
   meta.mode=currentMode;
   let html=document.documentElement.outerHTML;
-  // Update question data
-  html=html.replace(/<script id="QUESTION_DATA"[^>]*>[\s\S]*?<\/script>/,'<script id="QUESTION_DATA" type="application/json">'+JSON.stringify(allQ,null,2)+'<\/script>');
-  // Update meta (mode)
-  html=html.replace(/<script id="ACTIVITY_META"[^>]*>[\s\S]*?<\/script>/,'<script id="ACTIVITY_META" type="application/json">'+JSON.stringify(meta)+'<\/script>');
-  // Update body class for mode
+  html=html.replace(/<script id="QUESTION_DATA"[^>]*>[\\s\\S]*?<\\/script>/,'<script id="QUESTION_DATA" type="application/json">'+JSON.stringify(allQ,null,2)+'<\\/script>');
+  html=html.replace(/<script id="ACTIVITY_META"[^>]*>[\\s\\S]*?<\\/script>/,'<script id="ACTIVITY_META" type="application/json">'+JSON.stringify(meta)+'<\\/script>');
   html=html.replace(/class="mode-(review|activity)"/,'class="mode-'+currentMode+'"');
-  // Sync URL
   if(window._syncedURL){html=html.replace(/const APPS_SCRIPT_URL='[^']*'/,"const APPS_SCRIPT_URL='"+window._syncedURL+"'")}
-  // Sync teacher list
   if(window._syncedTeachers){
-    const opts='<option value="">— select teacher —</option>'+window._syncedTeachers.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
-    html=html.replace(/<select id="studentTeacher"[^>]*>[\s\S]*?<\/select>/,'<select id="studentTeacher" class="teacher-select">'+opts+'</select>');
+    const opts='<option value="">— select teacher —</option>'+window._syncedTeachers.map(function(t){return'<option value="'+t+'">'+t+'</option>'}).join('');
+    html=html.replace(/<select id="studentTeacher"[^>]*>[\\s\\S]*?<\\/select>/,'<select id="studentTeacher" class="teacher-select">'+opts+'</select>');
   }
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
@@ -2193,19 +2180,17 @@ function saveAndDownload(){
 
 // ── Init ──
 renderQuestions();
-function tryTypeset(){if(window.MathJax&&MathJax.startup&&MathJax.startup.promise){MathJax.startup.promise.then(()=>MathJax.typesetPromise([document.body]).catch(()=>{}))}else{setTimeout(tryTypeset,150)}}
+function tryTypeset(){if(window.MathJax&&MathJax.startup&&MathJax.startup.promise){MathJax.startup.promise.then(function(){MathJax.typesetPromise([document.body]).catch(function(){})});}else{setTimeout(tryTypeset,150)}}
 tryTypeset();
 
-// Auto-save on any answer change
-document.addEventListener('change', e => {
+document.addEventListener('change', function(e) {
   if(e.target.classList.contains('answer-select')||e.target.classList.contains('answer-input')||e.target.id==='studentTeacher'||e.target.id==='studentPeriod')
     scheduleSave();
 });
-document.addEventListener('input', e => {
+document.addEventListener('input', function(e) {
   if(e.target.classList.contains('answer-input')) scheduleSave();
 });
 
-// Init student Google sign-in
 initStudentSignIn();
 <\/script>
 </body>
@@ -2232,12 +2217,12 @@ async function scanRepository() {
     );
     if (res.status === 404) {
       out.innerHTML = '<div style="font-family:var(--sans);font-size:12px;color:var(--ink-mid)">No <code>activities/</code> folder found yet. Generate your first activity to create it.</div>';
-      out.style.display = 'block'; btn.textContent = 'Scan activities/ folder'; btn.disabled = false; return;
+      out.style.display = 'block'; btn.textContent = '🔍 Scan activities/'; btn.disabled = false; return;
     }
     if (!res.ok) {
       const err = await res.json();
       out.innerHTML = `<div style="color:var(--red);font-family:var(--sans);font-size:12px">✗ GitHub error ${res.status}: ${err.message}</div>`;
-      out.style.display = 'block'; btn.textContent = 'Scan activities/ folder'; btn.disabled = false; return;
+      out.style.display = 'block'; btn.textContent = '🔍 Scan activities/'; btn.disabled = false; return;
     }
     const files = await res.json();
     const htmlFiles = files.filter(f => f.type === 'file' && f.name.endsWith('.html'));
@@ -2259,14 +2244,13 @@ async function scanRepository() {
     out.innerHTML = `<div style="color:var(--red);font-family:var(--sans);font-size:12px">✗ Network error: ${e.message}</div>`;
     out.style.display = 'block';
   }
-  btn.textContent = 'Scan activities/ folder'; btn.disabled = false;
+  btn.textContent = '🔍 Scan activities/'; btn.disabled = false;
 }
 
 function quickAddFile(filename) {
-  // Open the add resource modal pre-filled with the filename
   const unit = allUnits()[0] || 'Unit 8 — Rational Functions';
   pendingAddResUnit = unit;
-  document.getElementById('resTitle').value = filename.replace('.html','').replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
+  document.getElementById('resTitle').value = filename.replace('.html','').replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
   document.getElementById('resDesc').value = '';
   document.getElementById('resFile').value = 'activities/' + filename;
   document.getElementById('resType').value = 'activity';
@@ -2312,7 +2296,6 @@ function saveEditedResource() {
     type:  document.getElementById('editType').value,
     tags
   };
-  // If it was a default resource that got edited, store the edit in customized defaults
   if (DEFAULT_RESOURCES.find(d => d.id === editingResourceId)) {
     const customized = JSON.parse(localStorage.getItem('customizedDefaults') || '{}');
     customized[editingResourceId] = resources[idx];
