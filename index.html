@@ -886,7 +886,7 @@ function openActivityModal(unit) {
 }
 function closeActivityModal() { document.getElementById('activityBackdrop').classList.remove('open'); }
 
-function generateActivity() {
+async function generateActivity() {
   const title = document.getElementById('actTitle').value.trim();
   let   file  = document.getElementById('actFile').value.trim();
   if (!title) { alert('Please enter a title.'); return; }
