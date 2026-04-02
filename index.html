@@ -79,8 +79,11 @@ body.teacher-mode .unit-add-btn{display:inline-block}
 .card:hover .card-arrow{transform:translateX(3px);color:var(--accent)}
 .remove-btn{display:none;position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--red-bg);border:1px solid var(--red-rule);color:var(--red);font-size:14px;line-height:1;cursor:pointer;align-items:center;justify-content:center;font-family:var(--mono);font-weight:500;transition:background .15s;z-index:2}
 .remove-btn:hover{background:#e8c0c0}
+.edit-btn{display:none;position:absolute;top:8px;right:34px;width:22px;height:22px;border-radius:50%;background:var(--accent-lt);border:1px solid #8aaad4;color:var(--accent);font-size:13px;line-height:1;cursor:pointer;align-items:center;justify-content:center;font-family:var(--sans);font-weight:500;transition:background .15s;z-index:2}
+.edit-btn:hover{background:#d0dff5}
 body.teacher-mode .remove-btn{display:flex}
-body.teacher-mode .card{padding-right:36px}
+body.teacher-mode .edit-btn{display:flex}
+body.teacher-mode .card{padding-right:64px}
 
 /* Add activity card */
 .add-activity-card{display:none;background:transparent;border:1.5px dashed var(--rule);border-radius:6px;padding:18px 20px;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--ink-light);font-size:13px;font-family:var(--sans);transition:all .15s}
@@ -148,6 +151,7 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
     <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0;align-items:center;flex-wrap:wrap">
       <a id="gradebookBannerBtn" href="#" target="_blank" style="display:none;font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;background:var(--green-bg);color:var(--green);text-decoration:none;white-space:nowrap">📊 Open gradebook</a>
       <button id="publishIndexBtn" onclick="publishIndex()" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid #8aaad4;border-radius:3px;cursor:pointer;background:var(--accent-lt);color:var(--accent);white-space:nowrap">☁ Publish index</button>
+      <button id="scanRepoBtn" onclick="scanRepository()" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green);white-space:nowrap">🔍 Scan activities/</button>
       <span id="bannerPublishStatus" style="display:none;font-family:var(--sans);font-size:11px"></span>
       <button onclick="toggleSettings()" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid #d4b800;border-radius:3px;cursor:pointer;background:white;color:var(--amber);white-space:nowrap">⚙ Settings</button>
     </div>
@@ -248,6 +252,51 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
     </div>
     <div style="font-family:var(--sans);font-size:11px;color:var(--amber);margin-top:8px">
       For already-generated activities: open in teacher mode → "Sync from index" → "Save &amp; download".
+    </div>
+  </div>
+</div>
+
+<!-- Scan results panel -->
+<div id="scanResults" style="display:none;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:6px;padding:16px 20px;margin-bottom:20px"></div>
+
+<!-- Edit resource modal -->
+<div class="modal-backdrop" id="editResBackdrop" onclick="closeModalOutside(event,'editResBackdrop')">
+  <div class="modal">
+    <h3>Edit resource</h3>
+    <div class="modal-sub">Changes apply immediately to the index.</div>
+    <div class="modal-field">
+      <label class="modal-label">Title</label>
+      <input class="modal-input" id="editTitle" placeholder="Resource title">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Description</label>
+      <textarea class="modal-textarea" id="editDesc" rows="2" placeholder="Brief description…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Unit</label>
+      <input class="modal-input" id="editUnit" placeholder="e.g. Unit 8 — Rational Functions">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Type</label>
+      <select class="modal-select" id="editType">
+        <option value="review">Review</option>
+        <option value="practice">Practice</option>
+        <option value="exam">Exam</option>
+        <option value="activity">Activity</option>
+        <option value="notes">Notes</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Standards / tags (comma separated)</label>
+      <input class="modal-input" id="editTags" placeholder="e.g. A2.6(K), A2.7(F)">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">File path</label>
+      <input class="modal-input" id="editFile" placeholder="e.g. activities/unit9_practice.html">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeEditModal()">Cancel</button>
+      <button class="modal-btn save" onclick="saveEditedResource()">Save changes</button>
     </div>
   </div>
 </div>
@@ -472,11 +521,15 @@ let pendingAddResUnit   = '';
 // PERSISTENCE
 // ═══════════════════════════════════════
 function load() {
-  const deletedIds  = JSON.parse(localStorage.getItem('deletedIds') || '[]');
-  const customs     = JSON.parse(localStorage.getItem('mathResources') || '[]');
-  customUnits       = JSON.parse(localStorage.getItem('customUnits') || '[]');
-  const defaults    = DEFAULT_RESOURCES.filter(r => !deletedIds.includes(r.id));
-  const customOnly  = customs.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
+  const deletedIds       = JSON.parse(localStorage.getItem('deletedIds') || '[]');
+  const customs          = JSON.parse(localStorage.getItem('mathResources') || '[]');
+  const customizedDefs   = JSON.parse(localStorage.getItem('customizedDefaults') || '{}');
+  customUnits            = JSON.parse(localStorage.getItem('customUnits') || '[]');
+  // Apply any teacher edits on top of defaults
+  const defaults = DEFAULT_RESOURCES
+    .filter(r => !deletedIds.includes(r.id))
+    .map(r => customizedDefs[r.id] ? { ...r, ...customizedDefs[r.id] } : r);
+  const customOnly = customs.filter(r => !DEFAULT_RESOURCES.find(d => d.id === r.id));
   resources = [...defaults, ...customOnly];
 }
 
@@ -562,9 +615,10 @@ function render() {
 }
 
 function cardHTML(r) {
-  const rmBtn = `<button class="remove-btn" title="Remove" onclick="event.preventDefault();event.stopPropagation();openRemoveModal('${r.id}','${escAttr(r.title)}')">×</button>`;
+  const rmBtn   = `<button class="remove-btn" title="Remove" onclick="event.preventDefault();event.stopPropagation();openRemoveModal('${r.id}','${escAttr(r.title)}')">×</button>`;
+  const editBtn = `<button class="edit-btn" title="Edit" onclick="event.preventDefault();event.stopPropagation();openEditModal('${r.id}')">✎</button>`;
   return `<a class="card" href="${r.file}" target="_blank" data-type="${r.type}" data-id="${r.id}">
-    ${rmBtn}
+    ${rmBtn}${editBtn}
     <div class="card-type"><span class="type-dot ${r.type}"></span>${TYPE_LABELS[r.type]||r.type}</div>
     <div class="card-title">${escHtml(r.title)}</div>
     <div class="card-desc">${escHtml(r.desc)}</div>
@@ -655,12 +709,13 @@ function updateGradebookButton() {
 }
 function exitTeacher() {
   teacherMode = false;
-  _decryptedToken = null; // wipe token from memory on exit
+  _decryptedToken = null;
   document.body.classList.remove('teacher-mode');
   document.getElementById('teacherToggleBtn').classList.remove('active');
   document.getElementById('teacherToggleBtn').textContent = 'Teacher mode';
   document.getElementById('teacherBanner').classList.remove('visible');
   document.getElementById('settingsPanel').style.display = 'none';
+  document.getElementById('scanResults').style.display = 'none';
   render();
 }
 function toggleSettings() {
@@ -897,24 +952,23 @@ async function generateActivity() {
   const tags  = document.getElementById('actTags').value.trim().split(',').map(t=>t.trim()).filter(Boolean);
   const mode  = document.getElementById('actMode').value;
 
-  const html = buildActivityHTML(title, file, mode);
+  // Activities always go in activities/ subfolder
+  const actPath = 'activities/' + file;
+  const html = buildActivityHTML(title, actPath, mode);
 
-  // Add card to index first
-  resources.push({ id:'r'+Date.now(), title, desc: desc || title, file, unit:pendingActivityUnit, type, tags });
+  // Add card to index with subfolder path
+  resources.push({ id:'r'+Date.now(), title, desc: desc || title, file: actPath, unit:pendingActivityUnit, type, tags });
   saveCustoms(); closeActivityModal(); render();
 
   // Offer publish or download
   if (_decryptedToken) {
-    const choice = confirm(`Publish "${file}" directly to GitHub?\n\nClick OK to publish (live in ~30s).\nClick Cancel to download instead.`);
+    const choice = confirm(`Publish "${actPath}" directly to GitHub?\n\nClick OK to publish (live in ~30s).\nClick Cancel to download instead.`);
     if (choice) {
-      // Also publish updated index.html with new card
       const statusDiv = document.createElement('div');
       statusDiv.id = 'publishStatusTemp';
       statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:6px;font-family:var(--sans);font-size:13px;background:var(--page);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999';
       document.body.appendChild(statusDiv);
-      // Publish activity file
-      await publishToGitHub(file, html, 'publishStatusTemp');
-      // Also publish updated index
+      await publishToGitHub(actPath, html, 'publishStatusTemp');
       setTimeout(async () => {
         await publishIndexToGitHub();
         setTimeout(() => statusDiv.remove(), 4000);
@@ -1700,6 +1754,117 @@ tryTypeset();
 <\/script>
 </body>
 </html>`;
+}
+
+// ═══════════════════════════════════════
+// SCAN REPOSITORY
+// ═══════════════════════════════════════
+async function scanRepository() {
+  const btn = document.getElementById('scanRepoBtn');
+  const out = document.getElementById('scanResults');
+  if (!_decryptedToken) {
+    out.innerHTML = '<div style="color:var(--red);font-family:var(--sans);font-size:12px">⚠ No GitHub token. Add one in Settings first.</div>';
+    out.style.display = 'block'; return;
+  }
+  btn.textContent = 'Scanning…'; btn.disabled = true;
+  out.style.display = 'none';
+
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/activities`,
+      { headers: { Authorization: `Bearer ${_decryptedToken}`, Accept: 'application/vnd.github+json' } }
+    );
+    if (res.status === 404) {
+      out.innerHTML = '<div style="font-family:var(--sans);font-size:12px;color:var(--ink-mid)">No <code>activities/</code> folder found yet. Generate your first activity to create it.</div>';
+      out.style.display = 'block'; btn.textContent = 'Scan activities/ folder'; btn.disabled = false; return;
+    }
+    if (!res.ok) {
+      const err = await res.json();
+      out.innerHTML = `<div style="color:var(--red);font-family:var(--sans);font-size:12px">✗ GitHub error ${res.status}: ${err.message}</div>`;
+      out.style.display = 'block'; btn.textContent = 'Scan activities/ folder'; btn.disabled = false; return;
+    }
+    const files = await res.json();
+    const htmlFiles = files.filter(f => f.type === 'file' && f.name.endsWith('.html'));
+    const knownFiles = new Set(resources.map(r => r.file));
+    const newFiles = htmlFiles.filter(f => !knownFiles.has('activities/' + f.name) && !knownFiles.has(f.path));
+
+    if (newFiles.length === 0) {
+      out.innerHTML = '<div style="font-family:var(--sans);font-size:12px;color:var(--green)">✓ All files in activities/ are already in the index.</div>';
+    } else {
+      out.innerHTML = `<div style="font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:8px">${newFiles.length} new file${newFiles.length>1?'s':''} found in activities/:</div>` +
+        newFiles.map(f => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px">
+            <span style="font-family:var(--mono);font-size:12px;flex:1;color:var(--ink)">${f.name}</span>
+            <button onclick="quickAddFile('${f.name}')" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add to index</button>
+          </div>`).join('');
+    }
+    out.style.display = 'block';
+  } catch(e) {
+    out.innerHTML = `<div style="color:var(--red);font-family:var(--sans);font-size:12px">✗ Network error: ${e.message}</div>`;
+    out.style.display = 'block';
+  }
+  btn.textContent = 'Scan activities/ folder'; btn.disabled = false;
+}
+
+function quickAddFile(filename) {
+  // Open the add resource modal pre-filled with the filename
+  const unit = allUnits()[0] || 'Unit 8 — Rational Functions';
+  pendingAddResUnit = unit;
+  document.getElementById('resTitle').value = filename.replace('.html','').replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase());
+  document.getElementById('resDesc').value = '';
+  document.getElementById('resFile').value = 'activities/' + filename;
+  document.getElementById('resType').value = 'activity';
+  document.getElementById('resTags').value = '';
+  document.getElementById('addResBackdrop').classList.add('open');
+  setTimeout(() => document.getElementById('resTitle').focus(), 80);
+}
+
+// ═══════════════════════════════════════
+// EDIT RESOURCE
+// ═══════════════════════════════════════
+let editingResourceId = null;
+
+function openEditModal(id) {
+  if (!teacherMode) return;
+  editingResourceId = id;
+  const r = resources.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('editTitle').value    = r.title;
+  document.getElementById('editDesc').value     = r.desc;
+  document.getElementById('editFile').value     = r.file;
+  document.getElementById('editUnit').value     = r.unit;
+  document.getElementById('editType').value     = r.type;
+  document.getElementById('editTags').value     = (r.tags||[]).join(', ');
+  document.getElementById('editResBackdrop').classList.add('open');
+  setTimeout(() => document.getElementById('editTitle').focus(), 80);
+}
+function closeEditModal() {
+  document.getElementById('editResBackdrop').classList.remove('open');
+  editingResourceId = null;
+}
+function saveEditedResource() {
+  if (!editingResourceId) return;
+  const idx = resources.findIndex(x => x.id === editingResourceId);
+  if (idx === -1) return;
+  const tags = document.getElementById('editTags').value.trim().split(',').map(t=>t.trim()).filter(Boolean);
+  resources[idx] = {
+    ...resources[idx],
+    title: document.getElementById('editTitle').value.trim(),
+    desc:  document.getElementById('editDesc').value.trim(),
+    file:  document.getElementById('editFile').value.trim(),
+    unit:  document.getElementById('editUnit').value.trim() || resources[idx].unit,
+    type:  document.getElementById('editType').value,
+    tags
+  };
+  // If it was a default resource that got edited, store the edit in customized defaults
+  if (DEFAULT_RESOURCES.find(d => d.id === editingResourceId)) {
+    const customized = JSON.parse(localStorage.getItem('customizedDefaults') || '{}');
+    customized[editingResourceId] = resources[idx];
+    localStorage.setItem('customizedDefaults', JSON.stringify(customized));
+  }
+  saveCustoms();
+  closeEditModal();
+  render();
 }
 
 // ═══════════════════════════════════════
