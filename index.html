@@ -1808,15 +1808,15 @@ async function saveProgress(){
   setSt('Saving…');
   try{
     if(_progressFileId){
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media`,
-        {method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:content});
+      await fetch(('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media'),
+        {method:'PATCH',headers:{Authorization:('Bearer '+token),'Content-Type':'application/json'},body:content});
     } else {
       const meta=JSON.stringify({name:PROGRESS_KEY,parents:['appDataFolder']});
       const form=new FormData();
       form.append('metadata',new Blob([meta],{type:'application/json'}));
       form.append('file',new Blob([content],{type:'application/json'}));
       const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
-        {method:'POST',headers:{Authorization:`Bearer ${token}`},body:form});
+        {method:'POST',headers:{Authorization:('Bearer '+token)},body:form});
       if(res.ok){const d=await res.json();_progressFileId=d.id}
     }
     setSt('✓ Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
@@ -1826,16 +1826,16 @@ async function saveProgress(){
 async function loadProgress(){
   if(!_studentUser)return;
   const token=await ensureStudentToken();if(!token)return;
-  const q=encodeURIComponent(`name='${PROGRESS_KEY}' and trashed=false`);
+  const q=encodeURIComponent(('name=\''+PROGRESS_KEY+'\' and trashed=false'));
   try{
-    const res=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
-      {headers:{Authorization:`Bearer ${token}`}});
+    const res=await fetch(('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)'),
+      {headers:{Authorization:('Bearer '+token)}});
     if(!res.ok)return;
     const list=await res.json();
     if(!list.files||list.files.length===0)return;
     _progressFileId=list.files[0].id;
-    const fileRes=await fetch(`https://www.googleapis.com/drive/v3/files/${_progressFileId}?alt=media`,
-      {headers:{Authorization:`Bearer ${token}`}});
+    const fileRes=await fetch(('https://www.googleapis.com/drive/v3/files/'+_progressFileId+'?alt=media'),
+      {headers:{Authorization:('Bearer '+token)}});
     if(!fileRes.ok)return;
     const data=await fileRes.json();
     if(data.submitted){_submitted=true}
@@ -1848,12 +1848,12 @@ async function loadProgress(){
           const gid=k.replace('graph_','');
           if(v&&typeof v==='object'){
             graphState[gid]=v;
-            const hs=document.getElementById(`gs-h-${gid}`);if(hs)hs.value=v.h;
-            const ks=document.getElementById(`gs-k-${gid}`);if(ks)ks.value=v.k;
-            const as=document.getElementById(`gs-a-${gid}`);if(as)as.value=v.a;
-            const hv=document.getElementById(`sv-h-${gid}`);if(hv)hv.textContent=v.h;
-            const kv=document.getElementById(`sv-k-${gid}`);if(kv)kv.textContent=v.k;
-            const av=document.getElementById(`sv-a-${gid}`);if(av)av.textContent=v.a;
+            const hs=document.getElementById(('gs-h-'+gid));if(hs)hs.value=v.h;
+            const ks=document.getElementById(('gs-k-'+gid));if(ks)ks.value=v.k;
+            const as=document.getElementById(('gs-a-'+gid));if(as)as.value=v.a;
+            const hv=document.getElementById(('sv-h-'+gid));if(hv)hv.textContent=v.h;
+            const kv=document.getElementById(('sv-k-'+gid));if(kv)kv.textContent=v.k;
+            const av=document.getElementById(('sv-a-'+gid));if(av)av.textContent=v.a;
             drawGraph(gid);
           }
         } else if(k.startsWith('freetext_')){
@@ -1901,8 +1901,8 @@ async function submitAnswers(){
       const token=await ensureStudentToken();
       if(token){
         const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:true,answers:collectCurrentAnswers()};
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media`,
-          {method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(data)});
+        await fetch(\`https://www.googleapis.com/upload/drive/v3/files/${_progressFileId}?uploadType=media\`,
+          {method:'PATCH',headers:{Authorization:\`Bearer ${token}\`,'Content-Type':'application/json'},body:JSON.stringify(data)});
       }
     }
   }catch(e){showStatus('Submission failed — try again.',false);btn.textContent='Submit answers';btn.disabled=false}
