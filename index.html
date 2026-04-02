@@ -145,8 +145,10 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
   <div class="teacher-banner" id="teacherBanner">
     <span class="teacher-banner-dot"></span>
     <span><strong>Teacher mode active</strong> — you can add units, create activities, and remove resources.</span>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0">
+    <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0;align-items:center;flex-wrap:wrap">
       <a id="gradebookBannerBtn" href="#" target="_blank" style="display:none;font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;background:var(--green-bg);color:var(--green);text-decoration:none;white-space:nowrap">📊 Open gradebook</a>
+      <button id="publishIndexBtn" onclick="publishIndex()" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid #8aaad4;border-radius:3px;cursor:pointer;background:var(--accent-lt);color:var(--accent);white-space:nowrap">☁ Publish index</button>
+      <span id="bannerPublishStatus" style="display:none;font-family:var(--sans);font-size:11px"></span>
       <button onclick="toggleSettings()" style="font-family:var(--sans);font-size:11px;font-weight:500;padding:4px 10px;border:1px solid #d4b800;border-radius:3px;cursor:pointer;background:white;color:var(--amber);white-space:nowrap">⚙ Settings</button>
     </div>
   </div>
@@ -188,6 +190,26 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
       <div style="font-family:var(--sans);font-size:12px;color:var(--amber);margin-top:2px">Changes here apply to all newly generated activities.</div>
     </div>
     <button onclick="document.getElementById('settingsPanel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--amber);padding:0 4px">×</button>
+  </div>
+
+  <!-- GitHub Token -->
+  <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #d4b800">
+    <label style="font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:6px">GitHub Personal Access Token</label>
+    <div style="font-family:var(--sans);font-size:11px;color:var(--amber);margin-bottom:8px">
+      Your token is encrypted with your PIN before storage — it is never saved in plaintext.
+      Generate a token at <strong>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens</strong>.
+      Grant it <strong>Contents: Read and Write</strong> access on the <em>Rational-Expression-Review</em> repo only.
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="ghTokenInput" type="password" placeholder="github_pat_…"
+        style="flex:1;padding:8px 10px;border:1px solid #d4b800;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;background:white">
+      <button onclick="saveGitHubToken()" class="modal-btn save" style="font-size:12px;white-space:nowrap">Encrypt &amp; save</button>
+      <button onclick="testGitHubToken()" class="modal-btn" style="font-size:12px;white-space:nowrap" id="testTokenBtn">Test</button>
+    </div>
+    <div id="tokenStatus" style="margin-top:6px;font-family:var(--sans);font-size:11px"></div>
+    <div id="tokenSavedIndicator" style="margin-top:6px;font-family:var(--sans);font-size:11px;color:var(--green);display:none">
+      ✓ Token encrypted and saved. It will be decrypted automatically next time you enter teacher mode with your PIN.
+    </div>
   </div>
 
   <!-- Apps Script URL -->
@@ -362,10 +384,69 @@ body.teacher-mode .add-unit-wrap{display:flex;gap:10px}
 // PIN
 // ═══════════════════════════════════════
 const PIN_HASH = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
+const GITHUB_OWNER = 'ZanReed';
+const GITHUB_REPO  = 'Rational-Expression-Review';
+
+// ── Crypto helpers ──────────────────────────────────────────────
+// All token encryption/decryption uses AES-256-GCM with a key
+// derived from the PIN via PBKDF2. The token is never stored in
+// plaintext — only the encrypted blob lives in the HTML/localStorage.
 
 async function hashPin(pin) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin));
   return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+async function deriveKey(pin, saltHex) {
+  const enc   = new TextEncoder();
+  const salt  = hexToBytes(saltHex);
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:310000, hash:'SHA-256' },
+    keyMat,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+function bytesToHex(buf) { return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function hexToBytes(hex) { const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++)a[i]=parseInt(hex.substr(i*2,2),16); return a; }
+
+async function encryptToken(pin, token) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(pin, bytesToHex(salt));
+  const enc  = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(token));
+  // Pack: saltHex + ivHex + ciphertextHex
+  return bytesToHex(salt) + ':' + bytesToHex(iv) + ':' + bytesToHex(enc);
+}
+
+async function decryptToken(pin, blob) {
+  try {
+    const parts = blob.split(':');
+    if (parts.length !== 3) return null;
+    const [saltHex, ivHex, ctHex] = parts;
+    const key = await deriveKey(pin, saltHex);
+    const pt  = await crypto.subtle.decrypt(
+      { name:'AES-GCM', iv: hexToBytes(ivHex) },
+      key,
+      hexToBytes(ctHex)
+    );
+    return new TextDecoder().decode(pt);
+  } catch(e) { return null; }
+}
+
+// Encrypted token lives in localStorage under this key
+const TOKEN_STORAGE_KEY = 'ghTokenBlob';
+
+// Decrypted token held in memory only during teacher session
+let _decryptedToken = null;
+
+async function getDecryptedToken(pin) {
+  const blob = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (!blob) return null;
+  return decryptToken(pin, blob);
 }
 
 // ═══════════════════════════════════════
@@ -514,9 +595,18 @@ function openPinModal() {
 function closePinModal() { document.getElementById('pinBackdrop').classList.remove('open'); }
 function closePinOutside(e) { if (e.target === document.getElementById('pinBackdrop')) closePinModal(); }
 async function checkPin() {
-  const h = await hashPin(document.getElementById('pinInput').value.trim());
-  if (h === PIN_HASH) { closePinModal(); enterTeacher(); }
-  else { document.getElementById('pinError').style.display = 'block'; document.getElementById('pinInput').value = ''; document.getElementById('pinInput').focus(); }
+  const pin = document.getElementById('pinInput').value.trim();
+  const h   = await hashPin(pin);
+  if (h === PIN_HASH) {
+    // Decrypt GitHub token into memory if one is stored
+    _decryptedToken = await getDecryptedToken(pin);
+    closePinModal();
+    enterTeacher();
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
 }
 function enterTeacher() {
   teacherMode = true;
@@ -534,6 +624,22 @@ function prefillSettings() {
   const sheet = getSpreadsheetURL();
   if (sheet) document.getElementById('spreadsheetInput').value = sheet;
   document.getElementById('teacherListInput').value = getTeachers().join('\n');
+  // Show token status
+  const hasToken = !!localStorage.getItem(TOKEN_STORAGE_KEY);
+  const ind = document.getElementById('tokenSavedIndicator');
+  const stat = document.getElementById('tokenStatus');
+  if (hasToken) {
+    if (ind) ind.style.display = 'block';
+    if (stat) {
+      stat.style.color = _decryptedToken ? 'var(--green)' : 'var(--amber)';
+      stat.textContent = _decryptedToken
+        ? '🔓 Token is unlocked and ready for publishing.'
+        : '🔒 Token is stored encrypted. It was decrypted when you entered your PIN.';
+    }
+  } else {
+    if (ind) ind.style.display = 'none';
+    if (stat) { stat.style.color = 'var(--ink-light)'; stat.textContent = 'No token saved yet.'; }
+  }
 }
 function updateGradebookButton() {
   const sheet = getSpreadsheetURL();
@@ -549,6 +655,7 @@ function updateGradebookButton() {
 }
 function exitTeacher() {
   teacherMode = false;
+  _decryptedToken = null; // wipe token from memory on exit
   document.body.classList.remove('teacher-mode');
   document.getElementById('teacherToggleBtn').classList.remove('active');
   document.getElementById('teacherToggleBtn').textContent = 'Teacher mode';
@@ -564,6 +671,119 @@ function toggleSettings() {
     if (saved) document.getElementById('appsScriptInput').value = saved;
   }
 }
+// ── GitHub token save/test/publish ──────────────────────────────
+async function saveGitHubToken() {
+  const raw = document.getElementById('ghTokenInput').value.trim();
+  if (!raw) { alert('Please paste your GitHub Personal Access Token.'); return; }
+  if (!raw.startsWith('github_pat_') && !raw.startsWith('ghp_')) {
+    if (!confirm('This does not look like a GitHub token (should start with github_pat_ or ghp_). Save anyway?')) return;
+  }
+  // We need the PIN to encrypt — prompt for it
+  const pin = prompt('Re-enter your PIN to encrypt the token:');
+  if (!pin) return;
+  const h = await hashPin(pin);
+  if (h !== PIN_HASH) { alert('Incorrect PIN. Token not saved.'); return; }
+  const blob = await encryptToken(pin, raw);
+  localStorage.setItem(TOKEN_STORAGE_KEY, blob);
+  _decryptedToken = raw; // already in memory since PIN is correct
+  document.getElementById('ghTokenInput').value = '';
+  document.getElementById('tokenSavedIndicator').style.display = 'block';
+  const stat = document.getElementById('tokenStatus');
+  stat.style.color = 'var(--green)';
+  stat.textContent = '🔓 Token encrypted and unlocked for this session.';
+}
+
+async function testGitHubToken() {
+  const btn = document.getElementById('testTokenBtn');
+  const stat = document.getElementById('tokenStatus');
+  if (!_decryptedToken) {
+    stat.style.color = 'var(--red)'; stat.textContent = '⚠ No token in memory. Enter teacher mode with your PIN first.'; return;
+  }
+  btn.textContent = 'Testing…'; btn.disabled = true;
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/index.html`,
+      { headers: { Authorization: `Bearer ${_decryptedToken}`, Accept: 'application/vnd.github+json' } }
+    );
+    if (res.ok) {
+      stat.style.color = 'var(--green)';
+      stat.textContent = '✓ Token works! Repository access confirmed.';
+    } else {
+      const err = await res.json();
+      stat.style.color = 'var(--red)';
+      stat.textContent = `✗ GitHub returned ${res.status}: ${err.message}`;
+    }
+  } catch(e) {
+    stat.style.color = 'var(--red)'; stat.textContent = '✗ Network error: ' + e.message;
+  }
+  btn.textContent = 'Test'; btn.disabled = false;
+}
+
+// ── GitHub publish ──────────────────────────────────────────────
+async function publishToGitHub(filename, htmlContent, statusElId) {
+  const statusEl = statusElId ? document.getElementById(statusElId) : null;
+  const setStatus = (msg, ok) => {
+    if (!statusEl) return;
+    statusEl.style.display = 'block';
+    statusEl.style.color = ok ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--amber)';
+    statusEl.textContent = msg;
+  };
+
+  if (!_decryptedToken) {
+    setStatus('⚠ No GitHub token. Open Settings in teacher mode to add one.', false);
+    return false;
+  }
+
+  setStatus('⟳ Checking file on GitHub…', null);
+  const apiBase = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(filename)}`;
+  const headers = {
+    Authorization: `Bearer ${_decryptedToken}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json'
+  };
+
+  // Get current file SHA (required for updates)
+  let sha = null;
+  try {
+    const getRes = await fetch(apiBase, { headers });
+    if (getRes.ok) {
+      const data = await getRes.json();
+      sha = data.sha;
+    } else if (getRes.status !== 404) {
+      const err = await getRes.json();
+      setStatus(`✗ GitHub error ${getRes.status}: ${err.message}`, false);
+      return false;
+    }
+  } catch(e) {
+    setStatus('✗ Network error reading file: ' + e.message, false);
+    return false;
+  }
+
+  // Encode content as base64
+  const b64 = btoa(unescape(encodeURIComponent(htmlContent)));
+
+  setStatus('⟳ Publishing to GitHub…', null);
+  try {
+    const body = {
+      message: `Update ${filename} via index teacher mode`,
+      content: b64,
+      ...(sha ? { sha } : {})
+    };
+    const putRes = await fetch(apiBase, { method:'PUT', headers, body: JSON.stringify(body) });
+    if (putRes.ok) {
+      setStatus(`✓ Published! GitHub Pages will update in ~30 seconds.`, true);
+      return true;
+    } else {
+      const err = await putRes.json();
+      setStatus(`✗ Publish failed ${putRes.status}: ${err.message}`, false);
+      return false;
+    }
+  } catch(e) {
+    setStatus('✗ Network error publishing: ' + e.message, false);
+    return false;
+  }
+}
+
 function saveSpreadsheetURL() {
   const url = document.getElementById('spreadsheetInput').value.trim();
   setSpreadsheetURL(url);
@@ -678,10 +898,52 @@ function generateActivity() {
   const mode  = document.getElementById('actMode').value;
 
   const html = buildActivityHTML(title, file, mode);
-  downloadFile(file, html);
 
+  // Add card to index first
   resources.push({ id:'r'+Date.now(), title, desc: desc || title, file, unit:pendingActivityUnit, type, tags });
   saveCustoms(); closeActivityModal(); render();
+
+  // Offer publish or download
+  if (_decryptedToken) {
+    const choice = confirm(`Publish "${file}" directly to GitHub?\n\nClick OK to publish (live in ~30s).\nClick Cancel to download instead.`);
+    if (choice) {
+      // Also publish updated index.html with new card
+      const statusDiv = document.createElement('div');
+      statusDiv.id = 'publishStatusTemp';
+      statusDiv.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:6px;font-family:var(--sans);font-size:13px;background:var(--page);border:1px solid var(--rule);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999';
+      document.body.appendChild(statusDiv);
+      // Publish activity file
+      await publishToGitHub(file, html, 'publishStatusTemp');
+      // Also publish updated index
+      setTimeout(async () => {
+        await publishIndexToGitHub();
+        setTimeout(() => statusDiv.remove(), 4000);
+      }, 1000);
+      return;
+    }
+  }
+  downloadFile(file, html);
+}
+
+// Publish the index.html itself to GitHub (with updated resource list baked in)
+async function publishIndexToGitHub() {
+  const html = document.documentElement.outerHTML;
+  return publishToGitHub('index.html', html, 'publishStatusTemp');
+}
+
+// Called from a "Publish index" button in teacher banner
+async function publishIndex() {
+  const statusDiv = document.getElementById('bannerPublishStatus');
+  if (!_decryptedToken) {
+    statusDiv.style.display = 'inline';
+    statusDiv.style.color = 'var(--red)';
+    statusDiv.textContent = ' ⚠ No token — add one in Settings.';
+    return;
+  }
+  const btn = document.getElementById('publishIndexBtn');
+  btn.textContent = 'Publishing…'; btn.disabled = true;
+  const ok = await publishToGitHub('index.html', document.documentElement.outerHTML, 'bannerPublishStatus');
+  btn.textContent = '☁ Publish index'; btn.disabled = false;
 }
 
 function downloadFile(filename, content) {
