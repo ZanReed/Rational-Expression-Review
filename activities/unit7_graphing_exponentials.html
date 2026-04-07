@@ -6,28 +6,19 @@
 <title>Graphing Exponential Functions — Dallas ISD</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script>
-window._mjQueue = [];
-window._mjReady = false;
 window.MathJax = {
   tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
-  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
-  startup: {
-    ready(){
-      MathJax.startup.defaultReady();
-      window._mjReady = true;
-      if(window._mjQueue.length){
-        MathJax.typesetPromise(window._mjQueue).catch(()=>{});
-        window._mjQueue = [];
-      }
-    }
-  }
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
 };
+// mj() — safe typeset call; falls back to polling if MathJax not yet loaded
 function mj(el){
-  if(window._mjReady && window.MathJax && MathJax.typesetPromise){
-    MathJax.typesetPromise(Array.isArray(el)?el:[el]).catch(()=>{});
-  } else {
-    (Array.isArray(el)?el:[el]).forEach(function(e){ window._mjQueue.push(e); });
+  var els = Array.isArray(el) ? el : [el];
+  function attempt(){
+    if(window.MathJax && MathJax.startup && MathJax.startup.promise){
+      MathJax.startup.promise.then(function(){ MathJax.typesetPromise(els).catch(function(){}); });
+    } else { setTimeout(attempt, 100); }
   }
+  attempt();
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
@@ -287,7 +278,7 @@ body.mode-review .ans-select{/* feedback handled in JS */}
      ═══════════════════════════════════════ -->
 <div class="section-head">
   <span class="section-num">Part 2</span>
-  <span class="section-title">Graphing \(f(x)=b^x\) — Classifying &amp; Key Features</span>
+  <span class="section-title">Graphing <span id="sec2math">\(f(x)=b^x\)</span> — Classifying &amp; Key Features</span>
 </div>
 
 <div class="body-pad" style="padding-top:16px">
@@ -1574,8 +1565,13 @@ function showStatus(msg,ok){
 // BOOT
 // ══════════════════════════════════════════════════════
 initStudentSignIn();
-// Typeset all static MathJax on page
-mj(document.body);
+// Typeset all static MathJax on page — proven polling approach
+function tryTypeset(){
+  if(window.MathJax && MathJax.startup && MathJax.startup.promise){
+    MathJax.startup.promise.then(function(){ MathJax.typesetPromise([document.body]).catch(function(){}); });
+  } else { setTimeout(tryTypeset, 150); }
+}
+tryTypeset();
 
 </script>
 </body>
