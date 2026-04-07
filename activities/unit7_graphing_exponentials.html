@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graphing Exponentials</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  startup: { ready() { MathJax.startup.defaultReady(); } }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+:root{--ink:#1a1814;--ink-mid:#4a4540;--ink-light:#8a857e;--rule:#d8d2c8;--page:#faf8f4;--cream:#f0ece4;--accent:#1a4a8a;--accent-lt:#e8eef7;--green:#1a6640;--green-bg:#eaf4ee;--green-rule:#7abf9a;--red:#8a1a1a;--red-bg:#f4e8e8;--red-rule:#d49090;--amber:#6b5500;--amber-bg:#fff8e8;--serif:'Source Serif 4',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@media print{.no-print{display:none!important}body{background:white;padding:0}.page{box-shadow:none;max-width:100%}.answer-panel{display:none!important}}
+body{font-family:var(--serif);background:var(--cream);color:var(--ink);line-height:1.65;font-size:15px;padding:24px 16px 60px}
+.page{max-width:820px;margin:0 auto;background:var(--page);box-shadow:0 2px 24px rgba(0,0,0,.10)}
+.exam-head{padding:32px 48px 22px;border-bottom:2px solid var(--ink);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.head-left{}
+.mode-badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase}
+.mode-badge.review{background:var(--green-bg);border:1px solid var(--green-rule);color:var(--green)}
+.mode-badge.activity{background:var(--accent-lt);border:1px solid #8aaad4;color:var(--accent)}
+.district{font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:4px}
+.exam-title{font-size:24px;font-weight:600;letter-spacing:-.01em;margin-bottom:2px}
+.exam-sub{font-size:13px;font-style:italic;color:var(--ink-mid);font-family:var(--sans)}
+.seed-banner{display:flex;align-items:center;gap:12px;padding:10px 48px;background:#fff8e8;border-bottom:1px solid #e8d48a;font-family:var(--sans);font-size:12px;color:#6b5500}
+.seed-code{font-family:var(--mono);font-size:14px;font-weight:500;background:#fef0b0;padding:2px 10px;border-radius:4px;border:1px solid #d4b800;color:#4a3a00;letter-spacing:.06em}
+.info-bar{padding:14px 48px;border-bottom:1px solid var(--rule);display:flex;gap:28px;font-family:var(--sans);font-size:13px;color:var(--ink-mid);flex-wrap:wrap;align-items:center}
+.info-field{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.info-line{flex:1;min-width:60px;border:none;border-bottom:1px solid var(--ink-mid);background:transparent;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;padding:1px 2px}
+.teacher-select{min-width:130px;border:1px solid var(--rule);border-radius:3px;background:white;padding:6px 28px 6px 8px;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath d=\'M1 1l5 5 5-5\' stroke=\'%238a857e\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center}
+.controls{padding:10px 48px;border-bottom:1px solid var(--rule);display:flex;gap:10px;align-items:center;background:var(--cream);flex-wrap:wrap}
+.btn{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 16px;border:1px solid var(--rule);border-radius:2px;cursor:pointer;background:var(--page);color:var(--ink-mid);transition:all .15s}
+.btn:hover{border-color:var(--ink-mid);color:var(--ink)}
+.btn.green-btn{background:var(--green);border-color:var(--green);color:#fff}
+.btn.green-btn:hover{background:#134d30}
+.btn.amber-btn{background:var(--amber);border-color:var(--amber);color:#fff}
+.body-pad{padding:0 48px 36px}
+.question-list{display:flex;flex-direction:column}
+.question-block{padding:22px 0;border-bottom:1px solid var(--rule)}
+.question-block:last-child{border-bottom:none}
+.q-num{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink-light);margin-bottom:6px;letter-spacing:.06em}
+.q-text{font-size:14.5px;line-height:1.7;margin-bottom:4px}
+.q-display{margin:8px 0 6px;font-size:14px}
+.personal-badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:500;padding:1px 7px;border-radius:3px;background:#fef0b0;border:1px solid #d4b800;color:#4a3a00;margin-left:6px;vertical-align:middle}
+.answer-label{font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-light);margin-top:14px;margin-bottom:5px}
+.answer-select{width:100%;border:1px solid var(--rule);border-radius:3px;background:white;padding:8px 10px;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;cursor:pointer;transition:border-color .15s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a857e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+body.mode-review .answer-select.correct{border-color:var(--green-rule);background-color:var(--green-bg)}
+body.mode-review .answer-select.incorrect{border-color:var(--red-rule);background-color:var(--red-bg)}
+.answer-input{width:100%;border:1px solid var(--rule);border-radius:3px;background:white;padding:7px 10px;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;resize:vertical;min-height:42px;transition:border-color .15s}
+.answer-input:focus{border-color:var(--accent)}
+.answer-input::placeholder{color:var(--ink-light);font-style:italic}
+.two-inputs{display:flex;flex-direction:column;gap:6px}
+.sub-label{font-family:var(--sans);font-size:11px;color:var(--ink-light);margin-bottom:2px}
+.factor-sep{font-family:var(--mono);font-size:14px;color:var(--ink-mid);padding-bottom:8px;margin:0 2px}
+.reveal-btn{margin-top:8px;font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:.04em;padding:4px 12px;border:1px solid var(--green-rule);border-radius:2px;cursor:pointer;background:transparent;color:var(--green);transition:all .15s;display:none}
+body.mode-review .reveal-btn{display:inline-block}
+.reveal-btn:hover{background:var(--green-bg)}
+.answer-panel{display:none;margin-top:8px;padding:10px 12px;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:3px;font-size:13.5px;line-height:1.8;color:var(--green)}
+.answer-panel .ans-label{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:4px;display:block}
+.review-controls{display:none}
+body.mode-review .review-controls{display:contents}
+.graph-widget{margin-top:12px}
+.graph-canvas-wrap{position:relative;width:260px;height:260px;border:1.5px solid var(--ink-mid);background:white;border-radius:2px;overflow:hidden}
+.graph-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.graph-controls{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-width:260px}
+.slider-row{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:12px;color:var(--ink-mid)}
+.slider-row label{min-width:20px;font-weight:500;font-family:var(--mono);color:var(--accent)}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-val{min-width:32px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.q-image{max-width:100%;border-radius:4px;margin:10px 0;display:block;border:1px solid var(--rule)}
+.q-embed-wrap{position:relative;width:100%;padding-bottom:56.25%;height:0;margin:10px 0;border-radius:4px;overflow:hidden;border:1px solid var(--rule)}
+.q-embed-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.teacher-panel{display:none;padding:24px 48px;background:var(--amber-bg);border-top:2px solid #d4b800}
+.teacher-panel.visible{display:block}
+.teacher-panel h3{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:4px;color:var(--amber)}
+.teacher-panel-sub{font-family:var(--sans);font-size:13px;color:var(--amber);margin-bottom:16px}
+.q-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;margin-bottom:16px}
+.q-type-btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:8px 12px;border:1px solid #d4b800;border-radius:4px;cursor:pointer;background:white;color:var(--amber);transition:all .15s;text-align:left}
+.q-type-btn:hover{background:var(--amber-bg)}
+.q-builder{display:none;background:white;border:1px solid #d4b800;border-radius:6px;padding:20px;margin-top:8px}
+.q-builder.visible{display:block}
+.q-builder h4{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--amber);margin-bottom:12px}
+.q-builder input,.q-builder select,.q-builder textarea{width:100%;padding:7px 10px;border:1px solid var(--rule);border-radius:3px;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;margin-bottom:10px}
+.q-builder input:focus,.q-builder select:focus{border-color:var(--accent)}
+.q-builder label{font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-light);display:block;margin-bottom:4px}
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 10px;background:var(--cream);border-radius:4px}
+.toggle-row label{font-family:var(--sans);font-size:12px;color:var(--ink-mid);margin-bottom:0;text-transform:none;letter-spacing:0;font-weight:400;flex:1}
+.toggle-row input[type=checkbox]{width:auto;margin:0;cursor:pointer;accent-color:var(--accent)}
+.personalized-fields{display:none;padding:10px;background:var(--accent-lt);border-radius:4px;margin-bottom:10px;border:1px solid #8aaad4}
+.personalized-fields.visible{display:block}
+.personalized-fields label{color:var(--accent)}
+.q-added-list{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.q-added-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:white;border:1px solid var(--rule);border-radius:4px;font-family:var(--sans);font-size:12px;color:var(--ink-mid)}
+.q-added-item .q-label{flex:1}
+.q-remove-btn{font-size:14px;color:var(--red);cursor:pointer;background:none;border:none;padding:0 4px;line-height:1}
+.submit-section{padding:24px 48px;border-top:2px solid var(--rule);background:var(--cream)}
+.exam-footer{padding:16px 48px;border-top:2px solid var(--rule);font-family:var(--sans);font-size:11px;color:var(--ink-light);display:flex;justify-content:space-between}
+@media(max-width:620px){.exam-head,.info-bar,.controls,.body-pad,.exam-footer,.seed-banner,.submit-section,.teacher-panel{padding-left:18px;padding-right:18px}}
+</style>
+</head>
+<body class="mode-activity">
+<div class="page">
+
+<div class="exam-head">
+  <div class="head-left">
+    <div class="district">Dallas ISD — Mathematics</div>
+    <div class="exam-title">Graphing Exponentials</div>
+    <div class="exam-sub">2025–2026</div>
+  </div>
+  <span class="mode-badge activity" id="modeBadge">Activity mode</span>
+</div>
+
+<div class="seed-banner">
+  <span>Assignment code:</span>
+  <span class="seed-code" id="seedDisplay">—</span>
+  <span style="font-size:11px;color:#8a7030">Write this on your paper.</span>
+</div>
+
+<div id="studentSignInBar" style="padding:10px 48px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;background:var(--cream);flex-wrap:wrap">
+  <div id="studentGoogleBtn" style="display:flex;align-items:center;gap:10px">
+    <div id="studentSignInTarget"></div>
+    <span style="font-family:var(--sans);font-size:11px;color:var(--ink-light)">or fill in manually below</span>
+  </div>
+  <div id="studentSignedInBadge" style="display:none;align-items:center;gap:10px">
+    <img id="studentAvatar" src="" style="width:28px;height:28px;border-radius:50%">
+    <div>
+      <div id="studentGoogleName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)"></div>
+      <div id="studentGoogleEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)"></div>
+    </div>
+    <button onclick="studentSignOut()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:transparent;color:var(--ink-light);margin-left:4px">sign out</button>
+    <div id="progressSaveStatus" style="font-family:var(--sans);font-size:11px;color:var(--green);margin-left:8px"></div>
+  </div>
+</div>
+
+<div class="info-bar" id="manualInfoBar">
+  <div class="info-field"><span>Name</span><input class="info-line" id="studentName" style="min-width:180px" placeholder="Full name"></div>
+  <div class="info-field"><span>Student ID</span><input class="info-line" id="studentId" style="min-width:80px" placeholder="ID #"></div>
+  <div class="info-field"><span>Teacher</span>
+    <select id="studentTeacher" class="teacher-select">
+      <option value="">— select teacher —</option>
+      <option value="Mueller">Mueller</option><option value="Reed">Reed</option><option value="Singleton">Singleton</option><option value="Pacayra">Pacayra</option><option value="Jafari">Jafari</option>
+    </select>
+  </div>
+  <div class="info-field"><span>Period</span><input class="info-line" id="studentPeriod" style="min-width:50px" placeholder="Period"></div>
+  <div class="info-field"><span>Phone Slot #</span><input class="info-line" style="min-width:50px" placeholder="#"></div>
+</div>
+
+<div class="controls no-print">
+  <span class="review-controls">
+    <button class="btn green-btn" onclick="revealAll()" style="margin-right:4px">Show all answers</button>
+    <button class="btn" onclick="hideAll()">Hide all answers</button>
+  </span>
+  <button class="btn" onclick="window.print()">Print</button>
+  <button class="btn amber-btn no-print" onclick="handleTeacherToggle()" id="teacherBtn" style="margin-left:auto">Teacher mode</button>
+</div>
+
+<div class="body-pad">
+  <div class="question-list" id="questionList">
+    <div style="padding:32px 0;text-align:center;font-family:var(--sans);font-size:14px;color:var(--ink-light)" id="emptyQMsg">
+      No questions yet. Enable teacher mode to add questions.
+    </div>
+  </div>
+</div>
+
+<div class="submit-section no-print">
+  <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:12px">When finished, submit your answers.</div>
+  <button class="btn green-btn" onclick="submitAnswers()" id="submitBtn" style="font-size:13px;padding:8px 24px">Submit answers</button>
+  <div id="submitStatus" style="display:none;margin-top:12px;font-family:var(--sans);font-size:13px;padding:10px 14px;border-radius:4px"></div>
+</div>
+
+<div class="teacher-panel" id="teacherPanel">
+  <h3>Question builder</h3>
+  <div class="teacher-panel-sub">Add or edit questions below. Click "Save &amp; download" when done, then re-upload to GitHub.</div>
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 14px;background:white;border:1px solid #d4b800;border-radius:6px">
+    <span style="font-family:var(--sans);font-size:12px;font-weight:600;color:var(--amber)">Activity mode:</span>
+    <label style="display:flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;color:var(--ink-mid);cursor:pointer">
+      <input type="radio" name="modeToggle" value="review" id="modeReview"  onchange="setMode('review')"> Review (show answer buttons + feedback)
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;color:var(--ink-mid);cursor:pointer">
+      <input type="radio" name="modeToggle" value="activity" id="modeActivity" checked onchange="setMode('activity')"> Activity (no feedback, clean submit)
+    </label>
+  </div>
+
+  <div class="q-type-grid">
+    <button class="q-type-btn" onclick="openBuilder('domain')">📐 Domain</button>
+    <button class="q-type-btn" onclick="openBuilder('range')">📏 Range</button>
+    <button class="q-type-btn" onclick="openBuilder('graph')">📈 Graph slider</button>
+    <button class="q-type-btn" onclick="openBuilder('transform')">🔄 Transformation</button>
+    <button class="q-type-btn" onclick="openBuilder('simplify')">➗ Simplify (num/den)</button>
+    <button class="q-type-btn" onclick="openBuilder('factors')">🔢 Factor-by-factor</button>
+    <button class="q-type-btn" onclick="openBuilder('asymptotes')">📉 Asymptotes</button>
+    <button class="q-type-btn" onclick="openBuilder('zeros')">0️⃣ Zeros</button>
+    <button class="q-type-btn" onclick="openBuilder('freetext')">✏️ Free text</button>
+    <button class="q-type-btn" onclick="openBuilder('image')">🖼 Image</button>
+    <button class="q-type-btn" onclick="openBuilder('embed')">▶️ Video / embed</button>
+  </div>
+
+  <div class="q-builder" id="qBuilder">
+    <h4 id="builderTitle">Configure question</h4>
+    <div id="builderFields"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button id="addQBtn" class="btn green-btn" onclick="addQuestion()" style="font-size:12px">Add question</button>
+      <button class="btn" onclick="closeBuilder()" style="font-size:12px">Cancel</button>
+    </div>
+  </div>
+
+  <div class="q-added-list" id="qAddedList"></div>
+
+  <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn green-btn" onclick="saveAndDownload()" style="font-size:13px;padding:8px 20px">💾 Save &amp; download</button>
+    <button class="btn" onclick="syncFromIndex()" style="font-size:12px">🔗 Sync from index</button>
+    <button class="btn" onclick="exitTeacher()" style="font-size:12px">Exit teacher mode</button>
+  </div>
+  <div style="margin-top:8px;font-family:var(--sans);font-size:11px;color:var(--amber)">
+    Tip: Click any question in the list to edit it. Toggle "Personalized" in the builder to randomize values per student.
+  </div>
+</div>
+
+<div class="exam-footer">
+  <span>Dallas ISD — Graphing Exponentials</span>
+  <span id="footerSeed"></span>
+</div>
+</div>
+
+<script id="QUESTION_DATA" type="application/json">[]</script>
+<script id="ACTIVITY_META" type="application/json">{"mode":"activity","title":"Graphing Exponentials","filename":"activities/unit7_graphing_exponentials.html"}</script>
+
+<script>
+// ── RNG ──
+function mulberry32(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const SEED=Math.floor(1000+Math.random()*9000);
+const rng=mulberry32(SEED);
+document.getElementById('seedDisplay').textContent=SEED;
+document.getElementById('footerSeed').textContent='Code: '+SEED;
+function pick(a){return a[Math.floor(rng()*a.length)]}
+function pickInt(lo,hi){return lo+Math.floor(rng()*(hi-lo+1))}
+function shuffle(arr,r){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pm(n){return n<0?'- '+Math.abs(n):'+ '+n}
+
+// ── Mode ──
+let currentMode = document.body.classList.contains('mode-review') ? 'review' : 'activity';
+function setMode(m){
+  currentMode=m;
+  document.body.className=document.body.className.replace(/mode-(review|activity)/,'mode-'+m);
+  document.getElementById('modeBadge').textContent=m==='review'?'Review mode':'Activity mode';
+  document.getElementById('modeBadge').className='mode-badge '+m;
+}
+
+// ── PIN ──
+const PIN_HASH='a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
+let teacherModeOn=false;
+async function hashPin(p){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function handleTeacherToggle(){
+  if(teacherModeOn){exitTeacher();return}
+  const p=prompt('Enter teacher PIN:');if(!p)return;
+  hashPin(p).then(h=>{
+    if(h===PIN_HASH){teacherModeOn=true;document.getElementById('teacherPanel').classList.add('visible');document.getElementById('teacherBtn').textContent='Exit teacher mode';renderAddedList()}
+    else alert('Incorrect PIN.')
+  })
+}
+function exitTeacher(){teacherModeOn=false;document.getElementById('teacherPanel').classList.remove('visible');document.getElementById('teacherBtn').textContent='Teacher mode';closeBuilder()}
+
+// ── Load questions ──
+let questions=[];
+try{questions=JSON.parse(document.getElementById('QUESTION_DATA').textContent)||[]}catch(e){}
+let currentBuilderType='';
+let editingIndex=-1;
+let addedQuestions=[];
+
+// ── Personalized value generator ──
+function resolvePersonalized(q){
+  if(!q.personalized)return q;
+  const out={...q};
+  if(['domain','range','zeros'].includes(q.type)&&q.personalize_ranges){
+    const ranges=q.personalize_ranges;
+    const newVals={};
+    Object.keys(ranges).forEach(k=>{
+      const r=ranges[k];
+      newVals[k]=pickInt(r.min,r.max);
+    });
+    let cv=q.correct_value_template||q.correct_value;
+    Object.keys(newVals).forEach(k=>{cv=cv.replace(new RegExp('{'+k+'}','g'),newVals[k])});
+    out.correct_value=cv;
+    out.distractors=(q.distractor_templates||q.distractors||[]).map(d=>{
+      let dd=d;Object.keys(newVals).forEach(k=>{dd=dd.replace(new RegExp('{'+k+'}','g'),newVals[k])});return dd;
+    });
+  }
+  return out;
+}
+
+// ── Render ──
+function renderQuestions(){
+  const list=document.getElementById('questionList');
+  const empty=document.getElementById('emptyQMsg');
+  if(questions.length===0){list.innerHTML='';list.appendChild(empty);empty.style.display='block';return}
+  empty.style.display='none';
+  list.innerHTML=questions.map((q,i)=>renderQ(resolvePersonalized(q),i)).join('');
+  if(window.MathJax)MathJax.typesetPromise([list]).catch(()=>{});
+  questions.forEach((q,i)=>{if(q.type==='graph')initGraph('g'+i,q.correct_h||0,q.correct_k||0,q.correct_a||1)});
+}
+
+function renderQ(q,i){
+  const pid='q'+i;
+  let inputHTML='';
+  let ansHTML=q.answer_text||'';
+  const badge=q.personalized?'<span class="personal-badge">personalized</span>':'';
+
+  if(q.type==='image'){
+    return '<div class="question-block">'+
+      (q.caption?'<div class="q-text">'+q.caption+'</div>':'')+
+      '<img src="'+q.src+'" alt="'+(q.caption||'Question image')+'" class="q-image">'+
+      '</div>';
+  }
+  if(q.type==='embed'){
+    return '<div class="question-block">'+
+      (q.caption?'<div class="q-text">'+q.caption+'</div>':'')+
+      '<div class="q-embed-wrap"><iframe src="'+q.embed_url+'" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div>'+
+      '</div>';
+  }
+
+  if(q.type==='domain'||q.type==='range'||q.type==='zeros'){
+    const opts=buildOpts(q,i);
+    inputHTML='<div class="answer-label">Your answer</div>'+makeSelect(pid+'sel',opts,q.correct_value);
+    if(!ansHTML)ansHTML='Correct: '+q.correct_value;
+  } else if(q.type==='asymptotes'){
+    const vaOpts=shuffleOpts([q.va_correct,...(q.distractors_va||[])],i+'va');
+    const haOpts=shuffleOpts([q.ha_correct,...(q.distractors_ha||[])],i+'ha');
+    inputHTML='<div class="two-inputs"><div><div class="sub-label">Vertical asymptote(s)</div>'+makeSelect(pid+'va',vaOpts,q.va_correct)+'</div>'+
+      '<div style="margin-top:8px"><div class="sub-label">Horizontal asymptote</div>'+makeSelect(pid+'ha',haOpts,q.ha_correct)+'</div></div>';
+    if(!ansHTML)ansHTML='VA: '+q.va_correct+' | HA: '+q.ha_correct;
+  } else if(q.type==='simplify'){
+    const no=shuffleOpts([q.num_correct,...(q.distractors_num||[])],i+'n');
+    const do_=shuffleOpts([q.den_correct,...(q.distractors_den||[])],i+'d');
+    inputHTML='<div class="answer-label">Numerator</div>'+makeSelect(pid+'num',no,q.num_correct)+
+      '<div style="text-align:center;margin:4px 0;font-size:16px;color:var(--ink-mid)">─────────</div>'+
+      '<div class="answer-label">Denominator</div>'+makeSelect(pid+'den',do_,q.den_correct);
+    if(!ansHTML)ansHTML='Numerator: '+q.num_correct+' | Denominator: '+q.den_correct;
+  } else if(q.type==='factors'){
+    const nF=q.num_factors||[];const dF=q.den_factors||[];
+    const nS=nF.map((f,fi)=>'<div style="display:inline-flex;align-items:center;gap:2px">'+makeSelect(pid+'n'+fi,shuffleOpts(f.opts,i+'n'+fi),f.correct)+'</div>').join('<span style="font-family:var(--mono);font-size:14px;color:var(--ink-mid);padding-bottom:8px;margin:0 2px">·</span>');
+    const dS=dF.map((f,fi)=>'<div style="display:inline-flex;align-items:center;gap:2px">'+makeSelect(pid+'d'+fi,shuffleOpts(f.opts,i+'d'+fi),f.correct)+'</div>').join('<span style="font-family:var(--mono);font-size:14px;color:var(--ink-mid);padding-bottom:8px;margin:0 2px">·</span>');
+    inputHTML='<div class="answer-label">Numerator factors</div><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+nS+'</div>'+
+      '<div style="border-top:1.5px solid var(--ink-mid);margin:4px 0 8px"></div>'+
+      '<div class="answer-label">Denominator factors</div><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'+dS+'</div>';
+    if(!ansHTML)ansHTML='Num: '+nF.map(f=>f.correct).join('·')+' / Den: '+dF.map(f=>f.correct).join('·');
+  } else if(q.type==='graph'){
+    inputHTML=graphWidget('g'+i);
+    if(!ansHTML)ansHTML='h='+(q.correct_h||0)+', k='+(q.correct_k||0)+', a='+(q.correct_a||1);
+  } else if(q.type==='transform'){
+    const opts=(q.options||[]).map((o,oi)=>({label:o,value:oi===0?'correct':'w'+oi}));
+    inputHTML='<div class="answer-label">Select the transformation</div>'+makeSelect(pid+'t',shuffle(opts,mulberry32(SEED+i*13)),'correct');
+    if(!ansHTML)ansHTML=q.options?q.options[0]:'';
+  } else {
+    inputHTML='<div class="answer-label">Your answer</div><textarea class="answer-input" rows="2" placeholder="Write your answer here…"></textarea>';
+  }
+
+  const qText=q.question_text||'';
+  return '<div class="question-block">'+
+    '<div class="q-num">'+(i+1)+'.'+badge+'</div>'+
+    '<div class="q-text">'+qText+'</div>'+
+    (q.display_math?'<div class="q-display">\\['+q.display_math+'\\]</div>':'')+
+    inputHTML+
+    '<div class="no-print"><button class="reveal-btn" onclick="toggleAnswer(\'ans'+i+'\')">Show answer</button>'+
+    '<div class="answer-panel" id="ans'+i+'"><span class="ans-label">Answer</span>'+ansHTML+'</div></div>'+
+    '</div>';
+}
+
+function shuffleOpts(arr,seed){
+  return shuffle(arr.filter(Boolean).map(v=>({label:v,value:v})),mulberry32(SEED+String(seed).charCodeAt(0)*11));
+}
+function buildOpts(q,i){return shuffleOpts([q.correct_value,...(q.distractors||[])],i)}
+function makeSelect(id,options,correctVal){
+  const opts=options.map(o=>'<option value="'+o.value+'">'+(o.label||o.value)+'</option>').join('');
+  return '<select class="answer-select" id="'+id+'" onchange="chk(this,\''+correctVal+'\')"><option value="">— select —</option>'+opts+'</select>';
+}
+function chk(el,correct){
+  if(currentMode!=='review'){el.className='answer-select';return}
+  if(!el.value){el.className='answer-select';return}
+  el.className='answer-select '+(el.value===correct?'correct':'incorrect');
+}
+
+// ── Graph widget ──
+const graphState={};
+function graphWidget(gid){
+  return '<div class="graph-widget"><div class="graph-canvas-wrap"><canvas id="gc-'+gid+'" width="260" height="260"></canvas></div>'+
+    '<div class="graph-controls">'+
+    ['h','k','a'].map(p=>'<div class="slider-row"><label>'+p+'</label><input type="range" id="gs-'+p+'-'+gid+'" min="'+(p==='a'?'-5':'-8')+'" max="'+(p==='a'?'5':'8')+'" step="1" value="'+(p==='a'?'1':'0')+'" oninput="syncSlider(\''+gid+'\',\''+p+'\',this.value)"><span class="slider-val" id="sv-'+p+'-'+gid+'">'+(p==='a'?'1':'0')+'</span></div>').join('')+
+    '</div></div>';
+}
+function initGraph(gid,ch,ck,ca){graphState[gid]={h:0,k:0,a:1,ch,ck,ca};drawGraph(gid)}
+function syncSlider(gid,p,v){if(!graphState[gid])graphState[gid]={h:0,k:0,a:1};graphState[gid][p]=parseInt(v);const l=document.getElementById('sv-'+p+'-'+gid);if(l)l.textContent=v;drawGraph(gid)}
+function drawGraph(gid){
+  const c=document.getElementById('gc-'+gid);if(!c)return;
+  const ctx=c.getContext('2d'),W=260,H=260,cx=130,cy=130,sc=13;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#e8e4dc';ctx.lineWidth=0.5;
+  for(let i=-10;i<=10;i++){ctx.beginPath();ctx.moveTo(cx+i*sc,0);ctx.lineTo(cx+i*sc,H);ctx.stroke();ctx.beginPath();ctx.moveTo(0,cy-i*sc);ctx.lineTo(W,cy-i*sc);ctx.stroke()}
+  ctx.strokeStyle='#555';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();
+  ctx.strokeStyle='#c8c4bc';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  drawHyp(ctx,0,0,1,cx,cy,sc,W,H);ctx.setLineDash([]);
+  const {h,k,a}=graphState[gid];
+  ctx.strokeStyle='#1a4a8a';ctx.lineWidth=2.5;drawHyp(ctx,h,k,a,cx,cy,sc,W,H);
+  ctx.strokeStyle='#d49090';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(cx+h*sc,0);ctx.lineTo(cx+h*sc,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,cy-k*sc);ctx.lineTo(W,cy-k*sc);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#1a4a8a';ctx.font='bold 10px DM Sans,sans-serif';ctx.textAlign='left';
+  ctx.fillText('h='+h+' k='+k+' a='+a,4,12);
+}
+function drawHyp(ctx,h,k,a,cx,cy,sc,W,H){
+  const g=0.15;
+  for(let b=0;b<2;b++){ctx.beginPath();let s=false;
+    for(let x=(b===0?-10:h+g);b===0?x<=h-g:x<=10;x+=0.02){
+      if(Math.abs(x-h)<g){s=false;continue}
+      const y=a/(x-h)+k,px=cx+x*sc,py=cy-y*sc;
+      if(py<-20||py>H+20){s=false;continue}
+      if(!s){ctx.moveTo(px,py);s=true}else ctx.lineTo(px,py)
+    }ctx.stroke()}
+}
+
+// ── Reveal ──
+function toggleAnswer(id){const p=document.getElementById(id);if(!p)return;const open=p.style.display==='block';p.style.display=open?'none':'block';p.previousElementSibling.textContent=open?'Show answer':'Hide answer';if(!open&&window.MathJax)MathJax.typesetPromise([p]).catch(()=>{})}
+function revealAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='block';p.previousElementSibling.textContent='Hide answer'});if(window.MathJax)MathJax.typesetPromise(document.querySelectorAll('.answer-panel')).catch(()=>{})}
+function hideAll(){document.querySelectorAll('.answer-panel').forEach(p=>{p.style.display='none';p.previousElementSibling.textContent='Show answer'})}
+
+// ── Student Google Auth ──
+const GOOGLE_CLIENT_ID_ACT = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
+const ACTIVITY_FILENAME = 'activities/unit7_graphing_exponentials.html';
+const PROGRESS_KEY = 'math_progress_' + ACTIVITY_FILENAME.replace(/[^a-z0-9]/gi,'_');
+
+let _studentUser = null;
+let _progressFileId = null;
+let _saveTimer = null;
+let _submitted = false;
+let _gsiLoaded = false;
+
+function loadGSI(){
+  return new Promise(resolve=>{
+    if(_gsiLoaded||(window.google&&google.accounts)){_gsiLoaded=true;resolve();return}
+    const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';
+    s.onload=()=>{_gsiLoaded=true;resolve()};document.head.appendChild(s);
+  });
+}
+
+let _studentTokenClient=null, _studentTokenResolve=null;
+function initStudentTokenClient(){
+  _studentTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID_ACT,
+    scope:'https://www.googleapis.com/auth/drive.appdata',
+    callback:resp=>{
+      if(_studentUser)_studentUser.accessToken=resp.error?null:resp.access_token;
+      if(_studentTokenResolve){_studentTokenResolve(resp.error?null:resp.access_token);_studentTokenResolve=null}
+    }
+  });
+}
+function getStudentToken(){return new Promise(r=>{_studentTokenResolve=r;_studentTokenClient.requestAccessToken({prompt:''})})}
+async function ensureStudentToken(){if(_studentUser&&_studentUser.accessToken)return _studentUser.accessToken;return getStudentToken()}
+
+async function initStudentSignIn(){
+  if(GOOGLE_CLIENT_ID_ACT==='PASTE_YOUR_CLIENT_ID_HERE')return;
+  await loadGSI();
+  const stored=sessionStorage.getItem('studentGoogleUser');
+  if(stored){
+    _studentUser=JSON.parse(stored);
+    initStudentTokenClient();
+    showStudentSignedIn(_studentUser);
+    await loadProgress();
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id:GOOGLE_CLIENT_ID_ACT,
+    callback:async resp=>{
+      const p=parseStudentJwt(resp.credential);
+      _studentUser={name:p.name,email:p.email,picture:p.picture,sub:p.sub,accessToken:null};
+      sessionStorage.setItem('studentGoogleUser',JSON.stringify(_studentUser));
+      initStudentTokenClient();
+      showStudentSignedIn(_studentUser);
+      await loadProgress();
+    },
+    auto_select:false
+  });
+  const target=document.getElementById('studentSignInTarget');
+  if(target)google.accounts.id.renderButton(target,{theme:'outline',size:'medium',text:'sign_in_with',width:240});
+  google.accounts.id.prompt();
+}
+
+function parseStudentJwt(t){const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(b))}
+
+function showStudentSignedIn(user){
+  document.getElementById('studentGoogleBtn').style.display='none';
+  const badge=document.getElementById('studentSignedInBadge');badge.style.display='flex';
+  const av=document.getElementById('studentAvatar');if(av&&user.picture)av.src=user.picture;
+  document.getElementById('studentGoogleName').textContent=user.name;
+  document.getElementById('studentGoogleEmail').textContent=user.email;
+  const nameEl=document.getElementById('studentName');
+  const idEl=document.getElementById('studentId');
+  if(nameEl){nameEl.value=user.name;nameEl.readOnly=true;nameEl.style.opacity='.5'}
+  if(idEl){idEl.value=user.email;idEl.readOnly=true;idEl.style.opacity='.5'}
+}
+
+function studentSignOut(){
+  if(_studentUser)google.accounts.id.revoke(_studentUser.email,()=>{});
+  _studentUser=null;_progressFileId=null;
+  sessionStorage.removeItem('studentGoogleUser');
+  document.getElementById('studentGoogleBtn').style.display='flex';
+  document.getElementById('studentSignedInBadge').style.display='none';
+  const nameEl=document.getElementById('studentName'),idEl=document.getElementById('studentId');
+  if(nameEl){nameEl.value='';nameEl.readOnly=false;nameEl.style.opacity='1'}
+  if(idEl){idEl.value='';idEl.readOnly=false;idEl.style.opacity='1'}
+}
+
+// ── Progress Save/Load ──
+function collectCurrentAnswers(){
+  const ans={};
+  document.querySelectorAll('.answer-select').forEach(el=>{if(el.id&&el.value)ans[el.id]=el.value});
+  document.querySelectorAll('.answer-input').forEach((el,i)=>{if(el.value)ans['freetext_'+i]=el.value});
+  Object.keys(graphState).forEach(gid=>{ans['graph_'+gid]=graphState[gid]});
+  ans['teacher']=document.getElementById('studentTeacher')&&document.getElementById('studentTeacher').value||'';
+  ans['period']=document.getElementById('studentPeriod')&&document.getElementById('studentPeriod').value||'';
+  return ans;
+}
+
+async function saveProgress(){
+  if(!_studentUser||_submitted)return;
+  const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:false,answers:collectCurrentAnswers()};
+  const token=await ensureStudentToken();if(!token)return;
+  const content=JSON.stringify(data);
+  const setSt=function(msg){const el=document.getElementById('progressSaveStatus');if(el)el.textContent=msg};
+  setSt('Saving…');
+  try{
+    if(_progressFileId){
+      await fetch('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media',
+        {method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:content});
+    } else {
+      const meta=JSON.stringify({name:PROGRESS_KEY,parents:['appDataFolder']});
+      const form=new FormData();
+      form.append('metadata',new Blob([meta],{type:'application/json'}));
+      form.append('file',new Blob([content],{type:'application/json'}));
+      const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        {method:'POST',headers:{Authorization:'Bearer '+token},body:form});
+      if(res.ok){const d=await res.json();_progressFileId=d.id}
+    }
+    setSt('✓ Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  } catch(e){setSt('Save failed')}
+}
+
+async function loadProgress(){
+  if(!_studentUser)return;
+  const token=await ensureStudentToken();if(!token)return;
+  const q=encodeURIComponent("name='"+PROGRESS_KEY+"' and trashed=false");
+  try{
+    const res=await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)',
+      {headers:{Authorization:'Bearer '+token}});
+    if(!res.ok)return;
+    const list=await res.json();
+    if(!list.files||list.files.length===0)return;
+    _progressFileId=list.files[0].id;
+    const fileRes=await fetch('https://www.googleapis.com/drive/v3/files/'+_progressFileId+'?alt=media',
+      {headers:{Authorization:'Bearer '+token}});
+    if(!fileRes.ok)return;
+    const data=await fileRes.json();
+    if(data.submitted){_submitted=true}
+    if(data.answers){
+      Object.entries(data.answers).forEach(function(pair){
+        const k=pair[0], v=pair[1];
+        if(k==='teacher'){const el=document.getElementById('studentTeacher');if(el)el.value=v}
+        else if(k==='period'){const el=document.getElementById('studentPeriod');if(el)el.value=v}
+        else if(k.startsWith('graph_')){
+          const gid=k.replace('graph_','');
+          if(v&&typeof v==='object'){
+            graphState[gid]=v;
+            const hs=document.getElementById('gs-h-'+gid);if(hs)hs.value=v.h;
+            const ks=document.getElementById('gs-k-'+gid);if(ks)ks.value=v.k;
+            const as_=document.getElementById('gs-a-'+gid);if(as_)as_.value=v.a;
+            const hv=document.getElementById('sv-h-'+gid);if(hv)hv.textContent=v.h;
+            const kv=document.getElementById('sv-k-'+gid);if(kv)kv.textContent=v.k;
+            const av=document.getElementById('sv-a-'+gid);if(av)av.textContent=v.a;
+            drawGraph(gid);
+          }
+        } else if(k.startsWith('freetext_')){
+          const inputs=document.querySelectorAll('.answer-input');
+          const idx=parseInt(k.replace('freetext_',''));
+          if(inputs[idx])inputs[idx].value=v;
+        } else {
+          const el=document.getElementById(k);
+          if(el){el.value=v;chk(el,el.dataset.correct||'')}
+        }
+      });
+    }
+    const el=document.getElementById('progressSaveStatus');
+    if(el)el.textContent='✓ Progress restored from '+new Date(data.savedAt).toLocaleDateString();
+  } catch(e){}
+}
+
+function scheduleSave(){
+  if(!_studentUser||_submitted)return;
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveProgress,2000);
+}
+
+// ── Submit ──
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec';
+async function submitAnswers(){
+  const name=document.getElementById('studentName').value.trim();
+  const id=document.getElementById('studentId').value.trim();
+  const teacher=document.getElementById('studentTeacher').value.trim();
+  if(!name||!id||!teacher){showStatus('Please fill in name, student ID, and teacher.',false);return}
+  const btn=document.getElementById('submitBtn');btn.textContent='Submitting…';btn.disabled=true;
+  const googleEmail=_studentUser?_studentUser.email:null;
+  const payload={
+    worksheet:'Graphing Exponentials',studentName:name,studentId:id,teacher,
+    period:document.getElementById('studentPeriod').value.trim(),
+    seedCode:String(SEED),googleEmail:googleEmail||'',
+    answers:{}
+  };
+  try{
+    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(JSON.stringify(payload))});
+    showStatus('✓ Submitted! Code: '+SEED,true);btn.textContent='Submitted ✓';
+    _submitted=true;
+    if(_studentUser&&_progressFileId){
+      const token=await ensureStudentToken();
+      if(token){
+        const data={activity:ACTIVITY_FILENAME,seed:SEED,savedAt:new Date().toISOString(),submitted:true,answers:collectCurrentAnswers()};
+        await fetch('https://www.googleapis.com/upload/drive/v3/files/'+_progressFileId+'?uploadType=media',
+          {method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(data)});
+      }
+    }
+  }catch(e){showStatus('Submission failed — try again.',false);btn.textContent='Submit answers';btn.disabled=false}
+}
+function showStatus(msg,ok){const s=document.getElementById('submitStatus');s.style.display='block';s.style.background=ok?'#eaf4ee':'#f4e8e8';s.style.color=ok?'#1a6640':'#8a1a1a';s.style.border='1px solid '+(ok?'#7abf9a':'#d49090');s.textContent=msg}
+
+// ── Builder configs ──
+const BUILDER_CONFIGS={
+  domain:{title:'Domain — interval notation',fields:[
+    {id:'expr',label:'Function (LaTeX)',placeholder:'e.g. \\frac{5}{x^2+2x-8}'},
+    {id:'correct',label:'Correct answer',placeholder:'e.g. (-∞,-4)∪(-4,2)∪(2,∞)'},
+    {id:'d1',label:'Distractor 1',placeholder:''},{id:'d2',label:'Distractor 2',placeholder:''},{id:'d3',label:'Distractor 3',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  range:{title:'Range — interval notation',fields:[
+    {id:'expr',label:'Function (LaTeX)',placeholder:'e.g. \\frac{3}{x-2}-5'},
+    {id:'correct',label:'Correct answer',placeholder:'e.g. (-∞,-5)∪(-5,∞)'},
+    {id:'d1',label:'Distractor 1',placeholder:''},{id:'d2',label:'Distractor 2',placeholder:''},{id:'d3',label:'Distractor 3',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  graph:{title:'Graph slider — 1/x transform',fields:[
+    {id:'expr',label:'g(x) expression',placeholder:'e.g. g(x) = -2f(x-3)+1'},
+    {id:'h',label:'Correct h',placeholder:'e.g. 3'},{id:'k',label:'Correct k',placeholder:'e.g. 1'},{id:'a',label:'Correct a',placeholder:'e.g. -2'}
+  ]},
+  transform:{title:'Transformation description',fields:[
+    {id:'expr',label:'g(x) expression',placeholder:'e.g. \\tfrac{1}{3}f(x+4)-2'},
+    {id:'opt0',label:'Correct description',placeholder:'Compressed by 1/3, shifted 4 left and 2 down'},
+    {id:'opt1',label:'Wrong option 1',placeholder:''},{id:'opt2',label:'Wrong option 2',placeholder:''},{id:'opt3',label:'Wrong option 3',placeholder:''}
+  ]},
+  simplify:{title:'Simplify — numerator/denominator',fields:[
+    {id:'expr',label:'Expression (LaTeX)',placeholder:'e.g. \\frac{a-3}{a+2}+\\frac{a+3}{a-2}'},
+    {id:'num_correct',label:'Correct numerator',placeholder:''},
+    {id:'num_d1',label:'Num distractor 1',placeholder:''},{id:'num_d2',label:'Num distractor 2',placeholder:''},{id:'num_d3',label:'Num distractor 3',placeholder:''},
+    {id:'den_correct',label:'Correct denominator',placeholder:''},
+    {id:'den_d1',label:'Den distractor 1',placeholder:''},{id:'den_d2',label:'Den distractor 2',placeholder:''},{id:'den_d3',label:'Den distractor 3',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  factors:{title:'Factor-by-factor dropdowns',fields:[
+    {id:'expr',label:'Expression (LaTeX)',placeholder:''},
+    {id:'n_factors',label:'Numerator factors (pipe | separates dropdowns, comma separates options, first = correct)',placeholder:'(x-2),(x+2),(x-3)|(x+3),(x-3),(x+1)'},
+    {id:'d_factors',label:'Denominator factors (same format)',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  asymptotes:{title:'Asymptotes (VA and HA)',fields:[
+    {id:'expr',label:'Function (LaTeX)',placeholder:''},
+    {id:'va_correct',label:'Correct VA',placeholder:'e.g. x=3,-3'},
+    {id:'va_d1',label:'VA distractor 1',placeholder:''},{id:'va_d2',label:'VA distractor 2',placeholder:''},{id:'va_d3',label:'VA distractor 3',placeholder:''},
+    {id:'ha_correct',label:'Correct HA',placeholder:'e.g. y=1'},
+    {id:'ha_d1',label:'HA distractor 1',placeholder:''},{id:'ha_d2',label:'HA distractor 2',placeholder:''},{id:'ha_d3',label:'HA distractor 3',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  zeros:{title:'Zeros dropdown',fields:[
+    {id:'expr',label:'Function (LaTeX)',placeholder:''},
+    {id:'correct',label:'Correct zeros',placeholder:'e.g. x=0,2,-2'},
+    {id:'d1',label:'Distractor 1',placeholder:''},{id:'d2',label:'Distractor 2',placeholder:''},{id:'d3',label:'Distractor 3',placeholder:''},
+    {id:'ans',label:'Answer explanation',placeholder:''}
+  ]},
+  freetext:{title:'Free text / short answer',fields:[
+    {id:'question',label:'Question text',placeholder:''},
+    {id:'expr',label:'Display expression (LaTeX, optional)',placeholder:''},
+    {id:'ans',label:'Model answer',placeholder:''}
+  ]},
+  image:{title:'Image',fields:[
+    {id:'caption',label:'Caption / question text (optional)',placeholder:''},
+    {id:'img_url',label:'Image URL (paste a public link)',placeholder:'https://…'},
+    {id:'img_upload',label:'— OR — upload image file (will be embedded as base64)',placeholder:'',type:'file'}
+  ]},
+  embed:{title:'Video / embed',fields:[
+    {id:'caption',label:'Caption (optional)',placeholder:''},
+    {id:'embed_url',label:'Video or embed URL (YouTube, Google Slides, etc.)',placeholder:'https://www.youtube.com/watch?v=…'}
+  ]}
+};
+
+function openBuilder(type,editIdx){
+  currentBuilderType=type;
+  editingIndex=(editIdx!==undefined?editIdx:-1);
+  const cfg=BUILDER_CONFIGS[type];
+  document.getElementById('builderTitle').textContent=(editingIndex>=0?'Edit: ':'')+cfg.title;
+
+  const showPersonalized=!['image','embed','freetext','graph'].includes(type);
+  let fieldsHTML='';
+  if(showPersonalized){
+    fieldsHTML+='<div class="toggle-row"><input type="checkbox" id="bf_personalized" onchange="togglePersonalizedFields()"><label for="bf_personalized">Personalized — randomize values per student using seeded RNG</label></div>'+
+      '<div class="personalized-fields" id="personalizedFields"><div style="font-family:var(--sans);font-size:11px;color:var(--accent);margin-bottom:8px">Use {v1}, {v2} etc. as placeholders in your expression and answers. Define their random ranges below.</div>'+
+      '<label>Variable ranges (JSON format)</label>'+
+      '<textarea id="bf_ranges" rows="3" placeholder=&apos;{"v1":{"min":2,"max":8},"v2":{"min":1,"max":5}}&apos;></textarea>'+
+      '</div>';
+  }
+  fieldsHTML+=cfg.fields.map(function(f){
+    if(f.type==='file'){
+      return '<label>'+f.label+'</label><input type="file" id="bf_'+f.id+'" accept="image/*" onchange="handleImageUpload(this)" style="margin-bottom:10px">';
+    }
+    return '<label>'+f.label+'</label><input id="bf_'+f.id+'" placeholder="'+(f.placeholder||'')+'" style="margin-bottom:10px">';
+  }).join('');
+
+  document.getElementById('builderFields').innerHTML=fieldsHTML;
+  document.getElementById('addQBtn').textContent=editingIndex>=0?'Save changes':'Add question';
+
+  if(editingIndex>=0){
+    const allQ=[...questions,...addedQuestions];
+    if(allQ[editingIndex])prefillBuilder(type,allQ[editingIndex]);
+  }
+  document.getElementById('qBuilder').classList.add('visible');
+}
+
+function togglePersonalizedFields(){
+  const cb=document.getElementById('bf_personalized');
+  const pf=document.getElementById('personalizedFields');
+  if(pf)pf.classList.toggle('visible',cb&&cb.checked);
+}
+
+function handleImageUpload(input){
+  if(!input.files||!input.files[0])return;
+  const file=input.files[0];
+  const reader=new FileReader();
+  reader.onload=function(e){
+    let hidden=document.getElementById('bf_img_b64');
+    if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.id='bf_img_b64';input.parentNode.appendChild(hidden)}
+    hidden.value=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function convertYouTubeURL(url){
+  const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if(m)return 'https://www.youtube.com/embed/'+m[1];
+  if(url.includes('docs.google.com/presentation')&&!url.includes('/embed')){
+    return url.replace('/pub','/embed').replace(/\?.*$/,'')+'?start=false&loop=false&delayms=3000';
+  }
+  return url;
+}
+
+function prefillBuilder(type,q){
+  const set=function(id,val){const el=document.getElementById('bf_'+id);if(el&&val!==undefined)el.value=val};
+  const cbP=document.getElementById('bf_personalized');
+  if(cbP&&q.personalized){cbP.checked=true;togglePersonalizedFields();if(q.personalize_ranges)set('ranges',JSON.stringify(q.personalize_ranges,null,2))}
+  if(type==='image'){set('caption',q.caption);set('img_url',q.src||'')}
+  else if(type==='embed'){set('caption',q.caption);set('embed_url',q.embed_url)}
+  else if(type==='freetext'){set('question',q.question_text);set('expr',q.display_math);set('ans',q.answer_text)}
+  else if(type==='graph'){set('expr',q.display_math);set('h',q.correct_h);set('k',q.correct_k);set('a',q.correct_a)}
+  else if(type==='transform'){set('expr',q.display_math);(q.options||[]).forEach(function(o,i){set('opt'+i,o)})}
+  else if(type==='simplify'){
+    set('expr',q.display_math);set('num_correct',q.num_correct);set('den_correct',q.den_correct);
+    (q.distractors_num||[]).forEach(function(d,i){set('num_d'+(i+1),d)});
+    (q.distractors_den||[]).forEach(function(d,i){set('den_d'+(i+1),d)});set('ans',q.answer_text)
+  } else if(type==='factors'){
+    set('expr',q.display_math);
+    const ser=function(facs){return facs.map(function(f){return[f.correct,...f.opts.filter(function(o){return o!==f.correct})].join(',')}).join('|')};
+    set('n_factors',ser(q.num_factors||[]));set('d_factors',ser(q.den_factors||[]));set('ans',q.answer_text)
+  } else if(type==='asymptotes'){
+    set('expr',q.display_math);set('va_correct',q.va_correct);set('ha_correct',q.ha_correct);
+    (q.distractors_va||[]).forEach(function(d,i){set('va_d'+(i+1),d)});
+    (q.distractors_ha||[]).forEach(function(d,i){set('ha_d'+(i+1),d)});set('ans',q.answer_text)
+  } else {
+    set('expr',q.display_math);set('correct',q.correct_value);
+    (q.distractors||[]).forEach(function(d,i){set('d'+(i+1),d)});set('ans',q.answer_text)
+  }
+}
+
+function closeBuilder(){document.getElementById('qBuilder').classList.remove('visible');currentBuilderType='';editingIndex=-1}
+
+function buildQFromForm(){
+  const get=function(id){const el=document.getElementById('bf_'+id);return el?el.value.trim():''};
+  const isPersonalized=document.getElementById('bf_personalized')&&document.getElementById('bf_personalized').checked;
+  let ranges=null;
+  if(isPersonalized){try{ranges=JSON.parse(get('ranges'))}catch(e){ranges=null}}
+
+  let q={type:currentBuilderType,personalized:isPersonalized};
+  if(ranges)q.personalize_ranges=ranges;
+
+  if(currentBuilderType==='image'){
+    const b64=document.getElementById('bf_img_b64');
+    q.src=b64&&b64.value?b64.value:get('img_url');
+    q.caption=get('caption');q.personalized=false;
+  } else if(currentBuilderType==='embed'){
+    q.embed_url=convertYouTubeURL(get('embed_url'));
+    q.caption=get('caption');q.personalized=false;
+  } else if(currentBuilderType==='freetext'){
+    q.question_text=get('question');q.display_math=get('expr');q.answer_text=get('ans');
+  } else if(currentBuilderType==='graph'){
+    q.question_text='Given \\(f(x)=\\dfrac{1}{x}\\), use the sliders to graph';
+    q.display_math=get('expr');
+    q.correct_h=parseInt(get('h'))||0;q.correct_k=parseInt(get('k'))||0;q.correct_a=parseInt(get('a'))||1;
+  } else if(currentBuilderType==='transform'){
+    q.question_text='How is the graph transformed?';q.display_math=get('expr');
+    q.options=[get('opt0'),get('opt1'),get('opt2'),get('opt3')].filter(Boolean);
+    q.answer_text=q.options[0]||'';
+  } else if(currentBuilderType==='simplify'){
+    q.question_text='Simplify';q.display_math=get('expr');
+    q.num_correct=get('num_correct');q.den_correct=get('den_correct');
+    q.distractors_num=[get('num_d1'),get('num_d2'),get('num_d3')].filter(Boolean);
+    q.distractors_den=[get('den_d1'),get('den_d2'),get('den_d3')].filter(Boolean);
+    q.answer_text=get('ans');
+  } else if(currentBuilderType==='factors'){
+    q.question_text='Simplify';q.display_math=get('expr');
+    const parseFG=function(s){return s.split('|').map(function(g){const p=g.split(',').map(function(x){return x.trim()}).filter(Boolean);return{correct:p[0]||'',opts:p}})};
+    q.num_factors=parseFG(get('n_factors'));q.den_factors=parseFG(get('d_factors'));
+    q.answer_text=get('ans');
+  } else if(currentBuilderType==='asymptotes'){
+    q.question_text='Find the vertical and horizontal asymptotes';q.display_math=get('expr');
+    q.va_correct=get('va_correct');q.ha_correct=get('ha_correct');
+    q.distractors_va=[get('va_d1'),get('va_d2'),get('va_d3')].filter(Boolean);
+    q.distractors_ha=[get('ha_d1'),get('ha_d2'),get('ha_d3')].filter(Boolean);
+    q.answer_text=get('ans');
+  } else {
+    const lm={domain:'What is the domain of',range:'What is the range of',zeros:'What are the zeros of'};
+    q.question_text=lm[currentBuilderType]||'Answer';q.display_math=get('expr');
+    q.correct_value=get('correct');
+    q.distractors=[get('d1'),get('d2'),get('d3')].filter(Boolean);
+    q.answer_text=get('ans')||('Correct: '+q.correct_value);
+  }
+  return q;
+}
+
+function addQuestion(){
+  if(!currentBuilderType)return;
+  const q=buildQFromForm();
+  const totalExisting=questions.length;
+  if(editingIndex>=0){
+    if(editingIndex<totalExisting)questions[editingIndex]=q;
+    else addedQuestions[editingIndex-totalExisting]=q;
+  } else {
+    addedQuestions.push(q);
+  }
+  renderAddedList();closeBuilder();
+}
+
+function renderAddedList(){
+  const list=document.getElementById('qAddedList');
+  const allQ=[...questions,...addedQuestions];
+  if(allQ.length===0){list.innerHTML='';return}
+  list.innerHTML='<div style="font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-light);margin-bottom:8px">All questions ('+allQ.length+' total — click to edit)</div>'+
+    allQ.map(function(q,i){
+      const isNew=i>=questions.length;
+      const icon={domain:'📐',range:'📏',graph:'📈',transform:'🔄',simplify:'➗',factors:'🔢',asymptotes:'📉',zeros:'0️⃣',freetext:'✏️',image:'🖼',embed:'▶️'}[q.type]||'❓';
+      const lbl=icon+' Q'+(i+1)+': '+(q.display_math||q.question_text||q.caption||q.type).substring(0,35)+'…';
+      return '<div class="q-added-item" style="cursor:pointer;'+(isNew?'border-color:var(--green-rule)':'')+'" onclick="openBuilder(&apos;'+q.type+'&apos;,'+i+')">'+
+        '<span class="q-label">'+lbl+(q.personalized?' 🎲':'')+(isNew?' <span style="color:var(--green);font-size:10px">NEW</span>':'')+'</span>'+
+        '<button onclick="event.stopPropagation();removeQ('+i+')" class="q-remove-btn">×</button>'+
+        '</div>';
+    }).join('');
+}
+
+function removeQ(i){
+  const n=questions.length;
+  if(i<n)questions.splice(i,1);else addedQuestions.splice(i-n,1);
+  renderAddedList();
+}
+
+function syncFromIndex(){
+  const url=localStorage.getItem('appsScriptURL')||'';
+  const tJSON=localStorage.getItem('teacherList')||'';
+  const msgs=[];
+  if(url){window._syncedURL=url;msgs.push('✓ Apps Script URL synced')}else msgs.push('⚠ No URL saved in index');
+  if(tJSON){window._syncedTeachers=JSON.parse(tJSON);msgs.push('✓ Teacher list synced ('+window._syncedTeachers.length+')')}else msgs.push('ℹ No teacher list in index');
+  alert(msgs.join('\n')+'\n\nClick Save & download to apply.');
+}
+
+function saveAndDownload(){
+  const allQ=[...questions,...addedQuestions];
+  const meta=JSON.parse(document.getElementById('ACTIVITY_META').textContent||'{}');
+  meta.mode=currentMode;
+  let html=document.documentElement.outerHTML;
+  html=html.replace(/<script id="QUESTION_DATA"[^>]*>[\s\S]*?<\/script>/,'<script id="QUESTION_DATA" type="application/json">'+JSON.stringify(allQ,null,2)+'<\/script>');
+  html=html.replace(/<script id="ACTIVITY_META"[^>]*>[\s\S]*?<\/script>/,'<script id="ACTIVITY_META" type="application/json">'+JSON.stringify(meta)+'<\/script>');
+  html=html.replace(/class="mode-(review|activity)"/,'class="mode-'+currentMode+'"');
+  if(window._syncedURL){html=html.replace(/const APPS_SCRIPT_URL='[^']*'/,"const APPS_SCRIPT_URL='"+window._syncedURL+"'")}
+  if(window._syncedTeachers){
+    const opts='<option value="">— select teacher —</option>'+window._syncedTeachers.map(function(t){return'<option value="'+t+'">'+t+'</option>'}).join('');
+    html=html.replace(/<select id="studentTeacher"[^>]*>[\s\S]*?<\/select>/,'<select id="studentTeacher" class="teacher-select">'+opts+'</select>');
+  }
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=meta.filename||window.location.pathname.split('/').pop()||'activity.html';
+  a.click();URL.revokeObjectURL(url);
+  alert('Downloaded! Upload to GitHub to publish.');
+}
+
+// ── Init ──
+renderQuestions();
+function tryTypeset(){if(window.MathJax&&MathJax.startup&&MathJax.startup.promise){MathJax.startup.promise.then(function(){MathJax.typesetPromise([document.body]).catch(function(){})});}else{setTimeout(tryTypeset,150)}}
+tryTypeset();
+
+document.addEventListener('change', function(e) {
+  if(e.target.classList.contains('answer-select')||e.target.classList.contains('answer-input')||e.target.id==='studentTeacher'||e.target.id==='studentPeriod')
+    scheduleSave();
+});
+document.addEventListener('input', function(e) {
+  if(e.target.classList.contains('answer-input')) scheduleSave();
+});
+
+initStudentSignIn();
+</script>
+</body>
+</html>
