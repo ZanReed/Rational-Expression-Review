@@ -855,7 +855,7 @@ async function ensureStudentToken(){if(_studentUser&&_studentUser.accessToken)re
 function parseStudentJwt(t){const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(b));}
 
 async function initStudentSignIn(){
-  if(GOOGLE_CLIENT_ID==='PASTE_YOUR_CLIENT_ID_HERE')return;
+  if(GOOGLE_CLIENT_ID==='438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com')return;
   await loadGSI();
   const stored=sessionStorage.getItem('studentGoogleUser_gexp');
   if(stored){
@@ -1519,7 +1519,7 @@ function handleTeacherPIN(){
 // ══════════════════════════════════════════════════════
 // Apps Script URL: baked in at publish time OR falls back to index localStorage
 const APPS_SCRIPT_URL = (function(){
-  const baked = 'PASTE_YOUR_WEB_APP_URL_HERE';
+  const baked = 'https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec';
   if(baked && baked !== 'PASTE_YOUR_WEB_APP_URL_HERE') return baked;
   return localStorage.getItem('appsScriptURL') || '';
 })();
