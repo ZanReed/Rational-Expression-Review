@@ -3,6 +3,1195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intro to Logarithms & Graphing Logs</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#faf8f4;--surface:#fff;--border:#d4c9b8;--border-strong:#9e8f7c;
+  --text:#1a1410;--text-muted:#6b5f52;--accent:#2d5a8e;--accent-light:#e8f0f9;
+  --correct:#2a6b3c;--correct-bg:#eaf4ed;--incorrect:#8b2020;--incorrect-bg:#faeaea;
+  --header-bg:#1a1410;--header-text:#faf8f4;--section-bg:#f2ede4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Source Serif 4',Georgia,serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;}
+sup,sub{font-size:.75em;}
+
+/* HEADER */
+.page-header{background:var(--header-bg);color:var(--header-text);padding:20px 32px 16px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--accent);}
+.page-header h1{font-size:22px;font-weight:700;letter-spacing:.02em;}
+.page-header .subtitle{font-size:13px;opacity:.7;margin-top:2px;}
+
+/* STUDENT BAR */
+.student-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:12px 32px;display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;}
+.student-bar label{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:2px;}
+.student-bar input,.student-bar select{border:none;border-bottom:2px solid var(--border-strong);background:transparent;font-family:inherit;font-size:14px;padding:2px 6px;color:var(--text);}
+.student-bar input{width:180px;}
+.student-bar input:focus,.student-bar select:focus{outline:none;border-bottom-color:var(--accent);}
+.student-bar .pf{width:60px;}
+
+/* WORKSHEET */
+.worksheet{max-width:980px;margin:0 auto;padding:24px 20px 60px;}
+
+/* NOTES TABLE */
+.notes-table{width:100%;border-collapse:collapse;border:2px solid var(--border-strong);margin-bottom:28px;background:var(--surface);}
+.notes-table th{background:var(--header-bg);color:var(--header-text);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;text-align:left;border:1px solid #3a3028;}
+.notes-table td{padding:16px;border:1px solid var(--border);vertical-align:top;}
+.notes-table .col-left{width:220px;background:var(--section-bg);font-weight:600;border-right:2px solid var(--border-strong);}
+.big-label{font-size:26px;font-weight:700;line-height:1.2;margin-bottom:4px;}
+.cursive{font-style:italic;font-size:18px;color:var(--text-muted);}
+
+/* DROPDOWNS */
+select.ans{font-family:'JetBrains Mono',monospace;font-size:13px;padding:4px 26px 4px 10px;border:2px solid var(--border-strong);border-radius:4px;background:var(--surface);color:var(--text);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239e8f7c'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;transition:border-color .15s;}
+select.ans:focus{outline:none;border-color:var(--accent);}
+select.ans.correct{border-color:var(--correct);background-color:var(--correct-bg);color:var(--correct);}
+select.ans.incorrect{border-color:var(--incorrect);background-color:var(--incorrect-bg);color:var(--incorrect);}
+.feedback{font-size:13px;font-weight:700;margin-left:5px;vertical-align:middle;}
+.feedback.correct{color:var(--correct);}
+.feedback.incorrect{color:var(--incorrect);}
+
+/* MATH */
+.math{font-family:'JetBrains Mono',monospace;font-size:14px;background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:6px 12px;display:inline-block;}
+.math-lg{font-family:'JetBrains Mono',monospace;font-size:18px;display:inline-block;}
+
+/* TILE PICKER */
+.tile-picker{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.tile{border:2px solid var(--border-strong);border-radius:6px;padding:10px 18px;cursor:pointer;background:var(--surface);font-size:15px;transition:border-color .15s,background .15s;user-select:none;text-align:center;}
+.tile:hover{border-color:var(--accent);background:var(--accent-light);}
+.tile.selected{border-color:var(--accent);background:var(--accent-light);}
+.tile.correct{border-color:var(--correct)!important;background:var(--correct-bg)!important;}
+.tile.incorrect{border-color:var(--incorrect)!important;background:var(--incorrect-bg)!important;}
+
+/* EXP FORM CHOICE BUTTONS */
+.exp-choices{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.exp-choice{border:2px solid var(--border-strong);border-radius:6px;padding:8px 14px;cursor:pointer;background:var(--surface);font-size:15px;transition:border-color .15s,background .15s;user-select:none;}
+.exp-choice:hover{border-color:var(--accent);background:var(--accent-light);}
+.exp-choice.chosen{border-color:var(--accent);background:var(--accent-light);}
+.exp-choice.correct{border-color:var(--correct)!important;background:var(--correct-bg)!important;color:var(--correct);}
+.exp-choice.incorrect{border-color:var(--incorrect)!important;background:var(--incorrect-bg)!important;color:var(--incorrect);}
+
+/* GOOGLE SIGN-IN */
+.gsi-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.gsi-status{font-size:13px;color:var(--text-muted);}
+.gsi-user{font-size:13px;font-weight:700;color:var(--correct);}
+.gsi-signout{font-size:12px;color:var(--incorrect);cursor:pointer;text-decoration:underline;border:none;background:none;font-family:inherit;padding:0;}
+
+/* SECTION HEADERS */
+.section-header{background:var(--header-bg);color:var(--header-text);padding:8px 16px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px 4px 0 0;}
+.problems-block{background:var(--surface);border:2px solid var(--border-strong);border-top:none;border-radius:0 0 4px 4px;margin-bottom:28px;}
+.problem-row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);}
+.problem-row:last-child{border-bottom:none;}
+.problem-cell{padding:14px 20px;border-right:1px solid var(--border);}
+.problem-cell:last-child{border-right:none;}
+.prob-num{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.prob-stem{font-family:'JetBrains Mono',monospace;font-size:15px;margin-bottom:10px;}
+
+/* GRAPH SECTION */
+.graph-section{background:var(--surface);border:2px solid var(--border-strong);border-radius:4px;margin-bottom:28px;overflow:hidden;}
+.graph-problem{display:grid;grid-template-columns:1fr 300px;border-bottom:1px solid var(--border);}
+.graph-problem:last-child{border-bottom:none;}
+.graph-left{padding:16px 20px;border-right:1px solid var(--border);}
+.graph-right{padding:16px 20px;}
+.graph-canvas-wrap{border:2px solid var(--border);background:var(--section-bg);border-radius:4px;margin-top:10px;overflow:hidden;}
+.graph-canvas-wrap canvas{display:block;}
+.characteristics-grid{display:flex;flex-direction:column;gap:10px;}
+.char-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.char-label{font-weight:700;font-size:13px;min-width:110px;}
+
+/* EQ BUILDER */
+.eq-builder{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.eq-part{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;}
+
+/* NOTE BOX */
+.note-box{background:var(--accent-light);border-left:4px solid var(--accent);padding:10px 14px;border-radius:0 4px 4px 0;font-size:13px;margin-top:10px;color:var(--accent);font-weight:500;}
+
+/* SCORE BAR */
+#score-bar{display:none;background:var(--surface);border:2px solid var(--border-strong);border-radius:4px;padding:14px 24px;margin:24px 0;text-align:center;font-size:16px;font-weight:600;}
+
+/* SUBMIT */
+.submit-section{background:var(--surface);border:2px solid var(--border-strong);border-radius:4px;padding:24px;margin-top:32px;text-align:center;}
+.submit-section h3{font-size:16px;margin-bottom:16px;color:var(--text-muted);}
+.submit-btn{padding:12px 48px;background:var(--header-bg);color:white;border:none;border-radius:4px;font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:background .15s;}
+.submit-btn:hover{background:var(--accent);}
+#submit-status{margin-top:14px;font-size:14px;font-style:italic;color:var(--text-muted);}
+
+/* KATEX OPTION SPANS */
+.ko{font-size:13px;}
+
+/* PREFILLED GRAPH PAIR */
+.graph-pair{display:flex;gap:24px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin-top:10px;}
+.graph-box{text-align:center;}
+.graph-box .label{font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;}
+.graph-box svg{border:1px solid var(--border);border-radius:4px;background:#fff;}
+
+/* PARENT PREVIEW */
+.parent-preview{border:2px solid var(--border-strong);border-radius:6px;margin-top:10px;background:var(--section-bg);overflow:hidden;}
+.parent-preview-placeholder{padding:12px;font-size:13px;color:var(--text-muted);font-style:italic;text-align:center;}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div>
+    <div class="subtitle">Algebra II · Dallas ISD</div>
+    <h1>Introduction to Logarithms &amp; Graphing Logarithmic Functions</h1>
+  </div>
+</div>
+
+<!-- GOOGLE SIGN-IN BAR -->
+<div class="gsi-bar" id="gsiBar">
+  <div id="gsi-btn-wrap">
+    <div id="g_id_onload"
+      data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com"
+      data-callback="handleGoogleSignIn"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+      data-type="standard"
+      data-shape="rectangular"
+      data-theme="outline"
+      data-text="sign_in_with"
+      data-size="medium"
+      data-logo_alignment="left">
+    </div>
+  </div>
+  <span id="gsiStatus" class="gsi-status">Sign in with your school Google account to auto-fill your name and email.</span>
+</div>
+
+<div class="student-bar">
+  <div><label>Name</label><input type="text" id="sName" placeholder="First Last"></div>
+  <div><label>Student ID</label><input type="text" id="sId" placeholder="000000000"></div>
+  <div><label>Period</label><input type="text" id="sPeriod" class="pf" placeholder="#"></div>
+  <div>
+    <label>Teacher</label>
+    <select id="sTeacher" style="border:none;border-bottom:2px solid var(--border-strong);background:transparent;font-family:inherit;font-size:14px;padding:2px 6px;color:var(--text);">
+      <option value="">-- Select --</option>
+      <option>Mueller</option><option>Reed</option><option>Singleton</option><option>Pacayra</option><option>Jafari</option>
+    </select>
+  </div>
+</div>
+
+<div class="worksheet">
+
+<!-- ═══ SECTION 1: LOGARITHMIC PARENT FUNCTION ═══ -->
+<table class="notes-table">
+  <thead><tr><th>Main Ideas / Questions</th><th>Notes / Examples</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="col-left">
+        <div class="big-label">LOGARITHMIC</div>
+        <div class="cursive">Parent Function</div>
+        <div style="margin-top:14px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px;">Select the correct graph shape:</div>
+          <select class="ans" id="q_graph_shape">
+            <option value="">— choose —</option>
+            <option value="a">Straight line through origin</option>
+            <option value="b">U-shaped parabola</option>
+            <option value="c">Curve through (1,0) rising slowly rightward</option>
+            <option value="d">Bell-shaped curve</option>
+          </select>
+          <span class="feedback" id="fb_graph_shape"></span>
+          <div class="parent-preview" id="parent_preview_box">
+            <div class="parent-preview-placeholder">Select an option above to see a preview</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <p>A logarithmic function is the
+          <select class="ans" id="q_inverse">
+            <option value="">— choose —</option>
+            <option value="derivative">derivative</option>
+            <option value="inverse">inverse</option>
+            <option value="integral">integral</option>
+            <option value="complement">complement</option>
+          </select>
+          <span class="feedback" id="fb_q_inverse"></span>
+          of an exponential function.
+        </p>
+        <p style="margin-top:10px;">Using the graphs below, notice how $f(x)=\log x$ and $f(x)=10^x$ are <strong>reflections of each other</strong> across the line $y=x$.</p>
+
+        <!-- PREFILLED GRAPH PAIR -->
+        <div class="graph-pair">
+          <div class="graph-box">
+            <div class="label">$f(x) = \log x$</div>
+            <svg id="svg_logx" width="220" height="200" viewBox="-110 -100 220 200"></svg>
+          </div>
+          <div class="graph-box">
+            <div class="label">$f(x) = 10^x$</div>
+            <svg id="svg_expx" width="220" height="200" viewBox="-110 -100 220 200"></svg>
+          </div>
+        </div>
+        <div class="note-box">Key insight: $\log_b a = x \iff b^x = a$. The log and exponential are inverses — their graphs are mirror images across $y = x$.</div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══ SECTION 2: GRAPHING LOG FUNCTIONS ═══ -->
+<div class="section-header">Graph Each Function &amp; Identify Its Key Characteristics</div>
+<div class="graph-section">
+
+  <!-- Problem 1 -->
+  <div class="graph-problem">
+    <div class="graph-left">
+      <div class="prob-num">Problem 1</div>
+      <div class="prob-stem">$f(x) = \log_2 x$</div>
+      <div class="graph-canvas-wrap"><canvas id="gc1" width="380" height="220"></canvas></div>
+    </div>
+    <div class="graph-right">
+      <div class="characteristics-grid">
+        <div class="char-row"><span class="char-label">Domain:</span>
+          <select class="ans" id="g1_domain">
+            <option value="">—</option>
+            <option value="(0,inf)">(0, ∞)</option>
+            <option value="(-inf,inf)">(-∞, ∞)</option>
+            <option value="[1,inf)">[1, ∞)</option>
+            <option value="(-inf,0)">(-∞, 0)</option>
+          </select>
+          <span class="feedback" id="fb_g1_domain"></span>
+        </div>
+        <div class="char-row"><span class="char-label">Range:</span>
+          <select class="ans" id="g1_range">
+            <option value="">—</option>
+            <option value="(-inf,inf)">(-∞, ∞)</option>
+            <option value="(0,inf)">(0, ∞)</option>
+            <option value="(-inf,0)">(-∞, 0)</option>
+            <option value="[0,inf)">[0, ∞)</option>
+          </select>
+          <span class="feedback" id="fb_g1_range"></span>
+        </div>
+        <div style="font-weight:700;font-size:13px;margin-top:2px;">End Behavior:</div>
+        <div class="char-row" style="font-size:13px;">
+          <span>As $x \to$</span>
+          <select class="ans" id="g1_eb1">
+            <option value="">—</option><option value="inf">∞</option><option value="-inf">-∞</option><option value="0">0</option><option value="1">1</option>
+          </select>
+          <span>, $f(x) \to \infty$</span>
+          <span class="feedback" id="fb_g1_eb1"></span>
+        </div>
+        <div class="char-row" style="font-size:13px;">
+          <span>As $x \to$</span>
+          <select class="ans" id="g1_eb2">
+            <option value="">—</option><option value="0+">0⁺</option><option value="-inf">-∞</option><option value="1">1</option><option value="inf">∞</option>
+          </select>
+          <span>, $f(x) \to -\infty$</span>
+          <span class="feedback" id="fb_g1_eb2"></span>
+        </div>
+        <div class="char-row"><span class="char-label">x-intercept:</span>
+          <select class="ans" id="g1_xint">
+            <option value="">—</option>
+            <option value="(1,0)">(1, 0)</option>
+            <option value="(0,1)">(0, 1)</option>
+            <option value="(0,0)">(0, 0)</option>
+            <option value="(2,0)">(2, 0)</option>
+          </select>
+          <span class="feedback" id="fb_g1_xint"></span>
+        </div>
+        <div class="char-row"><span class="char-label">Asymptote:</span>
+          <select class="ans" id="g1_asym">
+            <option value="">—</option>
+            <option value="x=0">x = 0</option>
+            <option value="y=0">y = 0</option>
+            <option value="y=1">y = 1</option>
+            <option value="x=1">x = 1</option>
+          </select>
+          <span class="feedback" id="fb_g1_asym"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Problem 2 -->
+  <div class="graph-problem">
+    <div class="graph-left">
+      <div class="prob-num">Problem 2</div>
+      <div class="prob-stem">$f(x) = \log_{1/3} x$</div>
+      <div class="graph-canvas-wrap"><canvas id="gc2" width="380" height="220"></canvas></div>
+    </div>
+    <div class="graph-right">
+      <div class="characteristics-grid">
+        <div class="char-row"><span class="char-label">Domain:</span>
+          <select class="ans" id="g2_domain">
+            <option value="">—</option>
+            <option value="(0,inf)">(0, ∞)</option>
+            <option value="(-inf,inf)">(-∞, ∞)</option>
+            <option value="[1,inf)">[1, ∞)</option>
+            <option value="(-inf,0)">(-∞, 0)</option>
+          </select>
+          <span class="feedback" id="fb_g2_domain"></span>
+        </div>
+        <div class="char-row"><span class="char-label">Range:</span>
+          <select class="ans" id="g2_range">
+            <option value="">—</option>
+            <option value="(-inf,inf)">(-∞, ∞)</option>
+            <option value="(0,inf)">(0, ∞)</option>
+            <option value="(-inf,0)">(-∞, 0)</option>
+            <option value="[0,inf)">[0, ∞)</option>
+          </select>
+          <span class="feedback" id="fb_g2_range"></span>
+        </div>
+        <div style="font-weight:700;font-size:13px;margin-top:2px;">End Behavior:</div>
+        <div class="char-row" style="font-size:13px;">
+          <span>As $x \to$</span>
+          <select class="ans" id="g2_eb1">
+            <option value="">—</option><option value="inf">∞</option><option value="-inf">-∞</option><option value="0">0</option><option value="1">1</option>
+          </select>
+          <span>, $f(x) \to \infty$</span>
+          <span class="feedback" id="fb_g2_eb1"></span>
+        </div>
+        <div class="char-row" style="font-size:13px;">
+          <span>As $x \to$</span>
+          <select class="ans" id="g2_eb2">
+            <option value="">—</option><option value="0+">0⁺</option><option value="-inf">-∞</option><option value="1">1</option><option value="inf">∞</option>
+          </select>
+          <span>, $f(x) \to -\infty$</span>
+          <span class="feedback" id="fb_g2_eb2"></span>
+        </div>
+        <div class="char-row"><span class="char-label">x-intercept:</span>
+          <select class="ans" id="g2_xint">
+            <option value="">—</option>
+            <option value="(1,0)">(1, 0)</option>
+            <option value="(0,1)">(0, 1)</option>
+            <option value="(0,0)">(0, 0)</option>
+            <option value="(1/3,0)">(1/3, 0)</option>
+          </select>
+          <span class="feedback" id="fb_g2_xint"></span>
+        </div>
+        <div class="char-row"><span class="char-label">Asymptote:</span>
+          <select class="ans" id="g2_asym">
+            <option value="">—</option>
+            <option value="x=0">x = 0</option>
+            <option value="y=0">y = 0</option>
+            <option value="y=1">y = 1</option>
+            <option value="x=1/3">x = 1/3</option>
+          </select>
+          <span class="feedback" id="fb_g2_asym"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end graph-section -->
+
+<!-- ═══ SECTION 3: WHAT IS A LOGARITHM ═══ -->
+<table class="notes-table">
+  <thead><tr><th>Main Ideas / Questions</th><th>Notes / Examples</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="col-left">
+        <div class="cursive" style="font-size:16px;">What is a</div>
+        <div class="big-label">LOGARITHM?</div>
+      </td>
+      <td>
+        <p style="text-align:center;font-weight:600;margin-bottom:14px;">A logarithm (log) is another way of writing exponents.</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;">
+          <div style="border:2px solid var(--border-strong);border-radius:6px;padding:12px 20px;text-align:center;background:var(--section-bg);">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;">Logarithmic Form</div>
+            <div style="font-size:24px;">$\log_b a = x$</div>
+          </div>
+          <div style="font-size:28px;color:var(--border-strong);">→</div>
+          <div style="border:2px solid var(--border-strong);border-radius:6px;padding:12px 20px;text-align:center;background:var(--section-bg);">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:10px;">Exponential Form — select one:</div>
+            <div class="exp-choices">
+              <div class="exp-choice" id="ec_bxa" onclick="pickExpForm('bxa')">$b^x = a$</div>
+              <div class="exp-choice" id="ec_abx" onclick="pickExpForm('abx')">$a^b = x$</div>
+              <div class="exp-choice" id="ec_xba" onclick="pickExpForm('xba')">$x^b = a$</div>
+              <div class="exp-choice" id="ec_bax" onclick="pickExpForm('bax')">$b^a = x$</div>
+            </div>
+            <div class="feedback" id="fb_q_expform" style="margin-top:8px;font-size:14px;display:block;min-height:18px;"></div>
+          </div>
+        </div>
+        <div class="note-box" style="margin-top:14px;">Read as: <strong>"log base <em>b</em> of <em>a</em> equals <em>x</em>"</strong></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══ SECTION 4: LOG → EXP ═══ -->
+<div class="section-header">Converting LOG → EXP &nbsp;|&nbsp; <span style="font-weight:400;font-size:12px;">Write each equation in exponential form</span></div>
+<div class="problems-block">
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">1.</div>
+      <div class="prob-stem">$\log_3 9 = 2$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le1_base"><option value="">base</option><option value="2">2</option><option value="3">3</option><option value="9">9</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le1_exp"><option value="">exp</option><option value="2">2</option><option value="3">3</option><option value="9">9</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le1_res"><option value="">result</option><option value="2">2</option><option value="3">3</option><option value="9">9</option></select>
+        <span class="feedback" id="fb_le1"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">2.</div>
+      <div class="prob-stem">$\log_6 216 = 3$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le2_base"><option value="">base</option><option value="3">3</option><option value="6">6</option><option value="216">216</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le2_exp"><option value="">exp</option><option value="3">3</option><option value="6">6</option><option value="216">216</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le2_res"><option value="">result</option><option value="3">3</option><option value="6">6</option><option value="216">216</option></select>
+        <span class="feedback" id="fb_le2"></span>
+      </div>
+    </div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">3.</div>
+      <div class="prob-stem">$\log_7 1 = 0$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le3_base"><option value="">base</option><option value="0">0</option><option value="1">1</option><option value="7">7</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le3_exp"><option value="">exp</option><option value="0">0</option><option value="1">1</option><option value="7">7</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le3_res"><option value="">result</option><option value="0">0</option><option value="1">1</option><option value="7">7</option></select>
+        <span class="feedback" id="fb_le3"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">4.</div>
+      <div class="prob-stem">$\log_2 16 = 4$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le4_base"><option value="">base</option><option value="2">2</option><option value="4">4</option><option value="16">16</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le4_exp"><option value="">exp</option><option value="2">2</option><option value="4">4</option><option value="16">16</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le4_res"><option value="">result</option><option value="2">2</option><option value="4">4</option><option value="16">16</option></select>
+        <span class="feedback" id="fb_le4"></span>
+      </div>
+    </div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">5.</div>
+      <div class="prob-stem">$\log_4 \frac{1}{16} = -2$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le5_base"><option value="">base</option><option value="-2">-2</option><option value="4">4</option><option value="1/16">1/16</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le5_exp"><option value="">exp</option><option value="-2">-2</option><option value="4">4</option><option value="16">16</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le5_res"><option value="">result</option><option value="-2">-2</option><option value="4">4</option><option value="1/16">1/16</option></select>
+        <span class="feedback" id="fb_le5"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">6.</div>
+      <div class="prob-stem">$\log_9 27 = \frac{3}{2}$</div>
+      <div class="eq-builder">
+        <select class="ans" id="le6_base"><option value="">base</option><option value="3/2">3/2</option><option value="9">9</option><option value="27">27</option></select>
+        <span class="eq-part">^</span>
+        <select class="ans" id="le6_exp"><option value="">exp</option><option value="3/2">3/2</option><option value="9">9</option><option value="27">27</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="le6_res"><option value="">result</option><option value="3/2">3/2</option><option value="9">9</option><option value="27">27</option></select>
+        <span class="feedback" id="fb_le6"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 5: EXP → LOG ═══ -->
+<div class="section-header">Converting EXP → LOG &nbsp;|&nbsp; <span style="font-weight:400;font-size:12px;">Write each equation in logarithmic form</span></div>
+<div class="problems-block">
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">7.</div>
+      <div class="prob-stem">$14^2 = 196$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el7_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="2">2</option><option value="14">14</option><option value="196">196</option></select>
+        <select class="ans" id="el7_arg"><option value="">arg</option><option value="2">2</option><option value="14">14</option><option value="196">196</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el7_res"><option value="">result</option><option value="2">2</option><option value="14">14</option><option value="196">196</option></select>
+        <span class="feedback" id="fb_el7"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">8.</div>
+      <div class="prob-stem">$3^4 = 81$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el8_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="3">3</option><option value="4">4</option><option value="81">81</option></select>
+        <select class="ans" id="el8_arg"><option value="">arg</option><option value="3">3</option><option value="4">4</option><option value="81">81</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el8_res"><option value="">result</option><option value="3">3</option><option value="4">4</option><option value="81">81</option></select>
+        <span class="feedback" id="fb_el8"></span>
+      </div>
+    </div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">9.</div>
+      <div class="prob-stem">$12^1 = 12$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el9_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="1">1</option><option value="12">12</option></select>
+        <select class="ans" id="el9_arg"><option value="">arg</option><option value="1">1</option><option value="12">12</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el9_res"><option value="">result</option><option value="1">1</option><option value="12">12</option></select>
+        <span class="feedback" id="fb_el9"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">10.</div>
+      <div class="prob-stem">$36^{1/2} = 6$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el10_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="1/2">1/2</option><option value="6">6</option><option value="36">36</option></select>
+        <select class="ans" id="el10_arg"><option value="">arg</option><option value="1/2">1/2</option><option value="6">6</option><option value="36">36</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el10_res"><option value="">result</option><option value="1/2">1/2</option><option value="6">6</option><option value="36">36</option></select>
+        <span class="feedback" id="fb_el10"></span>
+      </div>
+    </div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell">
+      <div class="prob-num">11.</div>
+      <div class="prob-stem">$2^{-3} = \frac{1}{8}$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el11_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="-3">-3</option><option value="2">2</option><option value="1/8">1/8</option></select>
+        <select class="ans" id="el11_arg"><option value="">arg</option><option value="-3">-3</option><option value="2">2</option><option value="1/8">1/8</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el11_res"><option value="">result</option><option value="-3">-3</option><option value="2">2</option><option value="1/8">1/8</option></select>
+        <span class="feedback" id="fb_el11"></span>
+      </div>
+    </div>
+    <div class="problem-cell">
+      <div class="prob-num">12.</div>
+      <div class="prob-stem">$8^{4/3} = 16$</div>
+      <div class="eq-builder">
+        <span class="eq-part">log</span>
+        <select class="ans" id="el12_base" style="font-size:11px;padding:2px 20px 2px 6px;"><option value="">b</option><option value="4/3">4/3</option><option value="8">8</option><option value="16">16</option></select>
+        <select class="ans" id="el12_arg"><option value="">arg</option><option value="4/3">4/3</option><option value="8">8</option><option value="16">16</option></select>
+        <span class="eq-part">= </span>
+        <select class="ans" id="el12_res"><option value="">result</option><option value="4/3">4/3</option><option value="8">8</option><option value="16">16</option></select>
+        <span class="feedback" id="fb_el12"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 6: COMMON LOGARITHM ═══ -->
+<table class="notes-table">
+  <thead><tr><th>Main Ideas / Questions</th><th>Notes / Examples</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="col-left"><div class="big-label" style="font-size:20px;">COMMON LOGARITHM</div><br>
+        <div style="font-size:13px;color:var(--text-muted);">A logarithm with base 10</div>
+      </td>
+      <td>
+        <p>A logarithm with base 10 is called a <strong>common logarithm</strong> and can be written without the base:</p>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div class="math" style="font-size:16px;">$\log_{10} x$</div>
+          <span style="font-size:20px;color:var(--border-strong);">→</span>
+          <select class="ans" id="q_common_log">
+            <option value="">— choose the simplified form —</option>
+            <option value="log x">$\log x$</option>
+            <option value="ln x">$\ln x$</option>
+            <option value="no">$\log_{10}(x)$ — cannot simplify</option>
+            <option value="10x">$10x$</option>
+          </select>
+          <span class="feedback" id="fb_q_common_log"></span>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══ SECTION 7: EVALUATING LOGARITHMS ═══ -->
+<div class="section-header">Evaluating Logarithms &nbsp;|&nbsp; <span style="font-weight:400;font-size:12px;">Use your knowledge of exponents</span></div>
+<div class="problems-block">
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">13.</div><div class="prob-stem">$\log_7 49$</div>
+      <select class="ans" id="ev13"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>7</option><option>49</option></select>
+      <span class="feedback" id="fb_ev13"></span></div>
+    <div class="problem-cell"><div class="prob-num">14.</div><div class="prob-stem">$\log_3 27$</div>
+      <select class="ans" id="ev14"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>9</option><option>27</option></select>
+      <span class="feedback" id="fb_ev14"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">15.</div><div class="prob-stem">$\log 100$</div>
+      <select class="ans" id="ev15"><option value="">—</option><option>1</option><option>2</option><option>10</option><option>100</option></select>
+      <span class="feedback" id="fb_ev15"></span></div>
+    <div class="problem-cell"><div class="prob-num">16.</div><div class="prob-stem">$\log_{12} 1$</div>
+      <select class="ans" id="ev16"><option value="">—</option><option>-1</option><option>0</option><option>1</option><option>12</option></select>
+      <span class="feedback" id="fb_ev16"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">17.</div><div class="prob-stem">$\log_2 64$</div>
+      <select class="ans" id="ev17"><option value="">—</option><option>4</option><option>5</option><option>6</option><option>8</option><option>32</option></select>
+      <span class="feedback" id="fb_ev17"></span></div>
+    <div class="problem-cell"><div class="prob-num">18.</div><div class="prob-stem">$\log_3 243$</div>
+      <select class="ans" id="ev18"><option value="">—</option><option>3</option><option>4</option><option>5</option><option>6</option><option>81</option></select>
+      <span class="feedback" id="fb_ev18"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">19.</div><div class="prob-stem">$\log_9 \frac{1}{81}$</div>
+      <select class="ans" id="ev19"><option value="">—</option><option>-3</option><option>-2</option><option>-1</option><option>2</option><option>9</option></select>
+      <span class="feedback" id="fb_ev19"></span></div>
+    <div class="problem-cell"><div class="prob-num">20.</div><div class="prob-stem">$\log_{64} 4$</div>
+      <select class="ans" id="ev20"><option value="">—</option><option>1/6</option><option>1/4</option><option>1/3</option><option>1/2</option><option>4</option></select>
+      <span class="feedback" id="fb_ev20"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">21.</div><div class="prob-stem">$\log_{16} 64$</div>
+      <select class="ans" id="ev21"><option value="">—</option><option>1</option><option>4/3</option><option>3/2</option><option>2</option><option>4</option></select>
+      <span class="feedback" id="fb_ev21"></span></div>
+    <div class="problem-cell"><div class="prob-num">22.</div><div class="prob-stem">$\log_8 32$</div>
+      <select class="ans" id="ev22"><option value="">—</option><option>1</option><option>4/3</option><option>5/3</option><option>2</option><option>4</option></select>
+      <span class="feedback" id="fb_ev22"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">23.</div><div class="prob-stem">$\log_2 54$</div>
+      <select class="ans" id="ev23"><option value="">—</option><option>≈4.75</option><option>≈5.75</option><option>≈6.00</option><option>≈7.00</option></select>
+      <span class="feedback" id="fb_ev23"></span></div>
+    <div class="problem-cell"><div class="prob-num">24.</div><div class="prob-stem">$\log_{10} 294$</div>
+      <select class="ans" id="ev24"><option value="">—</option><option>≈1.47</option><option>≈2.47</option><option>≈3.47</option><option>294</option></select>
+      <span class="feedback" id="fb_ev24"></span></div>
+  </div>
+  <div class="problem-row">
+    <div class="problem-cell"><div class="prob-num">25.</div><div class="prob-stem">$\log_4 136$</div>
+      <select class="ans" id="ev25"><option value="">—</option><option>≈2.59</option><option>≈3.59</option><option>≈4.59</option><option>≈5.59</option></select>
+      <span class="feedback" id="fb_ev25"></span></div>
+    <div class="problem-cell"><div class="prob-num">26.</div><div class="prob-stem">$\log_6 \frac{1}{36}$</div>
+      <select class="ans" id="ev26"><option value="">—</option><option>-3</option><option>-2</option><option>-1</option><option>2</option><option>36</option></select>
+      <span class="feedback" id="fb_ev26"></span></div>
+  </div>
+</div>
+
+<div id="score-bar"></div>
+
+<div class="submit-section">
+  <h3>When you're finished, submit your work to your teacher.</h3>
+  <button class="submit-btn" id="submitBtn">Submit ✓</button>
+  <div id="submit-status"></div>
+</div>
+
+</div><!-- worksheet -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+// ── PREFILLED GRAPHS (f(x)=log x and f(x)=10^x) ──────────
+function drawPrefilledGraphs() {
+  // log x
+  drawLogGraph('svg_logx', function(x){ return Math.log10(x); }, '#2d5a8e', 'f(x) = log x');
+  // 10^x
+  drawExpGraph('svg_expx', function(x){ return Math.pow(10, x); }, '#8e2d2d', 'f(x) = 10^x');
+}
+
+function drawLogGraph(svgId, fn, color, label) {
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const W=220, H=200, vLeft=-110, vTop=-100;
+  // coordinate transform: math x -> svg x
+  // viewing window: x in [-1, 6], y in [-3, 3]
+  const xMin=-0.5, xMax=5, yMin=-3, yMax=3;
+  function tx(x){ return (x-xMin)/(xMax-xMin)*W + vLeft; }
+  function ty(y){ return vTop + H - (y-yMin)/(yMax-yMin)*H; }
+  let html = '';
+  // grid
+  for(let gx=-0; gx<=5; gx++) {
+    const sx=tx(gx);
+    html += `<line x1="${sx}" y1="${vTop}" x2="${sx}" y2="${vTop+H}" stroke="#e5e5e5" stroke-width="0.5"/>`;
+    if(gx!==0) html += `<text x="${sx}" y="${ty(0)+12}" font-size="8" fill="#aaa" text-anchor="middle">${gx}</text>`;
+  }
+  for(let gy=-3; gy<=3; gy++) {
+    const sy=ty(gy);
+    html += `<line x1="${vLeft}" y1="${sy}" x2="${vLeft+W}" y2="${sy}" stroke="#e5e5e5" stroke-width="0.5"/>`;
+    if(gy!==0) html += `<text x="${tx(0)-4}" y="${sy+3}" font-size="8" fill="#aaa" text-anchor="end">${gy}</text>`;
+  }
+  // axes
+  html += `<line x1="${vLeft}" y1="${ty(0)}" x2="${vLeft+W}" y2="${ty(0)}" stroke="#888" stroke-width="1"/>`;
+  html += `<line x1="${tx(0)}" y1="${vTop}" x2="${tx(0)}" y2="${vTop+H}" stroke="#888" stroke-width="1"/>`;
+  // asymptote x=0
+  html += `<line x1="${tx(0)}" y1="${vTop}" x2="${tx(0)}" y2="${vTop+H}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>`;
+  // curve
+  let pts = [];
+  for(let i=1; i<=300; i++) {
+    const x = 0.005 + (xMax-0.005)*i/300;
+    const y = fn(x);
+    if(y < yMin-0.5 || y > yMax+0.5) { if(pts.length>1){ html+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"/>`; pts=[];} continue; }
+    pts.push(`${tx(x).toFixed(1)},${ty(y).toFixed(1)}`);
+  }
+  if(pts.length>1) html+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"/>`;
+  // x-intercept dot
+  html += `<circle cx="${tx(1)}" cy="${ty(0)}" r="3" fill="${color}"/>`;
+  html += `<text x="${tx(1)+4}" y="${ty(0)-4}" font-size="8" fill="${color}">(1,0)</text>`;
+  svg.innerHTML = html;
+}
+
+function drawExpGraph(svgId, fn, color, label) {
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const W=220, H=200, vLeft=-110, vTop=-100;
+  const xMin=-2, xMax=1.5, yMin=-0.5, yMax=5;
+  function tx(x){ return (x-xMin)/(xMax-xMin)*W + vLeft; }
+  function ty(y){ return vTop + H - (y-yMin)/(yMax-yMin)*H; }
+  let html = '';
+  for(let gx=-2; gx<=2; gx++) {
+    const sx=tx(gx);
+    html += `<line x1="${sx}" y1="${vTop}" x2="${sx}" y2="${vTop+H}" stroke="#e5e5e5" stroke-width="0.5"/>`;
+    if(gx!==0) html += `<text x="${sx}" y="${ty(0)+12}" font-size="8" fill="#aaa" text-anchor="middle">${gx}</text>`;
+  }
+  for(let gy=0; gy<=5; gy++) {
+    const sy=ty(gy);
+    html += `<line x1="${vLeft}" y1="${sy}" x2="${vLeft+W}" y2="${sy}" stroke="#e5e5e5" stroke-width="0.5"/>`;
+    if(gy!==0) html += `<text x="${tx(0)-4}" y="${sy+3}" font-size="8" fill="#aaa" text-anchor="end">${gy}</text>`;
+  }
+  html += `<line x1="${vLeft}" y1="${ty(0)}" x2="${vLeft+W}" y2="${ty(0)}" stroke="#888" stroke-width="1"/>`;
+  html += `<line x1="${tx(0)}" y1="${vTop}" x2="${tx(0)}" y2="${vTop+H}" stroke="#888" stroke-width="1"/>`;
+  // asymptote y=0
+  html += `<line x1="${vLeft}" y1="${ty(0)}" x2="${vLeft+W}" y2="${ty(0)}" stroke="${color}" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>`;
+  let pts = [];
+  for(let i=0; i<=300; i++) {
+    const x = xMin + (xMax-xMin)*i/300;
+    const y = fn(x);
+    if(y < yMin-0.5 || y > yMax+0.5) { if(pts.length>1){html+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"/>`;pts=[];} continue; }
+    pts.push(`${tx(x).toFixed(1)},${ty(y).toFixed(1)}`);
+  }
+  if(pts.length>1) html+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2.2"/>`;
+  // y-intercept
+  html += `<circle cx="${tx(0)}" cy="${ty(1)}" r="3" fill="${color}"/>`;
+  html += `<text x="${tx(0)+4}" y="${ty(1)-4}" font-size="8" fill="${color}">(0,1)</text>`;
+  svg.innerHTML = html;
+}
+
+drawPrefilledGraphs();
+
+// ── STUDENT-ANSWER-DRIVEN CANVASES ────────────────────────
+// Graph configs: base, increasing
+var GCONFIGS = {
+  1: { base: 2, increasing: true },
+  2: { base: 1/3, increasing: false }
+};
+
+function drawStudentGraph(n) {
+  var canvas = document.getElementById('gc' + n);
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Read student answers
+  var domain  = document.getElementById('g'+n+'_domain').value;
+  var range   = document.getElementById('g'+n+'_range').value;
+  var eb1     = document.getElementById('g'+n+'_eb1').value;   // as x→? f→∞
+  var eb2     = document.getElementById('g'+n+'_eb2').value;   // as x→? f→-∞
+  var xintVal = document.getElementById('g'+n+'_xint').value;
+  var asymVal = document.getElementById('g'+n+'_asym').value;
+
+  // Math viewport
+  var xMin = -0.5, xMax = 6, yMin = -4, yMax = 4;
+  var pad = 30;
+  var plotW = W - pad*2, plotH = H - pad*2;
+
+  function tx(x){ return pad + (x - xMin)/(xMax - xMin)*plotW; }
+  function ty(y){ return pad + plotH - (y - yMin)/(yMax - yMin)*plotH; }
+
+  // Background
+  ctx.fillStyle = '#faf8f4';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5;
+  for(var gx = 0; gx <= 6; gx++) {
+    ctx.beginPath(); ctx.moveTo(tx(gx), pad); ctx.lineTo(tx(gx), pad+plotH); ctx.stroke();
+    if(gx > 0) { ctx.fillStyle='#bbb'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText(gx, tx(gx), pad+plotH+12); }
+  }
+  for(var gy = -4; gy <= 4; gy++) {
+    ctx.beginPath(); ctx.moveTo(pad, ty(gy)); ctx.lineTo(pad+plotW, ty(gy)); ctx.stroke();
+    if(gy !== 0) { ctx.fillStyle='#bbb'; ctx.font='10px monospace'; ctx.textAlign='right'; ctx.fillText(gy, pad-4, ty(gy)+3); }
+  }
+
+  // Axes
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad, ty(0)); ctx.lineTo(pad+plotW, ty(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx(0), pad); ctx.lineTo(tx(0), pad+plotH); ctx.stroke();
+  // Arrowheads
+  ctx.fillStyle='#555';
+  ctx.beginPath(); ctx.moveTo(pad+plotW, ty(0)); ctx.lineTo(pad+plotW-8, ty(0)-4); ctx.lineTo(pad+plotW-8, ty(0)+4); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(tx(0), pad); ctx.lineTo(tx(0)-4, pad+8); ctx.lineTo(tx(0)+4, pad+8); ctx.fill();
+
+  // Draw asymptote based on student selection
+  var asymX = null;
+  if(asymVal === 'x=0') asymX = 0;
+  else if(asymVal === 'x=1') asymX = 1;
+  else if(asymVal === 'x=1/3') asymX = 1/3;
+  if(asymX !== null) {
+    ctx.strokeStyle = '#e07b00'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(tx(asymX), pad); ctx.lineTo(tx(asymX), pad+plotH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#e07b00'; ctx.font='11px monospace'; ctx.textAlign='left';
+    ctx.fillText('x=' + asymX, tx(asymX)+3, pad+14);
+  }
+
+  // Decide curve direction based on student's end behavior answers
+  // Correct: eb1=∞ (increasing base) or eb1=∞ for base<1 too (it's always ∞ for log)
+  // The visual shape: increasing or decreasing is determined by base
+  // We show the actual correct curve for the function but overlay student's chosen x-intercept
+  var base = GCONFIGS[n].base;
+  var logBase = Math.log(base);
+
+  // Determine domain start from student answer
+  var xStart = 0.01;
+  if(asymVal === 'x=1') xStart = 1.01;
+  else if(asymVal === 'x=1/3') xStart = 1/3 + 0.01;
+
+  // Draw curve
+  var curveColor = '#2d5a8e';
+  ctx.strokeStyle = curveColor; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  var started = false;
+  for(var i = 1; i <= 400; i++) {
+    var x = xStart + (xMax - xStart) * i / 400;
+    var y = Math.log(x) / logBase;
+    if(y < yMin - 1 || y > yMax + 1) { started = false; continue; }
+    var sx = tx(x), sy = ty(y);
+    if(!started){ ctx.moveTo(sx, sy); started=true; } else { ctx.lineTo(sx, sy); }
+  }
+  ctx.stroke();
+
+  // Draw x-intercept dot based on student answer
+  var xIntX = null;
+  if(xintVal === '(1,0)') xIntX = 1;
+  else if(xintVal === '(2,0)') xIntX = 2;
+  else if(xintVal === '(1/3,0)') xIntX = 1/3;
+  else if(xintVal === '(0,0)') xIntX = 0;
+  if(xIntX !== null) {
+    ctx.fillStyle = curveColor;
+    ctx.beginPath(); ctx.arc(tx(xIntX), ty(0), 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#333'; ctx.font = '11px monospace'; ctx.textAlign = 'left';
+    ctx.fillText('(' + (xIntX===1/3?'⅓':xIntX) + ', 0)', tx(xIntX)+6, ty(0)-5);
+  }
+
+  // Labels: domain/range overlaid top-left
+  ctx.fillStyle = '#444'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
+  if(domain) ctx.fillText('D: ' + domain.replace('inf','∞').replace('-∞','-∞'), 4, 14);
+  if(range) ctx.fillText('R: ' + range.replace('inf','∞').replace('-∞','-∞'), 4, 27);
+}
+
+// Wire all graph dropdowns
+['g1_domain','g1_range','g1_eb1','g1_eb2','g1_xint','g1_asym'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){ checkGraph(1); drawStudentGraph(1); });
+});
+['g2_domain','g2_range','g2_eb1','g2_eb2','g2_xint','g2_asym'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){ checkGraph(2); drawStudentGraph(2); });
+});
+
+// Initial draw
+drawStudentGraph(1);
+drawStudentGraph(2);
+
+// ── PARENT FUNCTION SHAPE ─────────────────────────────────
+var SHAPE_SVGS = {
+  a: function(){
+    return `<svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" width="280" height="200">
+      <line x1="10" y1="100" x2="270" y2="100" stroke="#999" stroke-width="1"/>
+      <line x1="140" y1="10" x2="140" y2="190" stroke="#999" stroke-width="1"/>
+      <line x1="20" y1="170" x2="260" y2="30" stroke="#c0392b" stroke-width="2.5"/>
+      <text x="70" y="195" font-size="11" fill="#c0392b" text-anchor="middle">Straight line — not a log function</text>
+    </svg>`;
+  },
+  b: function(){
+    return `<svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" width="280" height="200">
+      <line x1="10" y1="100" x2="270" y2="100" stroke="#999" stroke-width="1"/>
+      <line x1="140" y1="10" x2="140" y2="190" stroke="#999" stroke-width="1"/>
+      <path d="M30,20 Q140,190 250,20" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+      <text x="140" y="195" font-size="11" fill="#c0392b" text-anchor="middle">Parabola — not a log function</text>
+    </svg>`;
+  },
+  c: function(){
+    return `<svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" width="280" height="200">
+      <line x1="10" y1="100" x2="270" y2="100" stroke="#999" stroke-width="1"/>
+      <line x1="60" y1="10" x2="60" y2="190" stroke="#999" stroke-width="1"/>
+      <line x1="60" y1="10" x2="60" y2="190" stroke="#2d5a8e" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+      <path d="M62,185 Q80,150 105,100 Q140,55 260,20" fill="none" stroke="#2d5a8e" stroke-width="3"/>
+      <circle cx="105" cy="100" r="4" fill="#2d5a8e"/>
+      <text x="112" y="96" font-size="10" fill="#2d5a8e">(1, 0)</text>
+      <text x="65" y="192" font-size="10" fill="#999" font-style="italic">x = 0 asymptote</text>
+      <text x="140" y="16" font-size="11" fill="#2d5a8e" text-anchor="middle" font-weight="bold">✓ Correct — f(x) = log x</text>
+    </svg>`;
+  },
+  d: function(){
+    return `<svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" width="280" height="200">
+      <line x1="10" y1="100" x2="270" y2="100" stroke="#999" stroke-width="1"/>
+      <line x1="140" y1="10" x2="140" y2="190" stroke="#999" stroke-width="1"/>
+      <path d="M30,100 Q80,20 140,20 Q200,20 250,100" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+      <text x="140" y="195" font-size="11" fill="#c0392b" text-anchor="middle">Bell curve — not a log function</text>
+    </svg>`;
+  }
+};
+
+document.getElementById('q_graph_shape').addEventListener('change', function(){
+  var val = this.value;
+  var box = document.getElementById('parent_preview_box');
+  var fb  = document.getElementById('fb_graph_shape');
+  if(!val){ box.innerHTML='<div class="parent-preview-placeholder">Select an option above to see a preview</div>'; this.className='ans'; fb.textContent=''; return; }
+  var ok = val === 'c';
+  this.className = 'ans ' + (ok ? 'correct' : 'incorrect');
+  fb.textContent = ok ? '✓' : '✗';
+  fb.className = 'feedback ' + (ok ? 'correct' : 'incorrect');
+  box.innerHTML = SHAPE_SVGS[val] ? SHAPE_SVGS[val]() : '';
+  updateScore();
+});
+
+// ── ANSWER KEYS ───────────────────────────────────────────
+var GRAPH_ANSWERS = {
+  g1: { domain:'(0,inf)', range:'(-inf,inf)', eb1:'inf', eb2:'0+', xint:'(1,0)', asym:'x=0' },
+  g2: { domain:'(0,inf)', range:'(-inf,inf)', eb1:'inf', eb2:'0+', xint:'(1,0)', asym:'x=0' }
+};
+
+var LE_ANSWERS = {
+  1:{base:'3',exp:'2',res:'9'},
+  2:{base:'6',exp:'3',res:'216'},
+  3:{base:'7',exp:'0',res:'1'},
+  4:{base:'2',exp:'4',res:'16'},
+  5:{base:'4',exp:'-2',res:'1/16'},
+  6:{base:'9',exp:'3/2',res:'27'}
+};
+
+var EL_ANSWERS = {
+  7:{base:'14',arg:'196',res:'2'},
+  8:{base:'3',arg:'81',res:'4'},
+  9:{base:'12',arg:'12',res:'1'},
+  10:{base:'36',arg:'6',res:'1/2'},
+  11:{base:'2',arg:'1/8',res:'-3'},
+  12:{base:'8',arg:'16',res:'4/3'}
+};
+
+var EVAL_ANSWERS = {
+  ev13:'2', ev14:'3', ev15:'2', ev16:'0',
+  ev17:'6', ev18:'5', ev19:'-2', ev20:'1/3',
+  ev21:'3/2', ev22:'5/3', ev23:'≈5.75', ev24:'≈2.47',
+  ev25:'≈3.59', ev26:'-2'
+};
+
+function norm(s){ return s.replace(/\s/g,''); }
+
+function setFeedback(sel, fb, ok){
+  sel.className = 'ans ' + (ok ? 'correct' : 'incorrect');
+  fb.textContent = ok ? '✓' : '✗';
+  fb.className = 'feedback ' + (ok ? 'correct' : 'incorrect');
+}
+
+function chk(id, correct){
+  var sel = document.getElementById(id);
+  var fb  = document.getElementById('fb_' + id);
+  if(!sel || !fb) return;
+  var val = sel.value;
+  if(!val){ sel.className='ans'; fb.textContent=''; return; }
+  setFeedback(sel, fb, norm(val) === norm(correct));
+  updateScore();
+}
+
+function checkGraph(n){
+  var ans = GRAPH_ANSWERS['g'+n];
+  var keys = ['domain','range','eb1','eb2','xint','asym'];
+  keys.forEach(function(k){
+    var id = 'g'+n+'_'+k;
+    var sel = document.getElementById(id);
+    var fb  = document.getElementById('fb_'+id);
+    if(!sel || !fb || !sel.value) { if(sel) sel.className='ans'; if(fb) fb.textContent=''; return; }
+    setFeedback(sel, fb, norm(sel.value) === norm(ans[k]));
+  });
+  updateScore();
+}
+
+function chkLE(n){
+  var a = LE_ANSWERS[n];
+  var base = document.getElementById('le'+n+'_base');
+  var exp  = document.getElementById('le'+n+'_exp');
+  var res  = document.getElementById('le'+n+'_res');
+  var fb   = document.getElementById('fb_le'+n);
+  if(!base||!exp||!res||!fb) return;
+  if(!base.value||!exp.value||!res.value){ fb.textContent=''; return; }
+  var ok = norm(base.value)===norm(a.base) && norm(exp.value)===norm(a.exp) && norm(res.value)===norm(a.res);
+  [base,exp,res].forEach(function(el){ el.className='ans '+(ok?'correct':'incorrect'); });
+  fb.textContent = ok?'✓':'✗';
+  fb.className = 'feedback '+(ok?'correct':'incorrect');
+  updateScore();
+}
+
+function chkEL(n){
+  var a = EL_ANSWERS[n];
+  var base = document.getElementById('el'+n+'_base');
+  var arg  = document.getElementById('el'+n+'_arg');
+  var res  = document.getElementById('el'+n+'_res');
+  var fb   = document.getElementById('fb_el'+n);
+  if(!base||!arg||!res||!fb) return;
+  if(!base.value||!arg.value||!res.value){ fb.textContent=''; return; }
+  var ok = norm(base.value)===norm(a.base) && norm(arg.value)===norm(a.arg) && norm(res.value)===norm(a.res);
+  [base,arg,res].forEach(function(el){ el.className='ans '+(ok?'correct':'incorrect'); });
+  fb.textContent = ok?'✓':'✗';
+  fb.className = 'feedback '+(ok?'correct':'incorrect');
+  updateScore();
+}
+
+// Wire eval questions
+Object.keys(EVAL_ANSWERS).forEach(function(id){
+  var el = document.getElementById(id);
+  if(el) el.addEventListener('change', function(){ chk(id, EVAL_ANSWERS[id]); });
+});
+
+// Wire log→exp and exp→log builders
+[1,2,3,4,5,6].forEach(function(n){
+  ['le'+n+'_base','le'+n+'_exp','le'+n+'_res'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('change', function(){ chkLE(n); });
+  });
+});
+[7,8,9,10,11,12].forEach(function(n){
+  ['el'+n+'_base','el'+n+'_arg','el'+n+'_res'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('change', function(){ chkEL(n); });
+  });
+});
+
+// Wire inverse and common log
+document.getElementById('q_inverse').addEventListener('change', function(){ chk('q_inverse','inverse'); });
+document.getElementById('q_common_log').addEventListener('change', function(){ chk('q_common_log','log x'); });
+
+// ── GOOGLE SIGN-IN ─────────────────────────────────────
+function handleGoogleSignIn(response) {
+  // Decode JWT payload
+  var parts = response.credential.split('.');
+  var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+  var name  = payload.name  || '';
+  var email = payload.email || '';
+
+  // Fill and lock name field
+  var nameEl = document.getElementById('sName');
+  nameEl.value = name;
+  nameEl.readOnly = true;
+  nameEl.style.color = 'var(--correct)';
+  nameEl.style.borderBottomColor = 'var(--correct)';
+
+  // Hide the sign-in button, show signed-in status
+  document.getElementById('gsi-btn-wrap').style.display = 'none';
+  var status = document.getElementById('gsiStatus');
+  status.innerHTML = '<span class="gsi-user">✓ Signed in as ' + email + '</span> &nbsp; <button class="gsi-signout" onclick="gsiSignOut()">Sign out</button>';
+}
+
+function gsiSignOut() {
+  google.accounts.id.disableAutoSelect();
+  document.getElementById('gsi-btn-wrap').style.display = 'block';
+  document.getElementById('gsiStatus').textContent = 'Sign in with your school Google account to auto-fill your name and email.';
+  var nameEl = document.getElementById('sName');
+  nameEl.value = '';
+  nameEl.readOnly = false;
+  nameEl.style.color = '';
+  nameEl.style.borderBottomColor = '';
+}
+
+// ── SCORE ─────────────────────────────────────────────────
+function updateScore(){
+  var selects = document.querySelectorAll('select.ans');
+  var total=0, correct=0;
+  selects.forEach(function(s){ if(!s.id) return; total++; if(s.classList.contains('correct')) correct++; });
+  var bar = document.getElementById('score-bar');
+  if(correct > 0){
+    bar.style.display='block';
+    var pct = Math.round(correct/total*100);
+    bar.textContent = 'Score: '+correct+' / '+total+'  ('+pct+'%)';
+    bar.style.color = pct>=70?'var(--correct)':'var(--incorrect)';
+    bar.style.borderColor = pct>=70?'var(--correct)':'var(--incorrect)';
+  }
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
+document.getElementById('submitBtn').addEventListener('click', function(){
+  var name    = document.getElementById('sName').value.trim();
+  var id      = document.getElementById('sId').value.trim();
+  var period  = document.getElementById('sPeriod').value.trim();
+  var teacher = document.getElementById('sTeacher').value;
+  if(!name||!id||!period||!teacher){
+    alert('Please fill in your name, student ID, period, and teacher before submitting.');
+    return;
+  }
+  var selects = document.querySelectorAll('select.ans');
+  var total=0, correct=0;
+  selects.forEach(function(s){ if(!s.id) return; total++; if(s.classList.contains('correct')) correct++; });
+  // Also count the expform tile question
+  total += 1;
+  if(document.querySelector('#ec_bxa.correct')) correct += 1;
+  var incorrect = total - correct;
+  var payload = {
+    worksheet:'Intro to Logs and Graphing Logs',
+    studentName:name, studentId:id, period:period, teacher:teacher,
+    seedCode:'N/A',
+    score:correct+'/'+total,
+    answers:{
+      total_correct: correct,
+      total_incorrect: incorrect,
+      total_questions: total
+    }
+  };
+  var statusEl = document.getElementById('submit-status');
+  statusEl.textContent = 'Submitting…';
+  var URL = 'https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec';
+  fetch(URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) })
+    .then(function(){
+      statusEl.textContent = '✓ Submitted! Your teacher will receive your score.';
+      statusEl.style.color = 'var(--correct)';
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('submitBtn').style.opacity = '0.5';
+    })
+    .catch(function(){
+      statusEl.textContent = '⚠ Submission failed. Please tell your teacher.';
+      statusEl.style.color = 'var(--incorrect)';
+    });
+});
+
+}); // end DOMContentLoaded
+
+// ── GLOBAL: Exp Form choice handler (must be global for onclick) ──
+function pickExpForm(chosen) {
+  var correct = 'bxa';
+  var ids = ['ec_bxa','ec_abx','ec_xba','ec_bax'];
+  ids.forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.classList.remove('chosen','correct','incorrect');
+  });
+  var picked = document.getElementById('ec_' + chosen);
+  if(picked) {
+    picked.classList.add('chosen');
+    picked.classList.add(chosen === correct ? 'correct' : 'incorrect');
+  }
+  var fb = document.getElementById('fb_q_expform');
+  if(fb) {
+    fb.textContent = chosen === correct ? '✓ Correct!' : '✗ Try again';
+    fb.className = 'feedback ' + (chosen === correct ? 'correct' : 'incorrect');
+  }
+  // update score — count this question manually
+  var selects = document.querySelectorAll('select.ans');
+  var total=0, correct2=0;
+  selects.forEach(function(s){ if(!s.id) return; total++; if(s.classList.contains('correct')) correct2++; });
+  total += 1; // this question
+  correct2 += (chosen === correct ? 1 : 0);
+  var bar = document.getElementById('score-bar');
+  if(bar) {
+    bar.style.display='block';
+    var pct = Math.round(correct2/total*100);
+    bar.textContent = 'Score: '+correct2+' / '+total+'  ('+pct+'%)';
+    bar.style.color = pct>=70?'var(--correct)':'var(--incorrect)';
+    bar.style.borderColor = pct>=70?'var(--correct)':'var(--incorrect)';
+  }
+}
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Graphing Exponential Functions — Dallas ISD</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <!-- GSI loaded declaratively — same approach as intro to logs, avoids silent failure -->
