@@ -1297,7 +1297,7 @@ async function generateActivity() {
     if (ok) {
       setTimeout(async () => {
         statusDiv.textContent = '⟳ Updating index on GitHub…';
-        await publishToGitHub('index.html', document.documentElement.outerHTML, 'publishStatusTemp');
+        await publishToGitHub('index.html', cleanHTMLForPublish(), 'publishStatusTemp');
         setTimeout(() => statusDiv.remove(), 5000);
       }, 800);
     } else {
@@ -1326,20 +1326,59 @@ async function publishIndexToGitHub() {
   return publishToGitHub('index.html', html, 'publishStatusTemp');
 }
 
-async function publishIndex() {
-  const statusDiv = document.getElementById('bannerPublishStatus');
-  if (!_decryptedToken) {
-    statusDiv.style.display = 'inline';
-    statusDiv.style.color = 'var(--red)';
-    statusDiv.textContent = ' ⚠ No token — add one in Settings.';
-    return;
+function cleanHTMLForPublish() {
+  // Clone the document to avoid mutating live DOM
+  const clone = document.documentElement.cloneNode(true);
+
+  // Remove transient UI elements
+  const toRemove = [
+    '#publishStatusTemp',
+    '#scanResults',        // hide scan panel
+  ];
+  toRemove.forEach(sel => {
+    const el = clone.querySelector(sel);
+    if (el) el.remove();
+  });
+
+  // Reset settings panel to hidden
+  const settings = clone.querySelector('#settingsPanel');
+  if (settings) settings.style.display = 'none';
+
+  // Re-enable the publish button
+  const pubBtn = clone.querySelector('#publishIndexBtn');
+  if (pubBtn) {
+    pubBtn.disabled = false;
+    pubBtn.textContent = '☁ Publish index';
   }
-  const btn = document.getElementById('publishIndexBtn');
-  btn.textContent = 'Publishing…'; btn.disabled = true;
-  const ok = await publishToGitHub('index.html', document.documentElement.outerHTML, 'bannerPublishStatus');
-  btn.textContent = '☁ Publish index'; btn.disabled = false;
+
+  // Clear the banner status message
+  const bannerStatus = clone.querySelector('#bannerPublishStatus');
+  if (bannerStatus) bannerStatus.style.display = 'none';
+
+  return '<!DOCTYPE html>\n' + clone.outerHTML;
 }
 
+async function publishIndex() {
+  const statusEl = document.getElementById('bannerPublishStatus');
+  const btn = document.getElementById('publishIndexBtn');
+
+  if (!_decryptedToken) {
+    statusEl.style.display = 'inline';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ No token — add one in Settings.';
+    return;
+  }
+
+  btn.textContent = 'Publishing…';
+  btn.disabled = true;
+  statusEl.style.display = 'none';
+
+  const html = cleanHTMLForPublish();
+  const ok = await publishToGitHub('index.html', html, 'bannerPublishStatus');
+
+  btn.textContent = '☁ Publish index';
+  btn.disabled = false;
+}
 function downloadFile(filename, content) {
   const blob = new Blob([content], { type:'text/html' });
   const url  = URL.createObjectURL(blob);
