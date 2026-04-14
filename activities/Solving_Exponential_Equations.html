@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solving Exponential Equations — Dallas ISD</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+function mj(el){
+  var els = Array.isArray(el) ? el : [el];
+  function attempt(){
+    if(window.MathJax && MathJax.startup && MathJax.startup.promise){
+      MathJax.startup.promise.then(function(){ MathJax.typesetPromise(els).catch(function(){}); });
+    } else { setTimeout(attempt, 100); }
+  }
+  attempt();
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+:root {
+  --ink:#1a1814; --ink-mid:#4a4540; --ink-light:#8a857e;
+  --rule:#d8d2c8; --page:#faf8f4; --cream:#f0ece4;
+  --accent:#1a4a8a; --accent-lt:#e8eef7;
+  --green:#1a6640; --green-bg:#eaf4ee; --green-rule:#7abf9a;
+  --red:#8a1a1a; --red-bg:#f4e8e8; --red-rule:#d49090;
+  --amber:#6b5500; --amber-bg:#fff8e8; --amber-rule:#d4b800;
+  --serif:'Source Serif 4',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@media print{.no-print{display:none!important}body{background:white}.page{box-shadow:none}}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.6;font-size:15px;padding:24px 16px 80px}
+.page{max-width:900px;margin:0 auto;background:var(--page);box-shadow:0 2px 24px rgba(0,0,0,.10)}
+
+/* Header */
+.exam-head{padding:28px 48px 18px;border-bottom:2px solid var(--ink);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.district{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:4px}
+.exam-title{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:2px}
+.exam-sub{font-size:13px;color:var(--ink-mid)}
+
+/* Info bar */
+.info-bar{padding:12px 48px;border-bottom:1px solid var(--rule);display:flex;gap:24px;font-size:13px;color:var(--ink-mid);flex-wrap:wrap;align-items:center}
+.info-field{display:flex;align-items:center;gap:8px}
+.info-line{flex:1;min-width:60px;border:none;border-bottom:1px solid var(--ink-mid);background:transparent;font-family:var(--serif);font-size:14px;color:var(--ink);outline:none;padding:1px 2px}
+.teacher-select{min-width:130px;border:1px solid var(--rule);border-radius:3px;background:white;padding:5px 24px 5px 7px;font-family:var(--serif);font-size:13px;color:var(--ink);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a857e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+
+/* GSI */
+.gsi-bar{padding:8px 48px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;background:var(--cream);flex-wrap:wrap}
+.gsi-signed-in{display:none;align-items:center;gap:10px}
+.gsi-signed-in img{width:26px;height:26px;border-radius:50%}
+.gsi-name{font-size:13px;font-weight:600;color:var(--ink)}
+.gsi-email{font-family:var(--mono);font-size:11px;color:var(--ink-light)}
+.gsi-signout{font-family:var(--mono);font-size:10px;padding:3px 8px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:transparent;color:var(--ink-light);margin-left:4px}
+.gsi-hint{font-size:11px;color:var(--ink-light)}
+
+/* Controls */
+.controls{padding:8px 48px;border-bottom:1px solid var(--rule);display:flex;gap:8px;align-items:center;background:var(--cream);flex-wrap:wrap}
+.btn{font-family:var(--sans);font-size:12px;font-weight:500;padding:5px 14px;border:1px solid var(--rule);border-radius:2px;cursor:pointer;background:var(--page);color:var(--ink-mid);transition:all .15s}
+.btn:hover{border-color:var(--ink-mid);color:var(--ink)}
+.btn.amber-btn{background:var(--amber);border-color:var(--amber);color:#fff}
+.btn.amber-btn:hover{background:#4e3e00}
+.btn.green-btn{background:var(--green);border-color:var(--green);color:#fff}
+.btn.green-btn:hover{background:#134d30}
+
+/* Reference PDF modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:6px;padding:0;width:90vw;max-width:700px;height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+.modal-header{padding:12px 16px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-title{font-family:var(--serif);font-size:16px;font-weight:600}
+.modal-close{font-size:18px;cursor:pointer;background:none;border:none;color:var(--ink-mid);padding:2px 8px}
+.modal-body{flex:1;overflow:hidden}
+.modal-body iframe{width:100%;height:100%;border:none}
+.modal-body .pdf-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:24px;text-align:center}
+.pdf-fallback .pdf-icon{font-size:48px}
+.pdf-fallback p{font-size:13px;color:var(--ink-mid);max-width:380px;line-height:1.6}
+.pdf-fallback a{font-family:var(--mono);font-size:13px;color:var(--accent);text-decoration:underline}
+
+/* Section heads */
+.section-head{padding:14px 48px 10px;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule);background:var(--cream);display:flex;align-items:baseline;gap:12px}
+.section-num{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-light);letter-spacing:.1em;text-transform:uppercase}
+.section-title{font-family:var(--serif);font-size:17px;font-weight:600}
+.body-pad{padding:0 48px 36px}
+
+/* Notes table */
+.notes-table{width:100%;border-collapse:collapse;margin:16px 0}
+.notes-table td{padding:14px 16px;border:1px solid var(--rule);vertical-align:top;font-size:14px}
+.notes-table .concept-cell{width:200px;background:var(--cream);font-family:var(--serif);font-weight:600;font-size:15px}
+.formula-box{display:inline-block;border:1.5px solid var(--ink);padding:6px 12px;border-radius:3px;font-family:var(--mono);font-size:13px;margin-top:6px;background:white}
+
+/* Dropdowns in notes */
+.ans-select{border:none;border-bottom:2px solid var(--accent);background:transparent;font-family:var(--serif);font-size:14px;color:var(--accent);outline:none;cursor:pointer;padding:1px 18px 1px 2px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231a4a8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center;min-width:120px}
+.ans-select.correct{border-bottom-color:var(--green);color:var(--green)}
+.ans-select.incorrect{border-bottom-color:var(--red);color:var(--red)}
+
+/* Problem blocks */
+.q-block{padding:20px 0;border-bottom:1px solid var(--rule)}
+.q-block:last-child{border-bottom:none}
+.q-num{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink-light);margin-bottom:8px;letter-spacing:.06em}
+.q-text{font-family:var(--serif);font-size:15px;margin-bottom:10px}
+.work-space{min-height:90px;border:1px dashed var(--rule);border-radius:3px;margin-top:8px;background:var(--cream);padding:10px 12px;font-family:var(--serif);font-size:13px;color:var(--ink-light);font-style:italic}
+.ans-input{border:none;border-bottom:2px solid var(--accent);background:transparent;font-family:var(--serif);font-size:15px;color:var(--ink);outline:none;padding:2px 4px;width:80px;text-align:center}
+.ans-input.correct{border-bottom-color:var(--green)}
+.ans-input.incorrect{border-bottom-color:var(--red)}
+.check-btn{font-family:var(--mono);font-size:11px;padding:3px 10px;border:1px solid var(--accent);border-radius:2px;cursor:pointer;background:transparent;color:var(--accent);margin-left:8px}
+.check-btn:hover{background:var(--accent-lt)}
+.fb-span{font-family:var(--mono);font-size:12px;margin-left:8px;font-weight:500}
+.fb-span.correct{color:var(--green)}
+.fb-span.incorrect{color:var(--red)}
+
+/* Answer panels */
+.reveal-btn{margin-top:8px;font-family:var(--sans);font-size:11px;padding:3px 10px;border:1px solid var(--green-rule);border-radius:2px;cursor:pointer;background:transparent;color:var(--green)}
+.answer-panel{display:none;margin-top:10px;padding:12px 16px;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:3px;font-size:13px;color:var(--green)}
+.answer-panel.open{display:block}
+
+/* Worked solution styling */
+.worked{margin-top:12px;padding:14px 18px;background:#f4f8ff;border:1px solid #c0d0ec;border-radius:4px;font-size:13px;color:var(--ink)}
+.worked .step{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;line-height:1.6}
+.worked .step:last-child{margin-bottom:0}
+.worked .step-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);min-width:52px;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0;padding-top:2px}
+.worked .step-math{flex:1;font-family:var(--serif)}
+.worked-toggle{font-family:var(--sans);font-size:11px;padding:3px 10px;border:1px solid #c0d0ec;border-radius:2px;cursor:pointer;background:transparent;color:var(--accent);margin-top:8px}
+
+/* Set dividers */
+.set-label{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:white;background:var(--ink);padding:5px 14px;border-radius:2px;display:inline-block;margin:18px 0 4px}
+
+/* Problem grid */
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--rule);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.prob-cell{padding:16px 18px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.prob-cell:nth-child(even){border-right:none}
+.prob-cell:nth-last-child(-n+2){border-bottom:none}
+.prob-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink-light);letter-spacing:.08em;margin-bottom:6px}
+.prob-eq{font-family:var(--serif);font-size:15px;margin-bottom:10px}
+.ans-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:6px;font-family:var(--serif);font-size:14px}
+
+/* Submit */
+.submit-section{padding:20px 48px;border-top:2px solid var(--rule);background:var(--cream)}
+.exam-footer{padding:12px 48px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink-light);display:flex;justify-content:space-between}
+
+@media(max-width:640px){.exam-head,.info-bar,.controls,.body-pad,.submit-section,.exam-footer,.section-head,.gsi-bar{padding-left:16px;padding-right:16px}.prob-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="exam-head">
+  <div>
+    <div class="district">Dallas ISD — Mathematics</div>
+    <div class="exam-title">Solving Exponential Equations</div>
+    <div class="exam-sub">Algebra II — 2025–2026</div>
+  </div>
+</div>
+
+<!-- INFO BAR -->
+<div class="info-bar">
+  <div class="info-field"><span>Name</span><input class="info-line" id="studentName" style="min-width:180px" placeholder="Full name"></div>
+  <div class="info-field"><span>ID</span><input class="info-line" id="studentId" style="min-width:70px" placeholder="#"></div>
+  <div class="info-field"><span>Teacher</span>
+    <select id="studentTeacher" class="teacher-select">
+      <option value="">— select —</option>
+      <option>Mueller</option><option>Reed</option><option>Singleton</option><option>Pacayra</option><option>Jafari</option>
+    </select>
+  </div>
+  <div class="info-field"><span>Period</span><input class="info-line" id="studentPeriod" style="min-width:45px" placeholder=""></div>
+</div>
+
+<!-- GSI BAR -->
+<div class="gsi-bar" id="gsiBar">
+  <div id="gsiBtnWrap">
+    <div id="g_id_onload"
+      data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com"
+      data-callback="handleGoogleSignIn"
+      data-auto_prompt="false"></div>
+    <div class="g_id_signin"
+      data-type="standard" data-shape="rectangular" data-theme="outline"
+      data-text="sign_in_with" data-size="medium" data-logo_alignment="left"></div>
+  </div>
+  <div class="gsi-signed-in" id="gsiSignedIn">
+    <img id="gsiAvatar" src="">
+    <div>
+      <div class="gsi-name" id="gsiName"></div>
+      <div class="gsi-email" id="gsiEmail"></div>
+    </div>
+    <button class="gsi-signout" onclick="studentSignOut()">sign out</button>
+  </div>
+  <span class="gsi-hint" id="gsiHint">Sign in with your school Google account to auto-fill your name and ID.</span>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls no-print">
+  <button class="btn" onclick="openPowersRef()">📋 Powers Reference Sheet</button>
+  <button class="btn" onclick="window.print()">Print</button>
+  <button class="btn amber-btn" onclick="handleTeacherPIN()" style="margin-left:auto">Teacher mode</button>
+</div>
+
+<!-- POWERS REFERENCE MODAL -->
+<div class="modal-overlay" id="powersModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Powers of 2 through 9 — Reference</span>
+      <button class="modal-close" onclick="closePowersRef()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="pdf-fallback">
+        <div class="pdf-icon">📄</div>
+        <p>Your teacher has provided a <strong>Powers of 2–9</strong> reference sheet. Open the PDF below, or ask your teacher for a printed copy.</p>
+        <p style="margin-top:8px"><a href="Solving_Exponentials.pdf" target="_blank">Open PDF in new tab ↗</a></p>
+        <p style="margin-top:20px;font-size:12px;color:var(--ink-light)">If your teacher uploaded the PDF alongside this activity, an embedded viewer will appear here automatically.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PART 1: NOTES ═══ -->
+<div class="section-head">
+  <span class="section-num">Part 1</span>
+  <span class="section-title">Solving Exponential Equations — Notes</span>
+</div>
+<div class="body-pad" style="padding-top:16px">
+  <table class="notes-table">
+    <tr>
+      <td class="concept-cell">
+        <div style="font-size:14px;font-weight:700;letter-spacing:.02em;text-transform:uppercase">Solving</div>
+        <div style="font-family:var(--serif);font-style:italic;font-size:13px;margin-top:2px">Exponential Equations</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--ink-mid);font-family:var(--sans)">3-step process</div>
+      </td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);min-width:22px">①</span>
+            <div>Use the properties of exponents to
+              <select class="ans-select" id="n1a" onchange="chkNote('n1a','simplify')">
+                <option value="">—</option>
+                <option>simplify</option><option>expand</option><option>factor</option><option>eliminate</option>
+              </select>
+              each side of the equation.
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);min-width:22px">②</span>
+            <div>Rewrite the equation so both sides have the
+              <select class="ans-select" id="n1b" onchange="chkNote('n1b','same base')">
+                <option value="">—</option>
+                <option>same base</option><option>same exponent</option><option>same coefficient</option><option>lowest terms</option>
+              </select>.
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);min-width:22px">③</span>
+            <div>Drop the bases and set the
+              <select class="ans-select" id="n1c" onchange="chkNote('n1c','exponents equal to each other')">
+                <option value="">—</option>
+                <option>exponents equal to each other</option><option>bases equal to each other</option><option>coefficients equal to zero</option><option>equation in standard form</option>
+              </select>.
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="concept-cell">
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase">Key Idea</div>
+        <div style="font-family:var(--serif);font-style:italic;font-size:13px;margin-top:2px">Same Base Property</div>
+      </td>
+      <td>
+        <div style="font-size:14px;margin-bottom:8px">
+          If \(b^m = b^n\), then
+          <select class="ans-select" id="n2a" onchange="chkNote('n2a','m = n')">
+            <option value="">—</option>
+            <option>m = n</option><option>b = n</option><option>m = b</option><option>m · n = 0</option>
+          </select>
+          &nbsp;(when \(b > 0\), \(b \neq 1\)).
+        </div>
+        <div style="font-size:13px;color:var(--ink-mid);font-family:var(--sans)">
+          This works because exponential functions are <em>one-to-one</em> — each output value corresponds to exactly
+          <select class="ans-select" id="n2b" onchange="chkNote('n2b','one input')">
+            <option value="">—</option>
+            <option>one input</option><option>two inputs</option><option>infinitely many inputs</option><option>no inputs</option>
+          </select>.
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="concept-cell">
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase">Set 1</div>
+        <div style="font-family:var(--serif);font-style:italic;font-size:13px;margin-top:2px">With a Common Base</div>
+      </td>
+      <td>
+        <div style="font-size:14px;">
+          When both sides can be written as powers of the
+          <select class="ans-select" id="n3a" onchange="chkNote('n3a','same base')">
+            <option value="">—</option>
+            <option>same base</option><option>largest base</option><option>prime base</option>
+          </select>, simply
+          <select class="ans-select" id="n3b" onchange="chkNote('n3b','set the exponents equal')">
+            <option value="">—</option>
+            <option>set the exponents equal</option><option>multiply both sides</option><option>take the square root</option>
+          </select>
+          and solve.
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="concept-cell">
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase">Set 2</div>
+        <div style="font-family:var(--serif);font-style:italic;font-size:13px;margin-top:2px">Without a Common Base</div>
+      </td>
+      <td>
+        <div style="font-size:14px;">
+          Rewrite each side using a
+          <select class="ans-select" id="n4a" onchange="chkNote('n4a','common base')">
+            <option value="">—</option>
+            <option>common base</option><option>common exponent</option><option>decimal approximation</option>
+          </select>. For example, \(36 =\)
+          <select class="ans-select" id="n4b" onchange="chkNote('n4b','6²')">
+            <option value="">—</option>
+            <option>6²</option><option>6³</option><option>12²</option><option>2⁶</option>
+          </select>
+          and \(8 =\)
+          <select class="ans-select" id="n4c" onchange="chkNote('n4c','2³')">
+            <option value="">—</option>
+            <option>2³</option><option>2⁴</option><option>4²</option><option>3²</option>
+          </select>.
+        </div>
+        <div style="margin-top:8px;font-size:13px;color:var(--ink-mid)">The Powers Reference Sheet above is helpful for identifying common bases.</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- ═══ PART 2: SET 1 ═══ -->
+<div class="section-head">
+  <span class="section-num">Part 2</span>
+  <span class="section-title">Set 1 — With a Common Base</span>
+</div>
+<div class="body-pad" style="padding-top:16px">
+  <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:14px"><strong>Directions:</strong> Solve each equation. Both sides already share a common base — set the exponents equal and solve.</div>
+
+  <!-- Problems 1–4 -->
+  <div class="prob-grid">
+    <!-- 1 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 1 — WORKED EXAMPLE</div>
+      <div class="prob-eq">\(2^{x+1} = 2^9\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans1" placeholder="?" onchange="chkAns('ans1','8')">
+        <button class="check-btn" onclick="chkAns('ans1','8')">Check</button>
+        <span class="fb-span" id="fb1"></span>
+      </div>
+      <button class="worked-toggle" onclick="toggleWorked('w1')">Show solution steps</button>
+      <div class="worked" id="w1" style="display:none">
+        <div class="step">
+          <span class="step-label">Step 1</span>
+          <span class="step-math">Both sides already have base \(2\). ✓</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 2</span>
+          <span class="step-math">Set exponents equal: \(x + 1 = 9\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 3</span>
+          <span class="step-math">Solve: \(x = 9 - 1 = \boxed{8}\)</span>
+        </div>
+      </div>
+    </div>
+    <!-- 2 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 2</div>
+      <div class="prob-eq">\(5^{4n+5} = 5^{n-7}\)</div>
+      <div class="ans-row">
+        \(n =\) <input class="ans-input" id="ans2" placeholder="?" onchange="chkAns('ans2','-4')">
+        <button class="check-btn" onclick="chkAns('ans2','-4')">Check</button>
+        <span class="fb-span" id="fb2"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 3 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 3</div>
+      <div class="prob-eq">\(3^k \cdot 3^{k+2} = 3^{5k-1}\)</div>
+      <div class="ans-row">
+        \(k =\) <input class="ans-input" id="ans3" placeholder="?" onchange="chkAns('ans3','1')">
+        <button class="check-btn" onclick="chkAns('ans3','1')">Check</button>
+        <span class="fb-span" id="fb3"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 4 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 4</div>
+      <div class="prob-eq">\(10^{-4} \cdot 10^9 = 10^{v+4} \cdot 10^{2v-11}\)</div>
+      <div class="ans-row">
+        \(v =\) <input class="ans-input" id="ans4" placeholder="?" onchange="chkAns('ans4','4')">
+        <button class="check-btn" onclick="chkAns('ans4','4')">Check</button>
+        <span class="fb-span" id="fb4"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ PART 3: SET 2 ═══ -->
+<div class="section-head">
+  <span class="section-num">Part 3</span>
+  <span class="section-title">Set 2 — Without a Common Base</span>
+</div>
+<div class="body-pad" style="padding-top:16px">
+  <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:14px"><strong>Directions:</strong> Rewrite each side with a common base, then set exponents equal. Use your Powers Reference Sheet as needed.</div>
+
+  <!-- Problems 5–10 -->
+  <div class="prob-grid">
+    <!-- 5 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 5 — WORKED EXAMPLE</div>
+      <div class="prob-eq">\(6^{2x-10} = 36\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans5" placeholder="?" onchange="chkAns('ans5','6')">
+        <button class="check-btn" onclick="chkAns('ans5','6')">Check</button>
+        <span class="fb-span" id="fb5"></span>
+      </div>
+      <button class="worked-toggle" onclick="toggleWorked('w5')">Show solution steps</button>
+      <div class="worked" id="w5" style="display:none">
+        <div class="step">
+          <span class="step-label">Step 1</span>
+          <span class="step-math">Rewrite \(36\) as a power of \(6\): \(36 = 6^2\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 2</span>
+          <span class="step-math">Equation becomes: \(6^{2x-10} = 6^2\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 3</span>
+          <span class="step-math">Set exponents equal: \(2x - 10 = 2\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 4</span>
+          <span class="step-math">Solve: \(2x = 12 \Rightarrow x = \boxed{6}\)</span>
+        </div>
+      </div>
+    </div>
+    <!-- 6 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 6</div>
+      <div class="prob-eq">\(2^{p-7} = 8\)</div>
+      <div class="ans-row">
+        \(p =\) <input class="ans-input" id="ans6" placeholder="?" onchange="chkAns('ans6','10')">
+        <button class="check-btn" onclick="chkAns('ans6','10')">Check</button>
+        <span class="fb-span" id="fb6"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 7 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 7</div>
+      <div class="prob-eq">\(7^{4x+11} = \dfrac{1}{7}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans7" placeholder="?" onchange="chkAns('ans7','-3')">
+        <button class="check-btn" onclick="chkAns('ans7','-3')">Check</button>
+        <span class="fb-span" id="fb7"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 8 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 8</div>
+      <div class="prob-eq">\(32 = 2^{2m-9}\)</div>
+      <div class="ans-row">
+        \(m =\) <input class="ans-input" id="ans8" placeholder="?" onchange="chkAns('ans8','7')">
+        <button class="check-btn" onclick="chkAns('ans8','7')">Check</button>
+        <span class="fb-span" id="fb8"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 9 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 9</div>
+      <div class="prob-eq">\(27^{2x+6} = 3^{2x}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans9" placeholder="?" onchange="chkAns('ans9','-9')">
+        <button class="check-btn" onclick="chkAns('ans9','-9')">Check</button>
+        <span class="fb-span" id="fb9"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 10 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 10</div>
+      <div class="prob-eq">\(4^{y+2} = 16^{y-3}\)</div>
+      <div class="ans-row">
+        \(y =\) <input class="ans-input" id="ans10" placeholder="?" onchange="chkAns('ans10','8')">
+        <button class="check-btn" onclick="chkAns('ans10','8')">Check</button>
+        <span class="fb-span" id="fb10"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ PART 4: CHALLENGE PROBLEMS ═══ -->
+<div class="section-head">
+  <span class="section-num">Part 4</span>
+  <span class="section-title">Challenge Problems</span>
+</div>
+<div class="body-pad" style="padding-top:16px">
+  <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:14px"><strong>Directions:</strong> These require multiple steps including product/power rules and careful base conversion.</div>
+
+  <div class="prob-grid">
+    <!-- 11 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 11</div>
+      <div class="prob-eq">\(125^y = 25\)</div>
+      <div class="ans-row">
+        \(y =\) <input class="ans-input" id="ans11" placeholder="?" onchange="chkAns('ans11','2/3')">
+        <button class="check-btn" onclick="chkAns('ans11','2/3')">Check</button>
+        <span class="fb-span" id="fb11"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 12 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 12</div>
+      <div class="prob-eq">\(16^{3x} = 8^{x+2}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans12" placeholder="?" onchange="chkAns('ans12','3/4')">
+        <button class="check-btn" onclick="chkAns('ans12','3/4')">Check</button>
+        <span class="fb-span" id="fb12"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 13 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 13</div>
+      <div class="prob-eq">\(4^{3x} = 8^{x-1}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans13" placeholder="?" onchange="chkAns('ans13','-1')">
+        <button class="check-btn" onclick="chkAns('ans13','-1')">Check</button>
+        <span class="fb-span" id="fb13"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 14 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 14</div>
+      <div class="prob-eq">\(81^{2x+5} = \left(\dfrac{1}{3}\right)^{2x}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans14" placeholder="?" onchange="chkAns('ans14','-2')">
+        <button class="check-btn" onclick="chkAns('ans14','-2')">Check</button>
+        <span class="fb-span" id="fb14"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 15 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 15</div>
+      <div class="prob-eq">\(8^{2a-1} = 32^{2a+1}\)</div>
+      <div class="ans-row">
+        \(a =\) <input class="ans-input" id="ans15" placeholder="?" onchange="chkAns('ans15','-4')">
+        <button class="check-btn" onclick="chkAns('ans15','-4')">Check</button>
+        <span class="fb-span" id="fb15"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 16 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 16</div>
+      <div class="prob-eq">\(27^{2x} = 243^{x-2}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans16" placeholder="?" onchange="chkAns('ans16','-10')">
+        <button class="check-btn" onclick="chkAns('ans16','-10')">Check</button>
+        <span class="fb-span" id="fb16"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 17 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 17</div>
+      <div class="prob-eq">\(64 = 4 \cdot 4^{4x}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans17" placeholder="?" onchange="chkAns('ans17','1/2')">
+        <button class="check-btn" onclick="chkAns('ans17','1/2')">Check</button>
+        <span class="fb-span" id="fb17"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 18 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 18 — WORKED EXAMPLE</div>
+      <div class="prob-eq">\(9^{2x+4} \cdot 9^{2x} = \dfrac{1}{81}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans18" placeholder="?" onchange="chkAns('ans18','-3/2')">
+        <button class="check-btn" onclick="chkAns('ans18','-3/2')">Check</button>
+        <span class="fb-span" id="fb18"></span>
+      </div>
+      <button class="worked-toggle" onclick="toggleWorked('w18')">Show solution steps</button>
+      <div class="worked" id="w18" style="display:none">
+        <div class="step">
+          <span class="step-label">Step 1</span>
+          <span class="step-math">Apply the product rule: \(9^{2x+4} \cdot 9^{2x} = 9^{(2x+4)+(2x)} = 9^{4x+4}\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 2</span>
+          <span class="step-math">Rewrite \(\dfrac{1}{81}\) as a power of \(9\): \(\dfrac{1}{81} = \dfrac{1}{9^2} = 9^{-2}\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 3</span>
+          <span class="step-math">Equation: \(9^{4x+4} = 9^{-2}\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 4</span>
+          <span class="step-math">Set exponents equal: \(4x + 4 = -2\)</span>
+        </div>
+        <div class="step">
+          <span class="step-label">Step 5</span>
+          <span class="step-math">Solve: \(4x = -6 \Rightarrow x = -\dfrac{6}{4} = \boxed{-\dfrac{3}{2}}\)</span>
+        </div>
+      </div>
+    </div>
+    <!-- 19 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 19</div>
+      <div class="prob-eq">\(\dfrac{1}{7} = 49^{x-5} \cdot 7^{x-9}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans19" placeholder="?" onchange="chkAns('ans19','4')">
+        <button class="check-btn" onclick="chkAns('ans19','4')">Check</button>
+        <span class="fb-span" id="fb19"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+    <!-- 20 -->
+    <div class="prob-cell">
+      <div class="prob-label">PROBLEM 20</div>
+      <div class="prob-eq">\(4^{2x} \cdot \dfrac{1}{16} = 4^{6x+18}\)</div>
+      <div class="ans-row">
+        \(x =\) <input class="ans-input" id="ans20" placeholder="?" onchange="chkAns('ans20','-5')">
+        <button class="check-btn" onclick="chkAns('ans20','-5')">Check</button>
+        <span class="fb-span" id="fb20"></span>
+      </div>
+      <div class="work-space">Work space</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SUBMIT -->
+<div class="submit-section no-print">
+  <div style="font-family:var(--sans);font-size:13px;color:var(--ink-mid);margin-bottom:10px">When finished, submit your answers to record your work.</div>
+  <button class="btn green-btn" onclick="submitAnswers()" id="submitBtn" style="font-size:13px;padding:8px 22px">Submit answers</button>
+  <div id="submitStatus" style="display:none;margin-top:10px;font-family:var(--sans);font-size:13px;padding:10px 14px;border-radius:4px"></div>
+</div>
+<div class="exam-footer">
+  <span>Dallas ISD — Solving Exponential Equations</span>
+  <span>Algebra II · 2025–2026</span>
+</div>
+
+</div><!-- .page -->
+
+<script>
+// ── GOOGLE SIGN-IN ──────────────────────────────────────────────
+var _gsiUser = null;
+function handleGoogleSignIn(response) {
+  var parts = response.credential.split('.');
+  var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+  _gsiUser = { name: payload.name, email: payload.email, picture: payload.picture };
+  sessionStorage.setItem('gsiUser_expEq', JSON.stringify(_gsiUser));
+  var nameEl = document.getElementById('studentName');
+  var idEl   = document.getElementById('studentId');
+  if (nameEl) { nameEl.value = payload.name;  nameEl.readOnly = true; nameEl.style.opacity = '.6'; }
+  if (idEl)   { idEl.value   = payload.email; idEl.readOnly   = true; idEl.style.opacity   = '.6'; }
+  document.getElementById('gsiBtnWrap').style.display = 'none';
+  document.getElementById('gsiHint').style.display    = 'none';
+  var badge = document.getElementById('gsiSignedIn');
+  badge.style.display = 'flex';
+  var av = document.getElementById('gsiAvatar');
+  if (av && payload.picture) av.src = payload.picture;
+  document.getElementById('gsiName').textContent  = payload.name;
+  document.getElementById('gsiEmail').textContent = payload.email;
+}
+function studentSignOut() {
+  if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+  _gsiUser = null;
+  sessionStorage.removeItem('gsiUser_expEq');
+  var nameEl = document.getElementById('studentName');
+  var idEl   = document.getElementById('studentId');
+  if (nameEl) { nameEl.value = ''; nameEl.readOnly = false; nameEl.style.opacity = '1'; }
+  if (idEl)   { idEl.value   = ''; idEl.readOnly   = false; idEl.style.opacity   = '1'; }
+  document.getElementById('gsiBtnWrap').style.display = 'block';
+  document.getElementById('gsiHint').style.display    = 'inline';
+  document.getElementById('gsiSignedIn').style.display = 'none';
+}
+(function restoreGsiSession() {
+  var stored = sessionStorage.getItem('gsiUser_expEq');
+  if (!stored) return;
+  try {
+    var user = JSON.parse(stored);
+    _gsiUser = user;
+    var nameEl = document.getElementById('studentName');
+    var idEl   = document.getElementById('studentId');
+    if (nameEl) { nameEl.value = user.name;  nameEl.readOnly = true; nameEl.style.opacity = '.6'; }
+    if (idEl)   { idEl.value   = user.email; idEl.readOnly   = true; idEl.style.opacity   = '.6'; }
+    document.getElementById('gsiBtnWrap').style.display = 'none';
+    document.getElementById('gsiHint').style.display    = 'none';
+    var badge = document.getElementById('gsiSignedIn');
+    badge.style.display = 'flex';
+    var av = document.getElementById('gsiAvatar');
+    if (av && user.picture) av.src = user.picture;
+    document.getElementById('gsiName').textContent  = user.name;
+    document.getElementById('gsiEmail').textContent = user.email;
+  } catch(e) { sessionStorage.removeItem('gsiUser_expEq'); }
+})();
+
+// ── NOTES FEEDBACK ──────────────────────────────────────────────
+function chkNote(id, correct) {
+  var el = document.getElementById(id);
+  if (!el || !el.value) return;
+  el.className = 'ans-select ' + (el.value === correct ? 'correct' : 'incorrect');
+}
+
+// ── ANSWER CHECKING ─────────────────────────────────────────────
+var ANSWERS = {
+  ans1:'8', ans2:'-4', ans3:'1', ans4:'4',
+  ans5:'6', ans6:'10', ans7:'-3', ans8:'7', ans9:'-9', ans10:'8',
+  ans11:'2/3', ans12:'3/4', ans13:'-1', ans14:'-2', ans15:'-4',
+  ans16:'-10', ans17:'1/2', ans18:'-3/2', ans19:'4', ans20:'-5'
+};
+
+function normalizeAns(v) {
+  v = v.trim().toLowerCase().replace(/\s/g,'');
+  // handle fraction equivalents
+  var fracMap = {'2/3':0.6667,'3/4':0.75,'1/2':0.5,'-3/2':-1.5,'-2/3':-0.6667,'-3/4':-0.75,'-1/2':-0.5};
+  if (fracMap[v] !== undefined) return fracMap[v];
+  var n = parseFloat(v);
+  if (!isNaN(n)) return n;
+  return v;
+}
+
+function chkAns(id, correct) {
+  var el = document.getElementById(id);
+  var fb = document.getElementById('fb' + id.replace('ans',''));
+  if (!el || !fb) return;
+  var v = el.value.trim();
+  if (!v) return;
+  var ok = normalizeAns(v) === normalizeAns(correct);
+  el.className = 'ans-input ' + (ok ? 'correct' : 'incorrect');
+  fb.className = 'fb-span ' + (ok ? 'correct' : 'incorrect');
+  fb.textContent = ok ? '✓ Correct' : '✗ Try again';
+}
+
+// ── WORKED SOLUTIONS ────────────────────────────────────────────
+function toggleWorked(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  var btn = el.previousElementSibling;
+  if (btn && btn.classList.contains('worked-toggle')) {
+    btn.textContent = open ? 'Show solution steps' : 'Hide solution steps';
+  }
+  if (!open) mj(el);
+}
+
+// ── POWERS MODAL ────────────────────────────────────────────────
+function openPowersRef() {
+  var modal = document.getElementById('powersModal');
+  modal.classList.add('open');
+  // Try to embed the PDF
+  var body = document.getElementById('modalBody');
+  var pdfPath = 'Solving_Exponentials.pdf';
+  // Try object tag (more compatible than iframe for PDF)
+  body.innerHTML = '<object data="' + pdfPath + '" type="application/pdf" width="100%" height="100%" style="min-height:60vh">' +
+    '<div class="pdf-fallback">' +
+    '<div class="pdf-icon">📄</div>' +
+    '<p>Powers of 2–9 reference sheet.</p>' +
+    '<a href="' + pdfPath + '" target="_blank">Open PDF in new tab ↗</a>' +
+    '</div></object>';
+}
+function closePowersRef() {
+  document.getElementById('powersModal').classList.remove('open');
+}
+document.getElementById('powersModal').addEventListener('click', function(e){
+  if (e.target === this) closePowersRef();
+});
+
+// ── TEACHER PIN ─────────────────────────────────────────────────
+var PIN_HASH = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
+async function hashPin(p){
+  var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
+  return [...new Uint8Array(b)].map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+}
+function handleTeacherPIN() {
+  var p = prompt('Teacher PIN:'); if (!p) return;
+  hashPin(p).then(function(h){
+    if (h === PIN_HASH) alert('Verified. Use Print to save as PDF.');
+    else alert('Incorrect PIN.');
+  });
+}
+
+// ── SUBMIT ──────────────────────────────────────────────────────
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec';
+
+function collectAnswers() {
+  var results = {};
+  Object.keys(ANSWERS).forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) results[id] = { value: el.value, correct: el.classList.contains('correct') };
+  });
+  return results;
+}
+
+async function submitAnswers() {
+  var name    = document.getElementById('studentName').value.trim();
+  var id      = document.getElementById('studentId').value.trim();
+  var teacher = document.getElementById('studentTeacher').value.trim();
+  if (!name || !id || !teacher) { showStatus('Please fill in name, student ID, and teacher.', false); return; }
+  var btn = document.getElementById('submitBtn');
+  btn.textContent = 'Submitting…'; btn.disabled = true;
+  var answers = collectAnswers();
+  var correct = Object.values(answers).filter(function(a){ return a.correct; }).length;
+  var total   = Object.keys(ANSWERS).length;
+  // Also count notes dropdowns
+  var noteIds = ['n1a','n1b','n1c','n2a','n2b','n3a','n3b','n4a','n4b','n4c'];
+  var noteCorrect = 0;
+  noteIds.forEach(function(id){
+    var el = document.getElementById(id);
+    if (el && el.classList.contains('correct')) noteCorrect++;
+  });
+  var payload = {
+    worksheet: 'Solving Exponential Equations',
+    studentName: name, studentId: id, teacher: teacher,
+    period: document.getElementById('studentPeriod').value.trim(),
+    seedCode: 'N/A',
+    googleEmail: _gsiUser ? _gsiUser.email : '',
+    score: correct + '/' + total,
+    answers: {
+      total_correct: correct + noteCorrect,
+      total_incorrect: (total - correct),
+      total_questions: total + noteIds.length
+    }
+  };
+  try {
+    await fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    showStatus('✓ Submitted! Thank you, ' + name + '.', true);
+    btn.textContent = 'Submitted ✓';
+  } catch(e) {
+    showStatus('Submission failed — try again.', false);
+    btn.textContent = 'Submit answers';
+    btn.disabled = false;
+  }
+}
+function showStatus(msg, ok) {
+  var s = document.getElementById('submitStatus');
+  s.style.display = 'block';
+  s.style.background = ok ? '#eaf4ee' : '#f4e8e8';
+  s.style.color = ok ? '#1a6640' : '#8a1a1a';
+  s.style.border = '1px solid ' + (ok ? '#7abf9a' : '#d49090');
+  s.textContent = msg;
+}
+
+// ── MATHJAX BOOT ────────────────────────────────────────────────
+function tryTypeset() {
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+    MathJax.startup.promise.then(function(){ MathJax.typesetPromise([document.body]).catch(function(){}); });
+  } else { setTimeout(tryTypeset, 150); }
+}
+tryTypeset();
+</script>
+</body>
+</html>
