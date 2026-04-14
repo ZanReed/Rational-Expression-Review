@@ -1327,40 +1327,59 @@ async function publishIndexToGitHub() {
 }
 
 function cleanHTMLForPublish() {
-  // Temporarily normalize live DOM state before cloning
+  // Remove transient toast before serializing
   const toast = document.getElementById('publishStatusTemp');
   if (toast) toast.remove();
 
-  const scanResults = document.getElementById('scanResults');
-  const scanWasVisible = scanResults && scanResults.style.display !== 'none';
-  if (scanResults) scanResults.style.display = 'none';
-
-  const settings = document.getElementById('settingsPanel');
-  const settingsWasVisible = settings && settings.style.display !== 'none';
-  if (settings) settings.style.display = 'none';
-
-  const pubBtn = document.getElementById('publishIndexBtn');
-  const btnWasDisabled = pubBtn && pubBtn.disabled;
-  const btnWasText = pubBtn && pubBtn.textContent;
-  if (pubBtn) { pubBtn.disabled = false; pubBtn.textContent = '☁ Publish index'; }
-
+  // Temporarily reset UI state
+  const scanResults  = document.getElementById('scanResults');
+  const settings     = document.getElementById('settingsPanel');
+  const pubBtn       = document.getElementById('publishIndexBtn');
   const bannerStatus = document.getElementById('bannerPublishStatus');
-  const bannerWasDisplay = bannerStatus && bannerStatus.style.display;
-  const bannerWasText = bannerStatus && bannerStatus.textContent;
+
+  const prev = {
+    scanDisplay:    scanResults  ? scanResults.style.display  : null,
+    settingsDisplay:settings     ? settings.style.display     : null,
+    btnDisabled:    pubBtn       ? pubBtn.disabled             : null,
+    btnText:        pubBtn       ? pubBtn.textContent          : null,
+    bannerDisplay:  bannerStatus ? bannerStatus.style.display  : null,
+    bannerText:     bannerStatus ? bannerStatus.textContent    : null,
+  };
+
+  if (scanResults)  scanResults.style.display  = 'none';
+  if (settings)     settings.style.display     = 'none';
+  if (pubBtn)       { pubBtn.disabled = false; pubBtn.textContent = '☁ Publish index'; }
   if (bannerStatus) { bannerStatus.style.display = 'none'; bannerStatus.textContent = ''; }
 
-  // Now serialize the clean DOM
-  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  // Serialize
+  let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 
-  // Restore live DOM state so the UI isn't disrupted
-  if (scanResults && scanWasVisible) scanResults.style.display = 'block';
-  if (settings && settingsWasVisible) settings.style.display = 'block';
-  if (pubBtn) { pubBtn.disabled = btnWasDisabled; pubBtn.textContent = btnWasText; }
-  if (bannerStatus) { bannerStatus.style.display = bannerWasDisplay; bannerStatus.textContent = bannerWasText; }
+  // Restore live DOM
+  if (scanResults  && prev.scanDisplay    !== null) scanResults.style.display  = prev.scanDisplay;
+  if (settings     && prev.settingsDisplay!== null) settings.style.display     = prev.settingsDisplay;
+  if (pubBtn       && prev.btnDisabled    !== null) { pubBtn.disabled = prev.btnDisabled; pubBtn.textContent = prev.btnText; }
+  if (bannerStatus && prev.bannerDisplay  !== null) { bannerStatus.style.display = prev.bannerDisplay; bannerStatus.textContent = prev.bannerText; }
+
+  // ── Strip Google GSI injected content ──────────────────────────
+  // Remove duplicate GSI script tags (keep only the first)
+  let gsiCount = 0;
+  html = html.replace(/<script[^>]+accounts\.google\.com\/gsi\/client[^>]*><\/script>/g, (match) => {
+    gsiCount++;
+    return gsiCount === 1 ? match : '';
+  });
+
+  // Remove ALL injected <style id="googleidentityservice_button_styles">...</style> blocks
+  html = html.replace(/<style id="googleidentityservice_button_styles">[\s\S]*?<\/style>/g, '');
+
+  // Remove injected <link id="googleidentityservice" ...> tags
+  html = html.replace(/<link id="googleidentityservice"[^>]*>/g, '');
+
+  // Remove the MathJax script block that gets baked in from activity generator context
+  // (only strip it if it appears outside of a template literal — i.e. as a live script tag)
+  html = html.replace(/<script>\s*MathJax\s*=\s*\{[\s\S]*?<\/script>\s*<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/mathjax[^"]*"[^>]*><\/script>/g, '');
 
   return html;
 }
-
   // Clear the banner status message
   const bannerStatus = clone.querySelector('#bannerPublishStatus');
   if (bannerStatus) bannerStatus.style.display = 'none';
