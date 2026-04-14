@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Math Resources — Dallas ISD</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&amp;family=DM+Mono:wght@400;500&amp;family=DM+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
 <style>
 :root{--ink:#1a1814;--ink-mid:#4a4540;--ink-light:#8a857e;--rule:#d8d2c8;--page:#faf8f4;--cream:#f0ece4;--accent:#1a4a8a;--accent-lt:#e8eef7;--green:#1a6640;--green-bg:#eaf4ee;--green-rule:#7abf9a;--red:#8a1a1a;--red-bg:#f4e8e8;--red-rule:#d49090;--amber:#6b5500;--amber-bg:#fff8e8;--serif:'Source Serif 4',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -112,9 +111,9 @@ body.teacher-mode .add-unit-row{display:flex}
 .si{width:100%;padding:7px 9px;border:1px solid #d4b800;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--ink);outline:none;background:white}
 .scan-panel{display:none;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:6px;padding:14px 18px;margin-bottom:18px}
 </style>
-<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://accounts.google.com/gsi/client" async=""></script>
 </head>
-<body>
+<body class="">
 <div class="shell">
 
   <header class="site-header">
@@ -141,20 +140,20 @@ body.teacher-mode .add-unit-row{display:flex}
       <a href="activity-builder.html" class="bbtn blue">✏ Activity builder</a>
       <button id="publishIndexBtn" onclick="publishIndex()" class="bbtn blue">☁ Publish index</button>
       <button id="scanRepoBtn" onclick="scanRepository()" class="bbtn green">🔍 Scan activities/</button>
-      <span id="bannerPublishStatus"></span>
+      <span id="bannerPublishStatus" style="display: none;"></span>
       <button onclick="toggleSettings()" class="bbtn amber">⚙ Settings</button>
     </div>
   </div>
 
   <!-- Settings panel -->
-  <div class="settings-panel" id="settingsPanel">
+  <div class="settings-panel" id="settingsPanel" style="display: none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <span style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--amber)">⚙ Settings</span>
       <button onclick="document.getElementById('settingsPanel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--amber)">×</button>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Google account</label>
-      <div id="googleSignInTarget"></div>
+      <div id="googleSignInTarget" style="display: block;"><div class="S9gUrf-YoZ4jf" style="position: relative;"><div></div><div id="gsi_909506_650034-wrapper" class="L5Fo6c-sM5MNb" style="width: fit-content;"><iframe src="https://accounts.google.com/gsi/button?theme=outline&amp;size=large&amp;text=sign_in_with&amp;width=260&amp;is_fedcm_supported=false&amp;client_id=438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com&amp;iframe_id=gsi_909506_650034&amp;cas=SJshNuDDCIxMN5ccmGEPPYT7o%2FzoeF2s2QsfZsqhzuU" class="L5Fo6c-PQbLGe" allow="identity-credentials-get" id="gsi_909506_650034" title="Sign in with Google Button" style="display: block; position: relative; top: 0px; left: 0px; height: 44px; width: 280px; border: 0px; margin: -2px -10px;" tabindex="-1"></iframe><div class="L5Fo6c-bF1uUb" id="gsi_909506_650034-overlay" aria-label="Sign in with Google. Opens in new tab" role="button" tabindex="0"></div></div></div></div>
       <div id="teacherSignedInInfo" style="display:none;padding:8px 10px;background:white;border:1px solid #d4b800;border-radius:4px">
         <div style="display:flex;align-items:center;gap:10px">
           <img id="settingsAvatar" src="" style="width:28px;height:28px;border-radius:50%">
@@ -171,7 +170,7 @@ body.teacher-mode .add-unit-row{display:flex}
         <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
         <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
       </div>
-      <div id="tokenStatus" style="margin-top:5px;font-family:var(--sans);font-size:11px;color:var(--ink-light)">No token saved yet.</div>
+      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token unlocked.</div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Apps Script web app URL</label>
@@ -201,7 +200,7 @@ body.teacher-mode .add-unit-row{display:flex}
   </div>
 
   <!-- Scan results -->
-  <div class="scan-panel" id="scanResults"></div>
+  <div class="scan-panel" id="scanResults" style="display: none;"></div>
 
   <!-- Add unit row (teacher only) -->
   <div class="add-unit-row">
@@ -224,11 +223,11 @@ body.teacher-mode .add-unit-row{display:flex}
   </div>
 
   <div id="resourceList"></div>
-  <div class="empty-state" id="emptyState"><p>No resources match your search.</p></div>
+  <div class="empty-state" id="emptyState" style="display: none;"><p>No resources match your search.</p></div>
 
   <footer class="site-footer">
     <span>Dallas ISD — Algebra II — 2025–2026</span>
-    <span id="resourceCount"></span>
+    <span id="resourceCount">6 resources</span>
   </footer>
 </div>
 
@@ -239,7 +238,7 @@ body.teacher-mode .add-unit-row{display:flex}
     <p style="font-size:13px;color:var(--ink-mid);margin-bottom:16px;font-family:var(--sans)">Enter your PIN to enable teacher mode.</p>
     <div class="mf">
       <input class="pin-input" id="pinInput" type="password" maxlength="8" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
-      <div class="pin-error" id="pinError">Incorrect PIN. Please try again.</div>
+      <div class="pin-error" id="pinError" style="display: none;">Incorrect PIN. Please try again.</div>
     </div>
     <div class="modal-actions" style="justify-content:center">
       <button class="mb" onclick="closePinModal()">Cancel</button>
@@ -571,7 +570,7 @@ function cleanHTMLForPublish(){
   var n=0;
   html=html.replace(/<script[^>]+accounts\.google\.com\/gsi\/client[^>]*><\/script>/g,function(m){return n++===0?m:''});
   html=html.replace(/<style id="googleidentityservice_button_styles">[\s\S]*?<\/style>/g,'');
-  html=html.replace(/<link id="googleidentityservice"[^>]*>/g,'');
+  html=html.replace(/]*>/g,'');
 
   return html;
 }
@@ -625,5 +624,5 @@ function escA(s){return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;')}
 
 load();render();
 </script>
-</body>
-</html>
+
+</body></html>
