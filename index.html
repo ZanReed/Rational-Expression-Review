@@ -388,21 +388,21 @@ function render(){
     return '<div class="unit-section" data-unit="'+escH(unit)+'" '+drag+'>' +
       '<div class="unit-header">' +
       '<span class="unit-drag-handle">⠇</span>' +
-      '<span class="unit-label" ondblclick="editUnitLabel(this,''+escA(unit)+'')" title="Double-click to rename">'+escH(unit)+'</span>' +
+      '<span class="unit-label" ondblclick="editUnitLabel(this,&apos;'+escA(unit)+'&apos;)" title="Double-click to rename">'+escH(unit)+'</span>' +
       '<span class="unit-count">'+items.length+'</span>' +
-      '<button class="unit-add-btn" onclick="openAddResModal(''+escA(unit)+'')">+ Add resource</button>' +
-      '<button class="unit-del-btn" onclick="delUnit(''+escA(unit)+'')">remove unit</button>' +
+      '<button class="unit-add-btn" onclick="openAddResModal(&apos;'+escA(unit)+'&apos;)">+ Add resource</button>' +
+      '<button class="unit-del-btn" onclick="delUnit(&apos;'+escA(unit)+'&apos;)">remove unit</button>' +
       '</div>' +
       '<div class="cards">'+items.map(function(r){return cardHTML(r)}).join('') +
-      '<button class="add-card" onclick="openAddResModal(''+escA(unit)+'')"><span style="font-size:18px;line-height:1">+</span> Add resource</button>' +
+      '<button class="add-card" onclick="openAddResModal(&apos;'+escA(unit)+'&apos;)"><span style="font-size:18px;line-height:1">+</span> Add resource</button>' +
       '</div></div>';
   }).join('');
   if(teacherMode)initCardDrag();
 }
 
 function cardHTML(r){
-  var rm='<button class="remove-btn" title="Remove" onclick="event.preventDefault();event.stopPropagation();openRemoveModal(''+r.id+'',''+escA(r.title)+'')">&#215;</button>';
-  var ed='<button class="edit-btn" title="Edit" onclick="event.preventDefault();event.stopPropagation();openEditModal(''+r.id+'')">&#9998;</button>';
+  var rm='<button class="remove-btn" title="Remove" onclick="event.preventDefault();event.stopPropagation();openRemoveModal(&apos;'+r.id+'&apos;,&apos;'+escA(r.title)+'&apos;)">&#215;</button>';
+  var ed='<button class="edit-btn" title="Edit" onclick="event.preventDefault();event.stopPropagation();openEditModal(&apos;'+r.id+'&apos;)">&#9998;</button>';
   var dh='<span class="card-drag-handle">⠇</span>';
   return '<a class="card" href="'+escH(r.file)+'" target="_blank" data-type="'+r.type+'" data-id="'+r.id+'" data-unit="'+escA(r.unit)+'">'+dh+rm+ed+
     '<div class="card-type"><span class="type-dot '+r.type+'"></span>'+(TYPE_LABELS[r.type]||r.type)+'</div>'+
@@ -551,7 +551,7 @@ async function scanRepository(){
     var newF=htmlF.filter(function(f){return !known.has('activities/'+f.name)&&!known.has(f.path)});
     if(!newF.length){out.innerHTML='<span style="font-size:12px;color:var(--green)">✓ All files in activities/ are already indexed.</span>'}
     else{out.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:8px">'+newF.length+' new file'+(newF.length>1?'s':'')+' found:</div>'+
-      newF.map(function(f){return'<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">'+f.name+'</span><button onclick="quickAdd(''+f.name+'')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div>'}).join('')}
+      newF.map(function(f){return'<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">'+f.name+'</span><button onclick="quickAdd(&apos;'+f.name+'&apos;)" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div>'}).join('')}
     out.style.display='block';
   }catch(e){out.innerHTML='<span style="color:var(--red);font-size:12px">✗ '+e.message+'</span>';out.style.display='block'}
   btn.textContent='🔍 Scan activities/';btn.disabled=false;
