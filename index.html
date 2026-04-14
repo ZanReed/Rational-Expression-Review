@@ -1327,29 +1327,39 @@ async function publishIndexToGitHub() {
 }
 
 function cleanHTMLForPublish() {
-  // Clone the document to avoid mutating live DOM
-  const clone = document.documentElement.cloneNode(true);
+  // Temporarily normalize live DOM state before cloning
+  const toast = document.getElementById('publishStatusTemp');
+  if (toast) toast.remove();
 
-  // Remove transient UI elements
-  const toRemove = [
-    '#publishStatusTemp',
-    '#scanResults',        // hide scan panel
-  ];
-  toRemove.forEach(sel => {
-    const el = clone.querySelector(sel);
-    if (el) el.remove();
-  });
+  const scanResults = document.getElementById('scanResults');
+  const scanWasVisible = scanResults && scanResults.style.display !== 'none';
+  if (scanResults) scanResults.style.display = 'none';
 
-  // Reset settings panel to hidden
-  const settings = clone.querySelector('#settingsPanel');
+  const settings = document.getElementById('settingsPanel');
+  const settingsWasVisible = settings && settings.style.display !== 'none';
   if (settings) settings.style.display = 'none';
 
-  // Re-enable the publish button
-  const pubBtn = clone.querySelector('#publishIndexBtn');
-  if (pubBtn) {
-    pubBtn.disabled = false;
-    pubBtn.textContent = '☁ Publish index';
-  }
+  const pubBtn = document.getElementById('publishIndexBtn');
+  const btnWasDisabled = pubBtn && pubBtn.disabled;
+  const btnWasText = pubBtn && pubBtn.textContent;
+  if (pubBtn) { pubBtn.disabled = false; pubBtn.textContent = '☁ Publish index'; }
+
+  const bannerStatus = document.getElementById('bannerPublishStatus');
+  const bannerWasDisplay = bannerStatus && bannerStatus.style.display;
+  const bannerWasText = bannerStatus && bannerStatus.textContent;
+  if (bannerStatus) { bannerStatus.style.display = 'none'; bannerStatus.textContent = ''; }
+
+  // Now serialize the clean DOM
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  // Restore live DOM state so the UI isn't disrupted
+  if (scanResults && scanWasVisible) scanResults.style.display = 'block';
+  if (settings && settingsWasVisible) settings.style.display = 'block';
+  if (pubBtn) { pubBtn.disabled = btnWasDisabled; pubBtn.textContent = btnWasText; }
+  if (bannerStatus) { bannerStatus.style.display = bannerWasDisplay; bannerStatus.textContent = bannerWasText; }
+
+  return html;
+}
 
   // Clear the banner status message
   const bannerStatus = clone.querySelector('#bannerPublishStatus');
