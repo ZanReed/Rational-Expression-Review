@@ -140,7 +140,7 @@ body.teacher-mode .add-unit-row{display:flex}
       <a href="activity-builder.html" class="bbtn blue">✏ Activity builder</a>
       <button id="publishIndexBtn" onclick="publishIndex()" class="bbtn blue">☁ Publish index</button>
       <button id="scanRepoBtn" onclick="scanRepository()" class="bbtn green">🔍 Scan activities/</button>
-      <span id="bannerPublishStatus" style="display: none;"></span>
+      <span id="bannerPublishStatus" style="display: none; color: var(--green);"></span>
       <button onclick="toggleSettings()" class="bbtn amber">⚙ Settings</button>
     </div>
   </div>
@@ -227,7 +227,7 @@ body.teacher-mode .add-unit-row{display:flex}
 
   <footer class="site-footer">
     <span>Dallas ISD — Algebra II — 2025–2026</span>
-    <span id="resourceCount">7 resources</span>
+    <span id="resourceCount">8 resources</span>
   </footer>
 </div>
 
@@ -264,7 +264,7 @@ body.teacher-mode .add-unit-row{display:flex}
 <div class="modal-backdrop" id="removeBackdrop" onclick="if(event.target===this)closeRemoveModal()">
   <div class="modal" style="max-width:360px">
     <h3>Remove resource?</h3>
-    <p id="removeMsg" style="font-size:14px;color:var(--ink-mid);margin-bottom:18px;font-family:var(--sans);line-height:1.6"></p>
+    <p id="removeMsg" style="font-size:14px;color:var(--ink-mid);margin-bottom:18px;font-family:var(--sans);line-height:1.6">Remove "Graphing Exponentials" from the index?</p>
     <div class="modal-actions">
       <button class="mb" onclick="closeRemoveModal()">Cancel</button>
       <button class="mb danger" onclick="confirmRemove()">Remove</button>
@@ -382,16 +382,28 @@ body.teacher-mode .add-unit-row{display:flex}
       "tags": []
     },
     {
-      "id": "r1776430875243",
-      "title": "Test Activity",
+      "id": "r1776431055403",
+      "title": "Solving Exponentials",
       "desc": "",
-      "file": "activities/test_activity.html",
-      "unit": "Unit 8 — Rational Functions",
+      "file": "activities/Solving Exponentials.html",
+      "unit": "Exponentials and Logarithms",
+      "type": "activity",
+      "tags": []
+    },
+    {
+      "id": "r1776431092718",
+      "title": "Solving Exponentials 2",
+      "desc": "",
+      "file": "activities/Solving_Exponential_Equations.html",
+      "unit": "Exponentials and Logarithms",
       "type": "activity",
       "tags": []
     }
   ],
-  "unitOrder": []
+  "unitOrder": [
+    "Exponentials and Logarithms",
+    "Unit 8 — Rational Functions"
+  ]
 }</script>
 <script>
 // --- DIAGNOSTIC: global error handlers ---
