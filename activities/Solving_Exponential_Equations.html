@@ -23,6 +23,39 @@ function mj(el){
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
 <style>
+  /* Floating video window */
+.video-window {
+  position: fixed;
+  width: 640px;
+  height: 400px;
+  min-width: 320px;
+  min-height: 240px;
+  max-width: 95vw;
+  max-height: 95vh;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.3);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.video-window.open { display: flex; }
+.video-window .modal-header { cursor: move; user-select: none; touch-action: none; }
+.video-window .modal-body { flex: 1; background: #000; position: relative; }
+.video-window .modal-body iframe { width: 100%; height: 100%; border: 0; display: block; }
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 0 55%, var(--ink-light) 55% 62%, transparent 62% 72%, var(--ink-light) 72% 79%, transparent 79%);
+  z-index: 10;
+  touch-action: none;
+}
 :root {
   --ink:#1a1814; --ink-mid:#4a4540; --ink-light:#8a857e;
   --rule:#d8d2c8; --page:#faf8f4; --cream:#f0ece4;
@@ -229,16 +262,15 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-heigh
   </div>
 </div>
 
-<!-- VIDEO MODAL -->
-<div class="modal-overlay" id="videoModal">
-  <div class="modal-box" style="max-width:900px; height:auto;">
-    <div class="modal-header">
-      <span class="modal-title">Intro Video — Solving Exponential Equations</span>
-      <button class="modal-close" onclick="closeVideoModal()">✕</button>
-    </div>
-    <div class="modal-body" id="videoModalBody" style="aspect-ratio:16/9;">
-      <!-- iframe injected by openVideoModal() -->
-    </div>
+<!-- VIDEO WINDOW (draggable + resizable) -->
+<div class="video-window" id="videoModal">
+  <div class="modal-header">
+    <span class="modal-title">Intro Video — Solving Exponential Equations</span>
+    <button class="modal-close" onclick="closeVideoModal()">✕</button>
+  </div>
+  <div class="modal-body" id="videoModalBody">
+    <!-- iframe injected by openVideoModal() -->
+    <div class="resize-handle" id="videoResizeHandle"></div>
   </div>
 </div>
   
@@ -812,27 +844,70 @@ function closePowersRef() {
 document.getElementById('powersModal').addEventListener('click', function(e){
   if (e.target === this) closePowersRef();
 });
-
-// ── VIDEO MODAL ─────────────────────────────────────────────────
+// ── VIDEO WINDOW (draggable + resizable) ────────────────────────
 function openVideoModal() {
   var modal = document.getElementById('videoModal');
-  modal.classList.add('open');
   var body = document.getElementById('videoModalBody');
-  body.innerHTML = '<iframe ' +
-    'src="https://www.youtube-nocookie.com/embed/KF8ltbKzX0E?rel=0" ' +
+  // Inject iframe, preserving resize handle
+  body.innerHTML =
+    '<iframe src="https://www.youtube-nocookie.com/embed/KF8ltbKzX0E?rel=0" ' +
     'title="Intro video" ' +
-    'style="width:100%;height:100%;border:0;" ' +
     'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-    'allowfullscreen></iframe>';
+    'allowfullscreen></iframe>' +
+    '<div class="resize-handle" id="videoResizeHandle"></div>';
+  modal.classList.add('open');
+  // Center on open (unless user previously positioned it this session)
+  if (!modal.dataset.positioned) {
+    var rect = modal.getBoundingClientRect();
+    modal.style.left = Math.max(8, (window.innerWidth - rect.width) / 2) + 'px';
+    modal.style.top  = Math.max(8, (window.innerHeight - rect.height) / 2) + 'px';
+    modal.dataset.positioned = '1';
+  }
+  attachVideoHandlers();
 }
 function closeVideoModal() {
-  document.getElementById('videoModal').classList.remove('open');
-  // Clear iframe src so the video stops playing when closed
-  document.getElementById('videoModalBody').innerHTML = '';
+  var modal = document.getElementById('videoModal');
+  modal.classList.remove('open');
+  // Clear iframe src so the video stops playing
+  document.getElementById('videoModalBody').innerHTML =
+    '<div class="resize-handle" id="videoResizeHandle"></div>';
 }
-document.getElementById('videoModal').addEventListener('click', function(e){
-  if (e.target === this) closeVideoModal();
-});
+function attachVideoHandlers() {
+  var modal = document.getElementById('videoModal');
+  var header = modal.querySelector('.modal-header');
+  var handle = document.getElementById('videoResizeHandle');
+  var mode = null, sx = 0, sy = 0, sLeft = 0, sTop = 0, sW = 0, sH = 0;
+
+  header.onpointerdown = function(e) {
+    if (e.target.closest('.modal-close')) return;
+    mode = 'drag';
+    var r = modal.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sLeft = r.left; sTop = r.top;
+    header.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  header.onpointermove = function(e) {
+    if (mode !== 'drag') return;
+    modal.style.left = (sLeft + e.clientX - sx) + 'px';
+    modal.style.top  = (sTop  + e.clientY - sy) + 'px';
+  };
+  header.onpointerup = function() { mode = null; };
+
+  handle.onpointerdown = function(e) {
+    mode = 'resize';
+    var r = modal.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sW = r.width; sH = r.height;
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  handle.onpointermove = function(e) {
+    if (mode !== 'resize') return;
+    modal.style.width  = Math.max(320, sW + e.clientX - sx) + 'px';
+    modal.style.height = Math.max(240, sH + e.clientY - sy) + 'px';
+  };
+  handle.onpointerup = function() { mode = null; };
+}
 
 // ── TEACHER PIN ─────────────────────────────────────────────────
 var PIN_HASH = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
