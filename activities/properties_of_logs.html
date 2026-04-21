@@ -133,7 +133,7 @@ select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg
 .float-win-close:hover{opacity:1;}
 .float-win-body{flex:1;background:#000;position:relative;overflow:hidden;}
 .float-win-body iframe{width:100%;height:100%;border:0;display:block;}
-.float-win-body .desmos-wrap{width:100%;height:100%;background:#fff;}
+.float-win-body .desmos-wrap{width:100%;height:400px;background:#fff;display:block;}
 .resize-handle{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:10;touch-action:none;background:linear-gradient(135deg,transparent 0 55%,rgba(255,255,255,.5) 55% 62%,transparent 62% 72%,rgba(255,255,255,.5) 72% 79%,transparent 79%);}
 
 /* ── Desmos open buttons ── */
@@ -1952,6 +1952,7 @@ function makeFloatWindow(modalId, headerId, resizeId) {
     if (mode !== 'resize') { return; }
     modal.style.width  = Math.max(320, sW + e.clientX - sx) + 'px';
     modal.style.height = Math.max(240, sH + e.clientY - sy) + 'px';
+    if (modalId === 'desmosModal') { _desmosSetSize(); }
   };
   handle.onpointerup = function() { mode = null; };
 }
@@ -1989,47 +1990,70 @@ function closeVideoModal() {
 
 
 /* ─── DESMOS MODAL ─── */
-var _desmosCalc = null;
-var _desmosReady = false;
+var _desmosCalc  = null;
+var _desmosExpr  = '';
+
+function _desmosSetSize() {
+  var modal     = document.getElementById('desmosModal');
+  var body      = modal ? modal.querySelector('.float-win-body') : null;
+  var container = document.getElementById('desmosContainer');
+  if (!body || !container) { return; }
+  var h = body.offsetHeight;
+  var w = body.offsetWidth;
+  if (h > 0) { container.style.height = h + 'px'; }
+  if (w > 0) { container.style.width  = w + 'px'; }
+  if (_desmosCalc) { _desmosCalc.resize(); }
+}
 
 function openDesmosModal(probNum, expr, label) {
-  var modal = document.getElementById('desmosModal');
+  _desmosExpr = expr;
+  var modal   = document.getElementById('desmosModal');
   var titleEl = document.getElementById('desmosModalTitle');
-  if (titleEl) { titleEl.textContent = '\uD83D\uDCC8 Problem #' + probNum + ': ' + label; }
+  if (titleEl) { titleEl.textContent = '\uD83D\uDCC8 Problem #' + probNum + ' \u2014 ' + label; }
+
   modal.classList.add('open');
   centerWindow(modal);
   makeFloatWindow('desmosModal', 'desmosModalHeader', 'desmosResizeHandle');
 
-  function tryInit() {
-    if (typeof Desmos === 'undefined') { setTimeout(tryInit, 200); return; }
-    var container = document.getElementById('desmosContainer');
-    if (!container) { return; }
+  /* Give the browser one frame to lay out the flex container,
+     then set explicit pixel dimensions before Desmos initialises */
+  requestAnimationFrame(function() {
+    _desmosSetSize();
+    _tryDesmosInit(probNum, expr);
+  });
+}
 
-    if (!_desmosCalc) {
-      _desmosCalc = Desmos.GraphingCalculator(container, {
-        expressions: true,
-        settingsMenu: false,
-        zoomButtons: true,
-        lockViewport: false,
-        border: false
-      });
-      _desmosReady = true;
-    }
+function _tryDesmosInit(probNum, expr) {
+  if (typeof Desmos === 'undefined') {
+    setTimeout(function() { _tryDesmosInit(probNum, expr); }, 150);
+    return;
+  }
 
-    _desmosCalc.setBlank();
-    _desmosCalc.setExpression({ id: 'f', latex: 'y=' + expr, color: Desmos.Colors.BLUE });
+  var container = document.getElementById('desmosContainer');
+  if (!container) { return; }
 
-    /* Fit viewport to the function */
-    var asymMap = { 3: 1, 4: 0, 5: -9, 6: 2 };
-    var asy = asymMap[probNum] !== undefined ? asymMap[probNum] : 0;
-    _desmosCalc.setMathBounds({
-      left:   asy - 1,
-      right:  asy + 15,
-      bottom: -6,
-      top:    6
+  /* Create calculator once; reuse across opens */
+  if (!_desmosCalc) {
+    _desmosCalc = Desmos.GraphingCalculator(container, {
+      expressions:  true,
+      settingsMenu: false,
+      zoomButtons:  true,
+      lockViewport: false,
+      border:       false,
+      keypad:       false
     });
   }
-  tryInit();
+
+  _desmosCalc.setBlank();
+  _desmosCalc.setExpression({ id: 'f', latex: 'y=' + expr, color: Desmos.Colors.BLUE });
+
+  /* Viewport: show the function clearly with asymptote in view */
+  var asymMap = { 3: 1, 4: 0, 5: -9, 6: 2 };
+  var asy     = (asymMap[probNum] !== undefined) ? asymMap[probNum] : 0;
+  _desmosCalc.setMathBounds({ left: asy - 2, right: asy + 16, bottom: -7, top: 7 });
+
+  /* Resize once more after calculator renders */
+  setTimeout(_desmosSetSize, 50);
 }
 
 function closeDesmosModal() {
@@ -2062,7 +2086,9 @@ function _applyGsiUser(user) {
   if (nameEl)  { nameEl.textContent  = user.name; }
   if (emailEl) { emailEl.textContent = user.email; }
   var nameInp = document.getElementById('studentName');
+  var idInp   = document.getElementById('studentId');
   if (nameInp && !nameInp.value) { nameInp.value = user.name; }
+  if (idInp   && !idInp.value)   { idInp.value   = user.email; }
 }
 
 function gsiSignOut() {
