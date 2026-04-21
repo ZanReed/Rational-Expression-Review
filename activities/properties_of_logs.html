@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Properties of Logarithms — Algebra II</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0faa6" async></script>
+<style>
+:root{
+  --bg:#faf8f4;--surface:#fff;--border:#d4c9b8;--border-strong:#9e8f7c;
+  --text:#1a1410;--text-muted:#6b5f52;--accent:#2d5a8e;--accent-light:#e8f0f9;
+  --correct:#2a6b3c;--correct-bg:#eaf4ed;--incorrect:#8b2020;--incorrect-bg:#faeaea;
+  --header-bg:#1a1410;--header-text:#faf8f4;--section-bg:#f2ede4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:16px;line-height:1.5;}
+
+/* ── Page Header ── */
+.page-header{background:var(--header-bg);color:var(--header-text);text-align:center;padding:18px 20px 14px;}
+.page-header h1{font-size:1.6rem;letter-spacing:0.04em;}
+.page-header p{font-size:0.9rem;color:#c8bfb0;margin-top:4px;}
+
+/* ── GSI Bar ── */
+.gsi-bar{background:var(--accent-light);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:52px;}
+.gsi-hint{font-size:0.82rem;color:var(--text-muted);}
+.gsi-signed-in{display:none;align-items:center;gap:10px;}
+.gsi-signed-in img{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);}
+.gsi-name{font-size:0.88rem;font-weight:bold;color:var(--text);}
+.gsi-email{font-size:0.75rem;color:var(--text-muted);}
+.gsi-signout{font-size:0.76rem;padding:2px 9px;border:1px solid var(--border-strong);border-radius:3px;cursor:pointer;background:transparent;color:var(--text-muted);font-family:inherit;margin-left:4px;}
+
+/* ── Student Bar ── */
+.student-bar{background:var(--section-bg);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.student-bar label{font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.student-bar input,.student-bar select{font-size:0.9rem;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);}
+.student-bar input{width:160px;}
+.student-bar .period-inp{width:70px;}
+.student-bar select{width:130px;}
+
+/* ── Controls Bar ── */
+.controls-bar{background:var(--accent);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ctrl-btn{background:transparent;border:1px solid rgba(255,255,255,0.55);color:#fff;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:0.85rem;font-family:inherit;transition:background .15s,border-color .15s;white-space:nowrap;}
+.ctrl-btn:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.85);}
+.ctrl-btn--save{background:rgba(42,107,60,0.7);border-color:rgba(150,230,180,0.6);}
+.ctrl-btn--save:hover{background:rgba(42,107,60,0.95);}
+.ctrl-btn--load{background:rgba(30,60,120,0.6);border-color:rgba(150,180,255,0.6);}
+.ctrl-btn--load:hover{background:rgba(30,60,120,0.95);}
+.ctrl-btn:disabled{opacity:0.5;cursor:default;}
+.ctrl-divider{width:1px;height:22px;background:rgba(255,255,255,0.3);margin:0 4px;}
+.drive-status{font-size:0.78rem;color:rgba(255,255,255,0.9);font-family:'Arial',sans-serif;margin-left:6px;transition:opacity .3s;}
+.drive-status.ok{color:#a8f0be;}
+.drive-status.err{color:#f0a8a8;}
+
+/* ── Worksheet ── */
+.worksheet{max-width:960px;margin:20px auto;padding:0 16px 40px;}
+
+/* ── Section Header ── */
+.section-header{background:var(--header-bg);color:var(--header-text);padding:10px 16px;margin:24px 0 0;border-radius:4px 4px 0 0;font-size:0.85rem;letter-spacing:0.09em;font-family:'Arial',sans-serif;font-weight:bold;}
+
+/* ── Problems Block ── */
+.problems-block{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;background:var(--surface);padding:14px 12px 10px;}
+.sub-section-label{font-size:0.75rem;font-family:'Arial',sans-serif;letter-spacing:0.07em;color:var(--text-muted);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:10px;margin-top:14px;text-transform:uppercase;}
+.sub-section-label:first-child{margin-top:0;}
+
+/* ── Problem Rows ── */
+.problem-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:4px;}
+.problem-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;}
+.problem-cell{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;}
+.prob-num{font-size:0.72rem;font-weight:bold;color:var(--text-muted);margin-bottom:4px;font-family:'Arial',sans-serif;letter-spacing:0.05em;}
+.prob-stem{font-size:1rem;margin-bottom:8px;min-height:1.6em;}
+
+/* ── Equation Builder ── */
+.eq-builder{display:flex;align-items:baseline;gap:3px;flex-wrap:wrap;margin-top:4px;}
+.eq-part{font-size:1rem;}
+
+/* ── Selects and Inputs ── */
+select.ans{font-size:0.88rem;padding:2px 4px;border:2px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);cursor:pointer;transition:border-color .15s,background .15s;}
+select.sub-sel{font-size:0.68rem;vertical-align:sub;padding:1px 2px;min-width:2.2em;}
+select.ans.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
+select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg);color:var(--incorrect);}
+
+/* ── Feedback ── */
+.feedback{font-size:0.78rem;margin-top:5px;display:block;min-height:1em;font-family:'Arial',sans-serif;}
+.feedback.correct{color:var(--correct);}
+.feedback.incorrect{color:var(--incorrect);}
+
+/* ── Tiles ── */
+.tile-picker{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.tile{background:#fff;border:2px solid var(--border);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:0.88rem;transition:border-color .15s,background .15s;user-select:none;}
+.tile:hover{border-color:var(--accent);background:var(--accent-light);}
+.tile.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
+.tile.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg);color:var(--incorrect);}
+
+/* ── Notes Table (Property Definitions) ── */
+.notes-table{width:100%;border-collapse:collapse;}
+.notes-table td{border:1px solid var(--border);padding:14px 12px;vertical-align:top;}
+.notes-table td:first-child{width:42%;}
+.prop-label{font-size:1.05rem;font-weight:bold;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);font-family:'Arial',sans-serif;}
+.prop-sub{font-size:0.82rem;font-style:italic;color:var(--text-muted);margin-top:2px;}
+.def-box{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px;margin-top:8px;font-size:1rem;text-align:center;}
+.def-qmark{color:var(--accent);font-weight:bold;font-size:1.15rem;}
+
+/* ── Note Box ── */
+.note-box{border-left:4px solid var(--accent);background:var(--accent-light);padding:7px 10px;margin-top:8px;font-size:0.8rem;color:var(--text-muted);border-radius:0 4px 4px 0;line-height:1.4;}
+
+/* ── Graph section (Part 2) ── */
+.graph-problem{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-bottom:8px;}
+.characteristics-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;}
+.char-row{display:flex;flex-direction:column;gap:3px;}
+.char-label{font-size:0.74rem;color:var(--text-muted);font-family:'Arial',sans-serif;letter-spacing:0.04em;}
+
+/* ── Score Bar ── */
+#score-bar{max-width:960px;margin:0 auto;padding:0 16px 8px;display:none;}
+#score-bar-inner{background:var(--accent-light);border:1px solid var(--border);border-radius:4px;padding:10px 16px;font-size:0.95rem;color:var(--accent);font-family:'Arial',sans-serif;}
+
+/* ── Submit Section ── */
+.submit-section{max-width:960px;margin:8px auto;padding:0 16px 48px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+#submitBtn{background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:4px;font-size:1rem;cursor:pointer;font-family:inherit;letter-spacing:0.03em;}
+#submitBtn:hover{opacity:0.9;}
+#submitBtn:disabled{opacity:0.6;cursor:default;}
+#submitMsg{font-size:0.85rem;color:var(--text-muted);font-family:'Arial',sans-serif;}
+
+/* ── Floating draggable/resizable windows (video + desmos) ── */
+.float-window{position:fixed;width:640px;height:400px;min-width:320px;min-height:240px;max-width:95vw;max-height:95vh;background:#fff;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.32);z-index:1000;display:none;flex-direction:column;overflow:hidden;}
+.float-window.open{display:flex;}
+.float-win-header{background:var(--header-bg);color:var(--header-text);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:move;user-select:none;touch-action:none;flex-shrink:0;}
+.float-win-title{font-size:0.82rem;letter-spacing:0.06em;font-family:'Arial',sans-serif;}
+.float-win-close{background:none;border:none;color:var(--header-text);font-size:1.1rem;cursor:pointer;padding:2px 6px;line-height:1;opacity:0.8;}
+.float-win-close:hover{opacity:1;}
+.float-win-body{flex:1;background:#000;position:relative;overflow:hidden;}
+.float-win-body iframe{width:100%;height:100%;border:0;display:block;}
+.float-win-body .desmos-wrap{width:100%;height:100%;background:#fff;}
+.resize-handle{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:10;touch-action:none;background:linear-gradient(135deg,transparent 0 55%,rgba(255,255,255,.5) 55% 62%,transparent 62% 72%,rgba(255,255,255,.5) 72% 79%,transparent 79%);}
+
+/* ── Desmos open buttons ── */
+.desmos-btn{background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.8rem;font-family:'Arial',sans-serif;letter-spacing:0.03em;transition:opacity .15s;}
+.desmos-btn:hover{opacity:0.85;}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .problem-row{grid-template-columns:1fr;}
+  .problem-row-2{grid-template-columns:1fr;}
+  .student-bar{flex-direction:column;align-items:flex-start;}
+  .characteristics-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  VIDEO WINDOW (draggable + resizable)                    -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="float-window" id="videoModal">
+  <div class="float-win-header" id="videoModalHeader">
+    <span class="float-win-title">&#9654; Properties of Logarithms &mdash; Video</span>
+    <button class="float-win-close" onclick="closeVideoModal()">&#x2715;</button>
+  </div>
+  <div class="float-win-body" id="videoModalBody">
+    <!-- iframe injected on open -->
+    <div class="resize-handle" id="videoResizeHandle"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  DESMOS WINDOW (draggable + resizable)                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="float-window" id="desmosModal" style="width:700px;height:480px;">
+  <div class="float-win-header" id="desmosModalHeader">
+    <span class="float-win-title" id="desmosModalTitle">&#x1F4C8; Graphing Calculator</span>
+    <button class="float-win-close" onclick="closeDesmosModal()">&#x2715;</button>
+  </div>
+  <div class="float-win-body" style="background:#fff;">
+    <div class="desmos-wrap" id="desmosContainer"></div>
+    <div class="resize-handle" id="desmosResizeHandle"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  PAGE HEADER                                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>Properties of Logarithms</h1>
+  <p>Algebra II &middot; Dallas ISD</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  GOOGLE SIGN-IN BAR                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="gsi-bar" id="gsiBar">
+  <div id="gsiBtnWrap">
+    <div id="g_id_onload"
+      data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com"
+      data-callback="handleGoogleSignIn"
+      data-auto_prompt="false"></div>
+    <div class="g_id_signin"
+      data-type="standard" data-shape="rectangular" data-theme="outline"
+      data-text="sign_in_with" data-size="medium" data-logo_alignment="left"></div>
+  </div>
+  <div class="gsi-signed-in" id="gsiSignedIn">
+    <img id="gsiAvatar" src="" alt="">
+    <div>
+      <div class="gsi-name" id="gsiName"></div>
+      <div class="gsi-email" id="gsiEmail"></div>
+    </div>
+    <button class="gsi-signout" onclick="gsiSignOut()">sign out</button>
+  </div>
+  <span class="gsi-hint" id="gsiHint">Sign in with your school Google account to save progress.</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  STUDENT BAR                                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="student-bar">
+  <label>Name:
+    <input type="text" id="studentName" placeholder="Last, First">
+  </label>
+  <label>Student ID:
+    <input type="text" id="studentId" placeholder="ID Number">
+  </label>
+  <label>Period:
+    <input type="text" id="period" class="period-inp" placeholder="Period">
+  </label>
+  <label>Teacher:
+    <select id="teacher">
+      <option value="">&mdash; Select &mdash;</option>
+      <option value="Mueller">Mueller</option>
+      <option value="Reed">Reed</option>
+      <option value="Singleton">Singleton</option>
+      <option value="Pacayra">Pacayra</option>
+      <option value="Jafari">Jafari</option>
+    </select>
+  </label>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  CONTROLS BAR                                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="controls-bar">
+  <button class="ctrl-btn" onclick="openVideoModal()">&#9654;&nbsp; Watch: Properties of Logs</button>
+  <div class="ctrl-divider"></div>
+  <button class="ctrl-btn ctrl-btn--save" id="saveBtn" onclick="saveToGoogleDrive()">&#x1F4BE;&nbsp; Save Progress</button>
+  <button class="ctrl-btn ctrl-btn--load" id="loadBtn" onclick="loadFromGoogleDrive()">&#x2B06;&nbsp; Load Progress</button>
+  <span id="driveStatus" class="drive-status"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  WORKSHEET                                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="worksheet">
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 1: PROPERTY DEFINITIONS        -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">PROPERTIES OF LOGARITHMS &nbsp;|&nbsp; Identify Each Property</div>
+  <div class="problems-block" style="padding:0;">
+    <table class="notes-table">
+      <tbody>
+
+        <!-- PRODUCT -->
+        <tr>
+          <td>
+            <div class="prop-label">Product</div>
+            <div class="prop-sub">Multiplication becomes addition</div>
+            <div class="def-box">
+              \(\log_b(M \cdot N)\) &nbsp;=&nbsp; <span class="def-qmark">?</span>
+            </div>
+          </td>
+          <td>
+            <div class="tile-picker">
+              <div class="tile" id="tp_prod_sum" onclick="pickDef('product','sum')">\(\log_b M + \log_b N\)</div>
+              <div class="tile" id="tp_prod_diff" onclick="pickDef('product','diff')">\(\log_b M - \log_b N\)</div>
+              <div class="tile" id="tp_prod_nlog" onclick="pickDef('product','nlog')">\(n \cdot \log_b M\)</div>
+              <div class="tile" id="tp_prod_mult" onclick="pickDef('product','mult')">\(\log_b M \cdot \log_b N\)</div>
+            </div>
+            <span class="feedback" id="def_fb_product"></span>
+            <div class="note-box">When two values are multiplied inside a single log, split them into two logs with the same base added together.</div>
+          </td>
+        </tr>
+
+        <!-- QUOTIENT -->
+        <tr>
+          <td>
+            <div class="prop-label">Quotient</div>
+            <div class="prop-sub">Division becomes subtraction</div>
+            <div class="def-box">
+              \(\log_b\!\left(\dfrac{M}{N}\right)\) &nbsp;=&nbsp; <span class="def-qmark">?</span>
+            </div>
+          </td>
+          <td>
+            <div class="tile-picker">
+              <div class="tile" id="tp_quot_diff" onclick="pickDef('quotient','diff')">\(\log_b M - \log_b N\)</div>
+              <div class="tile" id="tp_quot_sum" onclick="pickDef('quotient','sum')">\(\log_b M + \log_b N\)</div>
+              <div class="tile" id="tp_quot_div" onclick="pickDef('quotient','div')">\(\dfrac{\log_b M}{\log_b N}\)</div>
+              <div class="tile" id="tp_quot_nlog" onclick="pickDef('quotient','nlog')">\(n \cdot \log_b M\)</div>
+            </div>
+            <span class="feedback" id="def_fb_quotient"></span>
+            <div class="note-box">A fraction inside a log splits into the top log <em>minus</em> the bottom log &mdash; numerator first, then denominator.</div>
+          </td>
+        </tr>
+
+        <!-- POWER -->
+        <tr>
+          <td>
+            <div class="prop-label">Power</div>
+            <div class="prop-sub">Exponent becomes coefficient</div>
+            <div class="def-box">
+              \(\log_b(M^p)\) &nbsp;=&nbsp; <span class="def-qmark">?</span>
+            </div>
+          </td>
+          <td>
+            <div class="tile-picker">
+              <div class="tile" id="tp_pow_nlog" onclick="pickDef('power','nlog')">\(p \cdot \log_b M\)</div>
+              <div class="tile" id="tp_pow_sum" onclick="pickDef('power','sum')">\(\log_b M + \log_b N\)</div>
+              <div class="tile" id="tp_pow_exp" onclick="pickDef('power','exp')">\((\log_b M)^{\,p}\)</div>
+              <div class="tile" id="tp_pow_mlog" onclick="pickDef('power','mlog')">\(\log_b M - \log_b p\)</div>
+            </div>
+            <span class="feedback" id="def_fb_power"></span>
+            <div class="note-box">The exponent on the argument drops in front as a multiplier (coefficient) &mdash; it does <em>not</em> go on the outside of the log.</div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 2: PRODUCT PROPERTY            -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">PRODUCT PROPERTY</div>
+  <div class="problems-block">
+
+    <div class="sub-section-label">&#9656; Condense &mdash; Write as a single logarithm</div>
+    <div class="problem-row">
+
+      <!-- #1 -->
+      <div class="problem-cell">
+        <div class="prob-num">#1</div>
+        <div class="prob-stem">\(\log_2 7 + \log_2 4\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p1_base" data-correct="2">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p1_arg" data-correct="28">
+            <option value="">&#8212;</option>
+            <option value="11">11</option>
+            <option value="14">14</option>
+            <option value="21">21</option>
+            <option value="28">28</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #2 -->
+      <div class="problem-cell">
+        <div class="prob-num">#2</div>
+        <div class="prob-stem">\(\log 25 + \log 4\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p2" data-correct="2">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- #3 -->
+      <div class="problem-cell">
+        <div class="prob-num">#3</div>
+        <div class="prob-stem">\(\log_4 2x + \log_4 4x^2\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p3_base" data-correct="4">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+            <option value="16">16</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p3_arg" data-correct="8x^3">
+            <option value="">&#8212;</option>
+            <option value="6x^2">6x&#xB2;</option>
+            <option value="8x^2">8x&#xB2;</option>
+            <option value="6x^3">6x&#xB3;</option>
+            <option value="8x^3">8x&#xB3;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div><!-- /.problem-row -->
+
+    <div class="sub-section-label">&#9656; Expand &mdash; Write as a sum of logarithms</div>
+    <div class="problem-row">
+
+      <!-- #4 comm pair {2,3} -->
+      <div class="problem-cell">
+        <div class="prob-num">#4</div>
+        <div class="prob-stem">\(\log 6\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log(</span>
+          <select class="ans" id="e4_t1">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="6">6</option>
+          </select>
+          <span class="eq-part">) + log(</span>
+          <select class="ans" id="e4_t2">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="6">6</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+        <span class="feedback" id="e4_fb"></span>
+      </div>
+
+      <!-- #5 comm pair {5,9} -->
+      <div class="problem-cell">
+        <div class="prob-num">#5</div>
+        <div class="prob-stem">\(\log_7 45\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log<sub>7</sub>(</span>
+          <select class="ans" id="e5_t1">
+            <option value="">&#8212;</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="9">9</option>
+            <option value="15">15</option>
+            <option value="45">45</option>
+          </select>
+          <span class="eq-part">) + log<sub>7</sub>(</span>
+          <select class="ans" id="e5_t2">
+            <option value="">&#8212;</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="9">9</option>
+            <option value="15">15</option>
+            <option value="45">45</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+        <span class="feedback" id="e5_fb"></span>
+      </div>
+
+      <!-- #6 comm pair {5,x} -->
+      <div class="problem-cell">
+        <div class="prob-num">#6</div>
+        <div class="prob-stem">\(\log_2(5x)\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log<sub>2</sub>(</span>
+          <select class="ans" id="e6_t1">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="5">5</option>
+            <option value="x">x</option>
+            <option value="5x">5x</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">) + log<sub>2</sub>(</span>
+          <select class="ans" id="e6_t2">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="5">5</option>
+            <option value="x">x</option>
+            <option value="5x">5x</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+        <span class="feedback" id="e6_fb"></span>
+      </div>
+
+    </div><!-- /.problem-row -->
+  </div><!-- /.problems-block -->
+
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 3: QUOTIENT PROPERTY           -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">QUOTIENT PROPERTY</div>
+  <div class="problems-block">
+
+    <div class="sub-section-label">&#9656; Condense &mdash; Write as a single logarithm</div>
+    <div class="problem-row">
+
+      <!-- #7 -->
+      <div class="problem-cell">
+        <div class="prob-num">#7</div>
+        <div class="prob-stem">\(\log_3 24 - \log_3 8\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p7" data-correct="1">
+            <option value="">&#8212;</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="16">16</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- #8 -->
+      <div class="problem-cell">
+        <div class="prob-num">#8</div>
+        <div class="prob-stem">\(\log_2 15 - \log_2 15\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p8" data-correct="0">
+            <option value="">&#8212;</option>
+            <option value="-1">&minus;1</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- #9 -->
+      <div class="problem-cell">
+        <div class="prob-num">#9</div>
+        <div class="prob-stem">\(\log_4 x^9 - \log_4 x^2\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p9_base" data-correct="4">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="9">9</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p9_arg" data-correct="x^7">
+            <option value="">&#8212;</option>
+            <option value="x^5">x&#x2075;</option>
+            <option value="x^7">x&#x2077;</option>
+            <option value="x^11">x&#xB9;&#xB9;</option>
+            <option value="x^18">x&#xB9;&#x2078;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div><!-- /.problem-row -->
+
+    <div class="sub-section-label">&#9656; Expand &mdash; Write as a difference of logarithms</div>
+    <div class="problem-row">
+
+      <!-- #10 -->
+      <div class="problem-cell">
+        <div class="prob-num">#10</div>
+        <div class="prob-stem">\(\log_8 4\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log<sub>8</sub>(</span>
+          <select class="ans" id="p10_top" data-correct="8">
+            <option value="">&#8212;</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32">32</option>
+          </select>
+          <span class="eq-part">) &#8722; log<sub>8</sub>(</span>
+          <select class="ans" id="p10_bot" data-correct="2">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="8">8</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #11 -->
+      <div class="problem-cell">
+        <div class="prob-num">#11</div>
+        <div class="prob-stem">\(\log_5 \dfrac{1}{3}\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log<sub>5</sub>(</span>
+          <select class="ans" id="p11_top" data-correct="1">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="15">15</option>
+          </select>
+          <span class="eq-part">) &#8722; log<sub>5</sub>(</span>
+          <select class="ans" id="p11_bot" data-correct="3">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="15">15</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #12 -->
+      <div class="problem-cell">
+        <div class="prob-num">#12</div>
+        <div class="prob-stem">\(\log\!\left(\dfrac{m}{7}\right)\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log(</span>
+          <select class="ans" id="p12_top" data-correct="m">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="7">7</option>
+            <option value="m">m</option>
+            <option value="m/7">m/7</option>
+          </select>
+          <span class="eq-part">) &#8722; log(</span>
+          <select class="ans" id="p12_bot" data-correct="7">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="7">7</option>
+            <option value="m">m</option>
+            <option value="m/7">m/7</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div><!-- /.problem-row -->
+  </div><!-- /.problems-block -->
+
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 4: POWER PROPERTY              -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">POWER PROPERTY</div>
+  <div class="problems-block">
+
+    <div class="sub-section-label">&#9656; Condense &mdash; Write as a single logarithm</div>
+    <div class="problem-row">
+
+      <!-- #13 -->
+      <div class="problem-cell">
+        <div class="prob-num">#13</div>
+        <div class="prob-stem">\(5 \cdot \log_4 2\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p13" data-correct="5/2">
+            <option value="">&#8212;</option>
+            <option value="1/2">1/2</option>
+            <option value="5/2">5/2</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="note-box">Hint: log&#x2084; 2 = 1/2 &mdash; the coefficient multiplies the log value.</div>
+      </div>
+
+      <!-- #14 -->
+      <div class="problem-cell">
+        <div class="prob-num">#14</div>
+        <div class="prob-stem">\(7 \cdot \log_2 x\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p14_base" data-correct="2">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="7">7</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p14_arg" data-correct="x^7">
+            <option value="">&#8212;</option>
+            <option value="7x">7x</option>
+            <option value="x^2">x&#xB2;</option>
+            <option value="x^7">x&#x2077;</option>
+            <option value="x^14">x&#xB9;&#x2074;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #15 -->
+      <div class="problem-cell">
+        <div class="prob-num">#15</div>
+        <div class="prob-stem">\(\dfrac{1}{3} \cdot \log 8\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log(</span>
+          <select class="ans" id="p15_arg" data-correct="2">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="8/3">8/3</option>
+            <option value="24">24</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div><!-- /.problem-row -->
+
+    <div class="sub-section-label">&#9656; Expand &mdash; Rewrite with coefficient in front</div>
+    <div class="problem-row">
+
+      <!-- #16 -->
+      <div class="problem-cell">
+        <div class="prob-num">#16</div>
+        <div class="prob-stem">\(\log_2 8^7\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p16" data-correct="21">
+            <option value="">&#8212;</option>
+            <option value="7">7</option>
+            <option value="14">14</option>
+            <option value="21">21</option>
+            <option value="56">56</option>
+          </select>
+        </div>
+        <div class="note-box">Hint: 8 = 2&#xB3;, so log&#x2082; 8 = 3. Use the Power Property first.</div>
+      </div>
+
+      <!-- #17 -->
+      <div class="problem-cell">
+        <div class="prob-num">#17</div>
+        <div class="prob-stem">\(3 \cdot \log 4^{x-1}\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p17_coeff" data-correct="3(x-1)">
+            <option value="">&#8212;</option>
+            <option value="x-1">x&#8722;1</option>
+            <option value="3(x-1)">3(x&#8722;1)</option>
+            <option value="3x+3">3x+3</option>
+            <option value="x+1">x+1</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log(</span>
+          <select class="ans" id="p17_base" data-correct="4">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #18 -->
+      <div class="problem-cell">
+        <div class="prob-num">#18</div>
+        <div class="prob-stem">\(\log_7 \sqrt{w}\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p18_coeff" data-correct="1/2">
+            <option value="">&#8212;</option>
+            <option value="1/2">1/2</option>
+            <option value="2">2</option>
+            <option value="7">7</option>
+            <option value="1/7">1/7</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log</span>
+          <select class="ans sub-sel" id="p18_base" data-correct="7">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="7">7</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p18_arg" data-correct="w">
+            <option value="">&#8212;</option>
+            <option value="w">w</option>
+            <option value="w^2">w&#xB2;</option>
+            <option value="1/w">1/w</option>
+            <option value="sqrt_w">&#x221A;w</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div><!-- /.problem-row -->
+  </div><!-- /.problems-block -->
+
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 5: PUTTING IT ALL TOGETHER     -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">PUTTING IT ALL TOGETHER &nbsp;|&nbsp; Condense &mdash; Write as a single logarithm</div>
+  <div class="problems-block">
+
+    <!-- Row 1: #19, #20 -->
+    <div class="problem-row-2">
+
+      <!-- #19 -->
+      <div class="problem-cell">
+        <div class="prob-num">#19</div>
+        <div class="prob-stem">\(2\log 6 - \log 9\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log(</span>
+          <select class="ans" id="p19_arg" data-correct="4">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="9">9</option>
+            <option value="36">36</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #20 -->
+      <div class="problem-cell">
+        <div class="prob-num">#20</div>
+        <div class="prob-stem">\(4\log_4 a + 2\log_4 b\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p20_base" data-correct="4">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p20_arg" data-correct="a^4 b^2">
+            <option value="">&#8212;</option>
+            <option value="a^2 b">a&#xB2;b</option>
+            <option value="a^4 b">a&#x2074;b</option>
+            <option value="a^4 b^2">a&#x2074;b&#xB2;</option>
+            <option value="a^6 b^3">a&#x2076;b&#xB3;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 2: #21, #22 -->
+    <div class="problem-row-2">
+
+      <!-- #21 -->
+      <div class="problem-cell">
+        <div class="prob-num">#21</div>
+        <div class="prob-stem">\(7\log_4 u - 3\log_4 v^2\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p21_base" data-correct="4">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="7">7</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p21_arg" data-correct="u^7/v^6">
+            <option value="">&#8212;</option>
+            <option value="u^4/v">u&#x2074;/v</option>
+            <option value="u^7/v^3">u&#x2077;/v&#xB3;</option>
+            <option value="u^7/v^6">u&#x2077;/v&#x2076;</option>
+            <option value="u^7/v^5">u&#x2077;/v&#x2075;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #22 -->
+      <div class="problem-cell">
+        <div class="prob-num">#22</div>
+        <div class="prob-stem">\(\log_2 15 + \log_2 4 - \log_2 6\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p22_base" data-correct="2">
+            <option value="">_</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p22_arg" data-correct="10">
+            <option value="">&#8212;</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="13">13</option>
+            <option value="60">60</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 3: #23, #24 -->
+    <div class="problem-row-2">
+
+      <!-- #23 -->
+      <div class="problem-cell">
+        <div class="prob-num">#23</div>
+        <div class="prob-stem">\(\log_3 4 + \log_3 y + \tfrac{1}{2}\log_3 49\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p23_base" data-correct="3">
+            <option value="">_</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="7">7</option>
+            <option value="49">49</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p23_arg" data-correct="28y">
+            <option value="">&#8212;</option>
+            <option value="7y">7y</option>
+            <option value="14y">14y</option>
+            <option value="28y">28y</option>
+            <option value="56y">56y</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #24 -->
+      <div class="problem-cell">
+        <div class="prob-num">#24</div>
+        <div class="prob-stem">\(\tfrac{1}{3}(\log_5 8 + \log_5 27) - \log_5 3\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log</span>
+          <select class="ans sub-sel" id="p24_base" data-correct="5">
+            <option value="">_</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+          <span class="eq-part">(</span>
+          <select class="ans" id="p24_arg" data-correct="2">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="6">6</option>
+            <option value="72">72</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 4: #25, #26 -->
+    <div class="problem-row-2">
+
+      <!-- #25 -->
+      <div class="problem-cell">
+        <div class="prob-num">#25</div>
+        <div class="prob-stem">\(3\log_2 4 - \log_2 32\)</div>
+        <div class="eq-builder">
+          <select class="ans" id="p25" data-correct="1">
+            <option value="">&#8212;</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+        <div class="note-box">Hint: log&#x2082;4 = 2 and log&#x2082;32 = 5.</div>
+      </div>
+
+      <!-- #26 -->
+      <div class="problem-cell">
+        <div class="prob-num">#26</div>
+        <div class="prob-stem">\(2\log 6 - \tfrac{1}{4}\log 16 + \log 3\)</div>
+        <div class="eq-builder">
+          <span class="eq-part">log(</span>
+          <select class="ans" id="p26_arg" data-correct="54">
+            <option value="">&#8212;</option>
+            <option value="18">18</option>
+            <option value="27">27</option>
+            <option value="54">54</option>
+            <option value="108">108</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+        <div class="note-box">Hint: &frac14;log16 = log2 and 2log6 = log36.</div>
+      </div>
+
+    </div>
+
+  </div><!-- /.problems-block condensing -->
+
+  <!-- ── PUTTING IT ALL TOGETHER — EXPAND ── -->
+  <div class="section-header">PUTTING IT ALL TOGETHER &nbsp;|&nbsp; Expand &mdash; Write as a sum/difference of logarithms</div>
+  <div class="problems-block">
+
+    <!-- Row 1: #27, #28 -->
+    <div class="problem-row-2">
+
+      <!-- #27  comm pair {x,y} for first two terms -->
+      <div class="problem-cell">
+        <div class="prob-num">#27</div>
+        <div class="prob-stem">\(\log_6(xyz^4)\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <span class="eq-part">log<sub>6</sub>(</span>
+          <select class="ans" id="x27_t1">
+            <option value="">&#8212;</option>
+            <option value="x">x</option>
+            <option value="y">y</option>
+            <option value="z">z</option>
+            <option value="4">4</option>
+          </select>
+          <span class="eq-part">) + log<sub>6</sub>(</span>
+          <select class="ans" id="x27_t2">
+            <option value="">&#8212;</option>
+            <option value="x">x</option>
+            <option value="y">y</option>
+            <option value="z">z</option>
+            <option value="4">4</option>
+          </select>
+          <span class="eq-part">) + 4 &middot; log<sub>6</sub>(</span>
+          <select class="ans" id="x27_z" data-correct="z">
+            <option value="">&#8212;</option>
+            <option value="x">x</option>
+            <option value="y">y</option>
+            <option value="z">z</option>
+            <option value="4">4</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+        <span class="feedback" id="x27_fb"></span>
+      </div>
+
+      <!-- #28 -->
+      <div class="problem-cell">
+        <div class="prob-num">#28</div>
+        <div class="prob-stem">\(\log_4\!\left(\dfrac{a^9}{b}\right)\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <select class="ans" id="p28_c1" data-correct="9">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="4">4</option>
+            <option value="9">9</option>
+            <option value="18">18</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>4</sub>(</span>
+          <select class="ans" id="p28_v1" data-correct="a">
+            <option value="">&#8212;</option>
+            <option value="a">a</option>
+            <option value="b">b</option>
+            <option value="a^9">a&#x2079;</option>
+          </select>
+          <span class="eq-part">) &nbsp;&#8722;&nbsp;</span>
+          <select class="ans" id="p28_c2" data-correct="1">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="4">4</option>
+            <option value="9">9</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>4</sub>(</span>
+          <select class="ans" id="p28_v2" data-correct="b">
+            <option value="">&#8212;</option>
+            <option value="a">a</option>
+            <option value="b">b</option>
+            <option value="a^9">a&#x2079;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 2: #29, #30 -->
+    <div class="problem-row-2">
+
+      <!-- #29 -->
+      <div class="problem-cell">
+        <div class="prob-num">#29</div>
+        <div class="prob-stem">\(\log_7(q^4 r^2)^2\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <select class="ans" id="p29_c1" data-correct="8">
+            <option value="">&#8212;</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+            <option value="12">12</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>7</sub>(</span>
+          <select class="ans" id="p29_v1" data-correct="q">
+            <option value="">&#8212;</option>
+            <option value="q">q</option>
+            <option value="r">r</option>
+          </select>
+          <span class="eq-part">) &nbsp;+&nbsp;</span>
+          <select class="ans" id="p29_c2" data-correct="4">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>7</sub>(</span>
+          <select class="ans" id="p29_v2" data-correct="r">
+            <option value="">&#8212;</option>
+            <option value="q">q</option>
+            <option value="r">r</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #30 -->
+      <div class="problem-cell">
+        <div class="prob-num">#30</div>
+        <div class="prob-stem">\(\log_2\!\left(\dfrac{y}{z^5}\right)^{\!2}\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <select class="ans" id="p30_c1" data-correct="2">
+            <option value="">&#8212;</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>2</sub>(</span>
+          <select class="ans" id="p30_v1" data-correct="y">
+            <option value="">&#8212;</option>
+            <option value="y">y</option>
+            <option value="z">z</option>
+          </select>
+          <span class="eq-part">) &nbsp;&#8722;&nbsp;</span>
+          <select class="ans" id="p30_c2" data-correct="10">
+            <option value="">&#8212;</option>
+            <option value="2">2</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>2</sub>(</span>
+          <select class="ans" id="p30_v2" data-correct="z">
+            <option value="">&#8212;</option>
+            <option value="y">y</option>
+            <option value="z">z</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 3: #31, #32 -->
+    <div class="problem-row-2">
+
+      <!-- #31 -->
+      <div class="problem-cell">
+        <div class="prob-num">#31</div>
+        <div class="prob-stem">\(\log \sqrt{7x^3}\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <select class="ans" id="p31_c1" data-correct="1/2">
+            <option value="">&#8212;</option>
+            <option value="1/2">1/2</option>
+            <option value="1/3">1/3</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log(</span>
+          <select class="ans" id="p31_v1" data-correct="7">
+            <option value="">&#8212;</option>
+            <option value="7">7</option>
+            <option value="x">x</option>
+            <option value="7x">7x</option>
+          </select>
+          <span class="eq-part">) &nbsp;+&nbsp;</span>
+          <select class="ans" id="p31_c2" data-correct="3/2">
+            <option value="">&#8212;</option>
+            <option value="1/2">1/2</option>
+            <option value="3/2">3/2</option>
+            <option value="3">3</option>
+            <option value="7/2">7/2</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log(</span>
+          <select class="ans" id="p31_v2" data-correct="x">
+            <option value="">&#8212;</option>
+            <option value="7">7</option>
+            <option value="x">x</option>
+            <option value="x^3">x&#xB3;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+      <!-- #32 -->
+      <div class="problem-cell">
+        <div class="prob-num">#32</div>
+        <div class="prob-stem">\(\log_3 \sqrt[4]{m^5 n^2}\)</div>
+        <div class="eq-builder" style="flex-wrap:wrap;gap:4px;">
+          <select class="ans" id="p32_c1" data-correct="5/4">
+            <option value="">&#8212;</option>
+            <option value="1/4">1/4</option>
+            <option value="5/4">5/4</option>
+            <option value="5/2">5/2</option>
+            <option value="5">5</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>3</sub>(</span>
+          <select class="ans" id="p32_v1" data-correct="m">
+            <option value="">&#8212;</option>
+            <option value="m">m</option>
+            <option value="n">n</option>
+            <option value="m^5">m&#x2075;</option>
+          </select>
+          <span class="eq-part">) &nbsp;+&nbsp;</span>
+          <select class="ans" id="p32_c2" data-correct="1/2">
+            <option value="">&#8212;</option>
+            <option value="1/4">1/4</option>
+            <option value="1/2">1/2</option>
+            <option value="2">2</option>
+            <option value="3/4">3/4</option>
+          </select>
+          <span class="eq-part">&nbsp;&middot;&nbsp;log<sub>3</sub>(</span>
+          <select class="ans" id="p32_v2" data-correct="n">
+            <option value="">&#8212;</option>
+            <option value="m">m</option>
+            <option value="n">n</option>
+            <option value="n^2">n&#xB2;</option>
+          </select>
+          <span class="eq-part">)</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /.problems-block expand -->
+
+
+  <!-- ─────────────────────────────────────── -->
+  <!--  SECTION 6: GRAPHING CHARACTERISTICS    -->
+  <!-- ─────────────────────────────────────── -->
+  <div class="section-header">GRAPHING LOGARITHMIC FUNCTIONS &nbsp;|&nbsp; Identify Key Characteristics</div>
+  <div class="problems-block">
+
+    <!-- Desmos graph buttons -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="font-size:0.78rem;color:var(--text-muted);font-family:'Arial',sans-serif;letter-spacing:0.05em;align-self:center;">OPEN GRAPH:</span>
+      <button class="desmos-btn" onclick="openDesmosModal(3, 'log(x-1)/log(4)', 'f(x) = log\u2084(x\u22121)')">&#x1F4C8; #3 &nbsp;log&#x2084;(x&minus;1)</button>
+      <button class="desmos-btn" onclick="openDesmosModal(4, 'log(x)/log(3)-2', 'f(x) = log\u2083 x \u2212 2')">&#x1F4C8; #4 &nbsp;log&#x2083; x &minus; 2</button>
+      <button class="desmos-btn" onclick="openDesmosModal(5, 'log(x+9)/log(0.5)+4', 'f(x) = log\u2081\u2082(x+9)+4')">&#x1F4C8; #5 &nbsp;log&#xBD;(x+9)+4</button>
+      <button class="desmos-btn" onclick="openDesmosModal(6, 'log(x-2)/log(5)+1', 'f(x) = log\u2085(x\u22122)+1')">&#x1F4C8; #6 &nbsp;log&#x2085;(x&minus;2)+1</button>
+    </div>
+
+    <!-- Graph #3 -->
+    <div class="graph-problem">
+      <div class="prob-num">#3</div>
+      <div class="prob-stem">\(f(x) = \log_4(x - 1)\)</div>
+      <div class="characteristics-grid">
+        <div class="char-row">
+          <div class="char-label">DOMAIN</div>
+          <select class="ans" id="g3_dom" data-correct="(1,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(1,inf)">(1, &infin;)</option>
+            <option value="(-1,inf)">(&minus;1, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">RANGE</div>
+          <select class="ans" id="g3_rng" data-correct="(-inf,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(1,inf)">(1, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &infin; as x &#x2192;</div>
+          <select class="ans" id="g3_eb1" data-correct="inf">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="1+">1&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &minus;&infin; as x &#x2192;</div>
+          <select class="ans" id="g3_eb2" data-correct="1+">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="1+">1&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">x-INTERCEPT</div>
+          <select class="ans" id="g3_xi" data-correct="(2,0)">
+            <option value="">&#8212;</option>
+            <option value="(1,0)">(1, 0)</option>
+            <option value="(2,0)">(2, 0)</option>
+            <option value="(4,0)">(4, 0)</option>
+            <option value="(5,0)">(5, 0)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">ASYMPTOTE</div>
+          <select class="ans" id="g3_asy" data-correct="x=1">
+            <option value="">&#8212;</option>
+            <option value="x=0">x = 0</option>
+            <option value="x=1">x = 1</option>
+            <option value="x=-1">x = &minus;1</option>
+            <option value="y=0">y = 0</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graph #4 -->
+    <div class="graph-problem">
+      <div class="prob-num">#4</div>
+      <div class="prob-stem">\(f(x) = \log_3 x - 2\)</div>
+      <div class="characteristics-grid">
+        <div class="char-row">
+          <div class="char-label">DOMAIN</div>
+          <select class="ans" id="g4_dom" data-correct="(0,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(2,inf)">(2, &infin;)</option>
+            <option value="(-2,inf)">(&minus;2, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">RANGE</div>
+          <select class="ans" id="g4_rng" data-correct="(-inf,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(-2,inf)">(&minus;2, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &infin; as x &#x2192;</div>
+          <select class="ans" id="g4_eb1" data-correct="inf">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="0+">0&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="2+">2&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &minus;&infin; as x &#x2192;</div>
+          <select class="ans" id="g4_eb2" data-correct="0+">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="0+">0&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="2+">2&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">x-INTERCEPT</div>
+          <select class="ans" id="g4_xi" data-correct="(9,0)">
+            <option value="">&#8212;</option>
+            <option value="(2,0)">(2, 0)</option>
+            <option value="(3,0)">(3, 0)</option>
+            <option value="(6,0)">(6, 0)</option>
+            <option value="(9,0)">(9, 0)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">ASYMPTOTE</div>
+          <select class="ans" id="g4_asy" data-correct="x=0">
+            <option value="">&#8212;</option>
+            <option value="x=0">x = 0</option>
+            <option value="x=2">x = 2</option>
+            <option value="x=-2">x = &minus;2</option>
+            <option value="y=-2">y = &minus;2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graph #5  (base < 1 — reversed end behaviors) -->
+    <div class="graph-problem">
+      <div class="prob-num">#5</div>
+      <div class="prob-stem">\(f(x) = \log_{1/2}(x + 9) + 4\)</div>
+      <div class="note-box" style="margin-bottom:8px;">&#9888; Base &lt; 1: this function is <em>decreasing</em> &mdash; end behaviors are reversed.</div>
+      <div class="characteristics-grid">
+        <div class="char-row">
+          <div class="char-label">DOMAIN</div>
+          <select class="ans" id="g5_dom" data-correct="(-9,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(-9,inf)">(&minus;9, &infin;)</option>
+            <option value="(9,inf)">(9, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">RANGE</div>
+          <select class="ans" id="g5_rng" data-correct="(-inf,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(4,inf)">(4, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &infin; as x &#x2192;</div>
+          <select class="ans" id="g5_eb1" data-correct="-9+">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="-9+">&minus;9&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &minus;&infin; as x &#x2192;</div>
+          <select class="ans" id="g5_eb2" data-correct="inf">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="-9+">&minus;9&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">x-INTERCEPT</div>
+          <select class="ans" id="g5_xi" data-correct="(7,0)">
+            <option value="">&#8212;</option>
+            <option value="(-9,0)">(&minus;9, 0)</option>
+            <option value="(7,0)">(7, 0)</option>
+            <option value="(9,0)">(9, 0)</option>
+            <option value="(16,0)">(16, 0)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">ASYMPTOTE</div>
+          <select class="ans" id="g5_asy" data-correct="x=-9">
+            <option value="">&#8212;</option>
+            <option value="x=0">x = 0</option>
+            <option value="x=9">x = 9</option>
+            <option value="x=-9">x = &minus;9</option>
+            <option value="y=4">y = 4</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graph #6 -->
+    <div class="graph-problem">
+      <div class="prob-num">#6</div>
+      <div class="prob-stem">\(f(x) = \log_5(x - 2) + 1\)</div>
+      <div class="characteristics-grid">
+        <div class="char-row">
+          <div class="char-label">DOMAIN</div>
+          <select class="ans" id="g6_dom" data-correct="(2,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(1,inf)">(1, &infin;)</option>
+            <option value="(2,inf)">(2, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">RANGE</div>
+          <select class="ans" id="g6_rng" data-correct="(-inf,inf)">
+            <option value="">&#8212;</option>
+            <option value="(-inf,inf)">(&minus;&infin;, &infin;)</option>
+            <option value="(0,inf)">(0, &infin;)</option>
+            <option value="(1,inf)">(1, &infin;)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &infin; as x &#x2192;</div>
+          <select class="ans" id="g6_eb1" data-correct="inf">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="2+">2&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">f &#x2192; &minus;&infin; as x &#x2192;</div>
+          <select class="ans" id="g6_eb2" data-correct="2+">
+            <option value="">&#8212;</option>
+            <option value="inf">&infin;</option>
+            <option value="2+">2&#x207A;</option>
+            <option value="-inf">&minus;&infin;</option>
+            <option value="0+">0&#x207A;</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">x-INTERCEPT</div>
+          <select class="ans" id="g6_xi" data-correct="(2.2,0)">
+            <option value="">&#8212;</option>
+            <option value="(2,0)">(2, 0)</option>
+            <option value="(2.2,0)">(2.2, 0)</option>
+            <option value="(3,0)">(3, 0)</option>
+            <option value="(7,0)">(7, 0)</option>
+          </select>
+        </div>
+        <div class="char-row">
+          <div class="char-label">ASYMPTOTE</div>
+          <select class="ans" id="g6_asy" data-correct="x=2">
+            <option value="">&#8212;</option>
+            <option value="x=0">x = 0</option>
+            <option value="x=1">x = 1</option>
+            <option value="x=2">x = 2</option>
+            <option value="y=1">y = 1</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.problems-block graphing -->
+
+</div><!-- /.worksheet -->
+
+<!-- Score Bar -->
+<div id="score-bar">
+  <div id="score-bar-inner">Score: 0 / 0</div>
+</div>
+
+<!-- Submit Section -->
+<div class="submit-section">
+  <button id="submitBtn">Submit Answers</button>
+  <div id="submitMsg"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<script>
+
+/* ─── GLOBAL STATE ─── */
+var DEF_STATE = { product: false, quotient: false, power: false };
+var DEF_PICKS = { product: null,  quotient: null,  power: null  };
+
+var COMM_PAIRS = [
+  { ids: ['e4_t1', 'e4_t2'],   vals: ['2', '3'], fbId: 'e4_fb' },
+  { ids: ['e5_t1', 'e5_t2'],   vals: ['5', '9'], fbId: 'e5_fb' },
+  { ids: ['e6_t1', 'e6_t2'],   vals: ['5', 'x'], fbId: 'e6_fb' },
+  { ids: ['x27_t1', 'x27_t2'], vals: ['x', 'y'], fbId: 'x27_fb' }
+];
+
+
+/* ─── SCORE TRACKING ─── */
+function updateScore() {
+  var total = 0, correct = 0;
+
+  /* Selects with data-correct */
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel) {
+    total++;
+    if (sel.value && sel.value === sel.getAttribute('data-correct')) { correct++; }
+  });
+
+  /* Definition tiles */
+  var defKeys = ['product', 'quotient', 'power'];
+  for (var i = 0; i < defKeys.length; i++) {
+    total++;
+    if (DEF_STATE[defKeys[i]]) { correct++; }
+  }
+
+  /* Commutative pairs */
+  for (var j = 0; j < COMM_PAIRS.length; j++) {
+    var pair = COMM_PAIRS[j];
+    var el0 = document.getElementById(pair.ids[0]);
+    var el1 = document.getElementById(pair.ids[1]);
+    if (!el0 || !el1) { continue; }
+    total++;
+    var v0 = el0.value;
+    var v1 = el1.value;
+    if (v0 && v1) {
+      var got = [v0, v1].slice().sort().join(',');
+      var exp = pair.vals.slice().sort().join(',');
+      if (got === exp) { correct++; }
+    }
+  }
+
+  var sb = document.getElementById('score-bar');
+  if (sb) {
+    sb.style.display = 'block';
+    var inner = document.getElementById('score-bar-inner');
+    if (inner) { inner.textContent = 'Score: ' + correct + ' / ' + total; }
+  }
+}
+
+
+/* ─── DEFINITION TILES ─── */
+function pickDef(prop, choice) {
+  var correctMap = { product: 'sum', quotient: 'diff', power: 'nlog' };
+  var propAbbr   = { product: 'prod', quotient: 'quot', power: 'pow' };
+  var tileSets   = {
+    product:  ['tp_prod_sum', 'tp_prod_diff', 'tp_prod_nlog', 'tp_prod_mult'],
+    quotient: ['tp_quot_diff', 'tp_quot_sum', 'tp_quot_div', 'tp_quot_nlog'],
+    power:    ['tp_pow_nlog', 'tp_pow_sum', 'tp_pow_exp', 'tp_pow_mlog']
+  };
+
+  var fb = document.getElementById('def_fb_' + prop);
+  var tiles = tileSets[prop];
+
+  for (var i = 0; i < tiles.length; i++) {
+    var t = document.getElementById(tiles[i]);
+    if (t) { t.classList.remove('correct', 'incorrect'); }
+  }
+
+  var isOk = (choice === correctMap[prop]);
+  DEF_STATE[prop] = isOk;
+  DEF_PICKS[prop] = choice;
+
+  var selectedId = 'tp_' + propAbbr[prop] + '_' + choice;
+  var selectedTile = document.getElementById(selectedId);
+  if (selectedTile) { selectedTile.classList.add(isOk ? 'correct' : 'incorrect'); }
+
+  if (fb) {
+    fb.textContent = isOk ? '\u2713 Correct!' : '\u2717 Not quite \u2014 try another choice';
+    fb.className = 'feedback ' + (isOk ? 'correct' : 'incorrect');
+  }
+
+  updateScore();
+}
+
+
+/* ─── COMMUTATIVE PAIR CHECK ─── */
+function checkCommPair(pairIdx) {
+  var pair = COMM_PAIRS[pairIdx];
+  var el0 = document.getElementById(pair.ids[0]);
+  var el1 = document.getElementById(pair.ids[1]);
+  var fb  = document.getElementById(pair.fbId);
+  if (!el0 || !el1) { return; }
+
+  var v0 = el0.value;
+  var v1 = el1.value;
+
+  if (!v0 || !v1) {
+    el0.classList.remove('correct', 'incorrect');
+    el1.classList.remove('correct', 'incorrect');
+    if (fb) { fb.textContent = ''; fb.className = 'feedback'; }
+    updateScore();
+    return;
+  }
+
+  var got  = [v0, v1].slice().sort().join(',');
+  var exp  = pair.vals.slice().sort().join(',');
+  var isOk = (got === exp);
+
+  el0.classList.toggle('correct', isOk);
+  el0.classList.toggle('incorrect', !isOk);
+  el1.classList.toggle('correct', isOk);
+  el1.classList.toggle('incorrect', !isOk);
+
+  if (fb) {
+    fb.textContent = isOk ? '\u2713 Correct!' : '\u2717 Check your factors';
+    fb.className = 'feedback ' + (isOk ? 'correct' : 'incorrect');
+  }
+  updateScore();
+}
+
+
+/* ─── GOOGLE DRIVE SAVE / LOAD ─── */
+var _driveToken    = null;
+var _tokenClient   = null;
+var _driveFileId   = sessionStorage.getItem('proplogs_driveFileId') || null;
+var DRIVE_FILENAME = 'PropertiesOfLogs_Progress.json';
+var DRIVE_CLIENT   = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
+var DRIVE_SCOPE    = 'https://www.googleapis.com/auth/drive.file';
+
+function showDriveStatus(msg, ok) {
+  var el = document.getElementById('driveStatus');
+  if (!el) { return; }
+  el.textContent = msg;
+  el.className = 'drive-status ' + (ok === true ? 'ok' : ok === false ? 'err' : '');
+  if (ok !== null) {
+    clearTimeout(el._t);
+    el._t = setTimeout(function() { el.textContent = ''; el.className = 'drive-status'; }, 5000);
+  }
+}
+
+function setDriveBtns(loading) {
+  var s = document.getElementById('saveBtn');
+  var l = document.getElementById('loadBtn');
+  if (s) { s.disabled = loading; }
+  if (l) { l.disabled = loading; }
+}
+
+/* Collect all current answer state into a serialisable object */
+function collectState() {
+  var selectAnswers = {};
+  document.querySelectorAll('select[id]').forEach(function(sel) {
+    if (sel.id) { selectAnswers[sel.id] = sel.value; }
+  });
+
+  var commPairVals = {};
+  COMM_PAIRS.forEach(function(pair) {
+    pair.ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { commPairVals[id] = el.value; }
+    });
+  });
+
+  return {
+    worksheet:    'Properties of Logarithms',
+    savedAt:      new Date().toISOString(),
+    studentName:  (document.getElementById('studentName') || {}).value || '',
+    studentId:    (document.getElementById('studentId')   || {}).value || '',
+    period:       (document.getElementById('period')      || {}).value || '',
+    teacher:      (document.getElementById('teacher')     || {}).value || '',
+    selectAnswers: selectAnswers,
+    defPicks:      JSON.parse(JSON.stringify(DEF_PICKS))
+  };
+}
+
+/* Restore state from a saved object, re-triggering all change handlers */
+function restoreState(state) {
+  if (!state) { return; }
+
+  /* Student info */
+  var fields = ['studentName', 'studentId', 'period'];
+  fields.forEach(function(f) {
+    var el = document.getElementById(f);
+    if (el && state[f]) { el.value = state[f]; }
+  });
+  var tEl = document.getElementById('teacher');
+  if (tEl && state.teacher) { tEl.value = state.teacher; }
+
+  /* All select answers (incl. comm pair selects) */
+  if (state.selectAnswers) {
+    Object.keys(state.selectAnswers).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.tagName === 'SELECT') {
+        el.value = state.selectAnswers[id];
+        el.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+
+  /* Comm pair feedback — re-run checks after all selects restored */
+  for (var j = 0; j < COMM_PAIRS.length; j++) { checkCommPair(j); }
+
+  /* Definition tile picks */
+  if (state.defPicks) {
+    var props = ['product', 'quotient', 'power'];
+    props.forEach(function(prop) {
+      if (state.defPicks[prop]) { pickDef(prop, state.defPicks[prop]); }
+    });
+  }
+
+  updateScore();
+}
+
+/* ── Token management ── */
+function _getToken(callback) {
+  /* Reuse valid token */
+  if (_driveToken) { callback(_driveToken); return; }
+
+  function waitForGSI() {
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      setTimeout(waitForGSI, 200); return;
+    }
+    var stored = sessionStorage.getItem('gsiUser_proplogs');
+    var hint   = stored ? (JSON.parse(stored).email || '') : '';
+    _tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT,
+      scope:     DRIVE_SCOPE,
+      hint:      hint,
+      callback:  function(resp) {
+        if (resp.error) {
+          showDriveStatus('Auth error: ' + resp.error, false);
+          setDriveBtns(false);
+          return;
+        }
+        _driveToken = resp.access_token;
+        /* Expire cached token after 55 min */
+        setTimeout(function() { _driveToken = null; }, 55 * 60 * 1000);
+        callback(_driveToken);
+      }
+    });
+    _tokenClient.requestAccessToken({ prompt: '' });
+  }
+  waitForGSI();
+}
+
+/* ── Drive API helpers ── */
+function _driveSearch(token, callback) {
+  var q = encodeURIComponent("name='" + DRIVE_FILENAME + "' and trashed=false");
+  fetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&spaces=drive&fields=files(id,name)', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var files = (data.files || []);
+    callback(null, files.length ? files[0].id : null);
+  })
+  .catch(function(e) { callback(e, null); });
+}
+
+function _driveUpload(token, fileId, content, callback) {
+  var meta    = JSON.stringify({ name: DRIVE_FILENAME, mimeType: 'application/json' });
+  var body    = JSON.stringify(content);
+  var boundary = 'proplogs_boundary_42';
+  var multipart =
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json\r\n\r\n' + meta + '\r\n' +
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json\r\n\r\n' + body + '\r\n' +
+    '--' + boundary + '--';
+
+  var url    = fileId
+    ? 'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=multipart'
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  var method = fileId ? 'PATCH' : 'POST';
+
+  fetch(url, {
+    method:  method,
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'multipart/related; boundary=' + boundary
+    },
+    body: multipart
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { callback(null, data.id || fileId); })
+  .catch(function(e)   { callback(e, null); });
+}
+
+function _driveDownload(token, fileId, callback) {
+  fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) { callback(null, data); })
+  .catch(function(e)  { callback(e, null); });
+}
+
+/* ── Public save/load ── */
+function saveToGoogleDrive() {
+  if (!sessionStorage.getItem('gsiUser_proplogs')) {
+    showDriveStatus('Sign in with Google first, then save.', false); return;
+  }
+  setDriveBtns(true);
+  showDriveStatus('Authorizing\u2026', null);
+
+  _getToken(function(token) {
+    showDriveStatus('Saving\u2026', null);
+    var state = collectState();
+
+    function doUpload(existingId) {
+      _driveUpload(token, existingId, state, function(err, newId) {
+        setDriveBtns(false);
+        if (err) { showDriveStatus('Save failed \u2014 try again.', false); return; }
+        _driveFileId = newId;
+        sessionStorage.setItem('proplogs_driveFileId', newId);
+        var t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        showDriveStatus('\u2713 Saved to Drive at ' + t, true);
+      });
+    }
+
+    /* Use cached fileId if available, else search first */
+    if (_driveFileId) {
+      doUpload(_driveFileId);
+    } else {
+      _driveSearch(token, function(err, foundId) {
+        if (err) { setDriveBtns(false); showDriveStatus('Search error \u2014 try again.', false); return; }
+        doUpload(foundId);
+      });
+    }
+  });
+}
+
+function loadFromGoogleDrive() {
+  if (!sessionStorage.getItem('gsiUser_proplogs')) {
+    showDriveStatus('Sign in with Google first, then load.', false); return;
+  }
+  setDriveBtns(true);
+  showDriveStatus('Authorizing\u2026', null);
+
+  _getToken(function(token) {
+    showDriveStatus('Searching Drive\u2026', null);
+
+    function doLoad(fileId) {
+      if (!fileId) {
+        setDriveBtns(false);
+        showDriveStatus('No saved progress found.', false); return;
+      }
+      _driveFileId = fileId;
+      sessionStorage.setItem('proplogs_driveFileId', fileId);
+      _driveDownload(token, fileId, function(err, data) {
+        setDriveBtns(false);
+        if (err || !data) { showDriveStatus('Load failed \u2014 try again.', false); return; }
+        restoreState(data);
+        var t = data.savedAt ? new Date(data.savedAt).toLocaleDateString() : '';
+        showDriveStatus('\u2713 Loaded' + (t ? ' (saved ' + t + ')' : ''), true);
+      });
+    }
+
+    if (_driveFileId) {
+      doLoad(_driveFileId);
+    } else {
+      _driveSearch(token, function(err, foundId) {
+        if (err) { setDriveBtns(false); showDriveStatus('Search error \u2014 try again.', false); return; }
+        doLoad(foundId);
+      });
+    }
+  });
+}
+
+
+/* ─── FLOATING WINDOW DRAG + RESIZE ─── */
+function makeFloatWindow(modalId, headerId, resizeId) {
+  var modal  = document.getElementById(modalId);
+  var header = document.getElementById(headerId);
+  var handle = document.getElementById(resizeId);
+  if (!modal || !header) { return; }
+
+  var mode = null, sx = 0, sy = 0, sLeft = 0, sTop = 0, sW = 0, sH = 0;
+
+  header.onpointerdown = function(e) {
+    if (e.target.closest && e.target.closest('.float-win-close')) { return; }
+    mode = 'drag';
+    var r = modal.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sLeft = r.left; sTop = r.top;
+    header.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+  header.onpointermove = function(e) {
+    if (mode !== 'drag') { return; }
+    modal.style.left = (sLeft + e.clientX - sx) + 'px';
+    modal.style.top  = (sTop  + e.clientY - sy) + 'px';
+  };
+  header.onpointerup = function() { mode = null; };
+
+  if (!handle) { return; }
+  handle.onpointerdown = function(e) {
+    mode = 'resize';
+    var r = modal.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sW = r.width; sH = r.height;
+    handle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  handle.onpointermove = function(e) {
+    if (mode !== 'resize') { return; }
+    modal.style.width  = Math.max(320, sW + e.clientX - sx) + 'px';
+    modal.style.height = Math.max(240, sH + e.clientY - sy) + 'px';
+  };
+  handle.onpointerup = function() { mode = null; };
+}
+
+function centerWindow(modal) {
+  if (!modal.dataset.positioned) {
+    modal.style.left = Math.max(8, (window.innerWidth  - modal.offsetWidth)  / 2) + 'px';
+    modal.style.top  = Math.max(8, (window.innerHeight - modal.offsetHeight) / 2) + 'px';
+    modal.dataset.positioned = '1';
+  }
+}
+
+
+/* ─── VIDEO MODAL ─── */
+function openVideoModal() {
+  var modal = document.getElementById('videoModal');
+  var body  = document.getElementById('videoModalBody');
+  body.innerHTML =
+    '<iframe src="https://www.youtube-nocookie.com/embed/iUvnUex8_C0?rel=0" ' +
+    'title="Properties of Logs" ' +
+    'allow="accelerometer;clipboard-write;encrypted-media;gyroscope;picture-in-picture" ' +
+    'allowfullscreen></iframe>' +
+    '<div class="resize-handle" id="videoResizeHandle"></div>';
+  modal.classList.add('open');
+  centerWindow(modal);
+  makeFloatWindow('videoModal', 'videoModalHeader', 'videoResizeHandle');
+}
+
+function closeVideoModal() {
+  var modal = document.getElementById('videoModal');
+  modal.classList.remove('open');
+  document.getElementById('videoModalBody').innerHTML =
+    '<div class="resize-handle" id="videoResizeHandle"></div>';
+}
+
+
+/* ─── DESMOS MODAL ─── */
+var _desmosCalc = null;
+var _desmosReady = false;
+
+function openDesmosModal(probNum, expr, label) {
+  var modal = document.getElementById('desmosModal');
+  var titleEl = document.getElementById('desmosModalTitle');
+  if (titleEl) { titleEl.textContent = '\uD83D\uDCC8 Problem #' + probNum + ': ' + label; }
+  modal.classList.add('open');
+  centerWindow(modal);
+  makeFloatWindow('desmosModal', 'desmosModalHeader', 'desmosResizeHandle');
+
+  function tryInit() {
+    if (typeof Desmos === 'undefined') { setTimeout(tryInit, 200); return; }
+    var container = document.getElementById('desmosContainer');
+    if (!container) { return; }
+
+    if (!_desmosCalc) {
+      _desmosCalc = Desmos.GraphingCalculator(container, {
+        expressions: true,
+        settingsMenu: false,
+        zoomButtons: true,
+        lockViewport: false,
+        border: false
+      });
+      _desmosReady = true;
+    }
+
+    _desmosCalc.setBlank();
+    _desmosCalc.setExpression({ id: 'f', latex: 'y=' + expr, color: Desmos.Colors.BLUE });
+
+    /* Fit viewport to the function */
+    var asymMap = { 3: 1, 4: 0, 5: -9, 6: 2 };
+    var asy = asymMap[probNum] !== undefined ? asymMap[probNum] : 0;
+    _desmosCalc.setMathBounds({
+      left:   asy - 1,
+      right:  asy + 15,
+      bottom: -6,
+      top:    6
+    });
+  }
+  tryInit();
+}
+
+function closeDesmosModal() {
+  document.getElementById('desmosModal').classList.remove('open');
+}
+
+
+/* ─── GOOGLE SIGN-IN ─── */
+function handleGoogleSignIn(response) {
+  var parts = response.credential.split('.');
+  var b64   = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) { b64 += '='; }
+  var payload = JSON.parse(atob(b64));
+  var user = { name: payload.name, email: payload.email, picture: payload.picture || '' };
+  sessionStorage.setItem('gsiUser_proplogs', JSON.stringify(user));
+  _applyGsiUser(user);
+}
+
+function _applyGsiUser(user) {
+  var btnWrap  = document.getElementById('gsiBtnWrap');
+  var signedIn = document.getElementById('gsiSignedIn');
+  var hint     = document.getElementById('gsiHint');
+  if (btnWrap)  { btnWrap.style.display  = 'none'; }
+  if (signedIn) { signedIn.style.display = 'flex'; }
+  if (hint)     { hint.style.display     = 'none'; }
+  var avatar = document.getElementById('gsiAvatar');
+  var nameEl = document.getElementById('gsiName');
+  var emailEl= document.getElementById('gsiEmail');
+  if (avatar)  { avatar.src = user.picture || ''; avatar.style.display = user.picture ? 'block' : 'none'; }
+  if (nameEl)  { nameEl.textContent  = user.name; }
+  if (emailEl) { emailEl.textContent = user.email; }
+  var nameInp = document.getElementById('studentName');
+  if (nameInp && !nameInp.value) { nameInp.value = user.name; }
+}
+
+function gsiSignOut() {
+  sessionStorage.removeItem('gsiUser_proplogs');
+  var btnWrap  = document.getElementById('gsiBtnWrap');
+  var signedIn = document.getElementById('gsiSignedIn');
+  var hint     = document.getElementById('gsiHint');
+  if (btnWrap)  { btnWrap.style.display  = 'block'; }
+  if (signedIn) { signedIn.style.display = 'none'; }
+  if (hint)     { hint.style.display     = 'inline'; }
+  if (window.google && google.accounts && google.accounts.id) {
+    google.accounts.id.disableAutoSelect();
+  }
+}
+
+
+/* ─── DOM READY ─── */
+document.addEventListener('DOMContentLoaded', function() {
+
+  /* Restore GSI session */
+  var stored = sessionStorage.getItem('gsiUser_proplogs');
+  if (stored) {
+    try { _applyGsiUser(JSON.parse(stored)); } catch(e) {}
+  }
+
+  /* Auto-check selects with data-correct */
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var v = sel.value;
+      if (!v) {
+        sel.classList.remove('correct', 'incorrect');
+        updateScore();
+        return;
+      }
+      var isOk = (v === sel.getAttribute('data-correct'));
+      sel.classList.toggle('correct', isOk);
+      sel.classList.toggle('incorrect', !isOk);
+      updateScore();
+    });
+  });
+
+  /* Commutative pair listeners */
+  for (var j = 0; j < COMM_PAIRS.length; j++) {
+    (function(pairIdx) {
+      var pair = COMM_PAIRS[pairIdx];
+      for (var k = 0; k < pair.ids.length; k++) {
+        var el = document.getElementById(pair.ids[k]);
+        if (el) {
+          el.addEventListener('change', function() { checkCommPair(pairIdx); });
+        }
+      }
+    })(j);
+  }
+
+  /* Submit button */
+  document.getElementById('submitBtn').addEventListener('click', function() {
+    var name    = document.getElementById('studentName').value.trim();
+    var sid     = document.getElementById('studentId').value.trim();
+    var period  = document.getElementById('period').value.trim();
+    var teacher = document.getElementById('teacher').value;
+
+    if (!name || !teacher) {
+      document.getElementById('submitMsg').textContent =
+        'Please enter your name and select your teacher before submitting.';
+      return;
+    }
+
+    var total = 0, correct = 0;
+    document.querySelectorAll('select.ans[data-correct]').forEach(function(sel) {
+      total++;
+      if (sel.value && sel.value === sel.getAttribute('data-correct')) { correct++; }
+    });
+    var defKeys = ['product', 'quotient', 'power'];
+    for (var i = 0; i < defKeys.length; i++) {
+      total++;
+      if (DEF_STATE[defKeys[i]]) { correct++; }
+    }
+    for (var j2 = 0; j2 < COMM_PAIRS.length; j2++) {
+      var pair2 = COMM_PAIRS[j2];
+      var e0 = document.getElementById(pair2.ids[0]);
+      var e1 = document.getElementById(pair2.ids[1]);
+      if (!e0 || !e1) { continue; }
+      total++;
+      var v0 = e0.value, v1 = e1.value;
+      if (v0 && v1) {
+        var got2 = [v0, v1].slice().sort().join(',');
+        var exp2 = pair2.vals.slice().sort().join(',');
+        if (got2 === exp2) { correct++; }
+      }
+    }
+
+    var payload = {
+      worksheet:   'Properties of Logarithms',
+      studentName: name,
+      studentId:   sid,
+      period:      period,
+      teacher:     teacher,
+      seedCode:    'N/A',
+      score:       correct + '/' + total,
+      answers: {
+        total_correct:   correct,
+        total_incorrect: total - correct,
+        total_questions: total
+      }
+    };
+
+    var msg = document.getElementById('submitMsg');
+    var btn = document.getElementById('submitBtn');
+    msg.textContent = 'Submitting\u2026';
+    btn.disabled = true;
+
+    fetch(
+      'https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec',
+      {
+        method:  'POST',
+        mode:    'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+      }
+    ).then(function() {
+      msg.textContent = 'Submitted! Score: ' + correct + '/' + total;
+      btn.disabled = false;
+    }).catch(function() {
+      msg.textContent = 'Submission error \u2014 please try again.';
+      btn.disabled = false;
+    });
+  });
+
+}); /* end DOMContentLoaded */
+
+</script>
+
+<!-- KaTeX render — runs after DOM and KaTeX are both loaded -->
+<script>
+if (typeof renderMathInElement !== 'undefined') {
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: '\\(', right: '\\)', display: false },
+      { left: '\\[', right: '\\]', display: true  }
+    ],
+    throwOnError: false
+  });
+}
+</script>
+
+</body>
+</html>
