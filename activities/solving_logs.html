@@ -14,254 +14,150 @@
   --text:#1a1410;--text-muted:#6b5f52;--accent:#2d5a8e;--accent-light:#e8f0f9;
   --correct:#2a6b3c;--correct-bg:#eaf4ed;--incorrect:#8b2020;--incorrect-bg:#faeaea;
   --header-bg:#1a1410;--header-text:#faf8f4;--section-bg:#f2ede4;
-  --warn:#7a5200;--warn-bg:#fff8e8;--warn-border:#e8c96d;
+  --ribbon-w:110px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:16px;line-height:1.5;}
-
-/* ── Page Header ── */
-.page-header{background:var(--header-bg);color:var(--header-text);text-align:center;padding:18px 20px 14px;}
+.page-header{background:var(--header-bg);color:var(--header-text);text-align:center;padding:18px 20px 14px;margin-right:var(--ribbon-w);}
 .page-header h1{font-size:1.6rem;letter-spacing:0.04em;}
 .page-header p{font-size:0.9rem;color:#c8bfb0;margin-top:4px;}
-
-/* ── GSI Bar ── */
-.gsi-bar{background:var(--accent-light);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:52px;}
+.gsi-bar{background:var(--accent-light);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:52px;margin-right:var(--ribbon-w);}
 .gsi-hint{font-size:0.82rem;color:var(--text-muted);}
 .gsi-signed-in{display:none;align-items:center;gap:10px;}
 .gsi-signed-in img{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);}
 .gsi-name{font-size:0.88rem;font-weight:bold;color:var(--text);}
 .gsi-email{font-size:0.75rem;color:var(--text-muted);}
 .gsi-signout{font-size:0.76rem;padding:2px 9px;border:1px solid var(--border-strong);border-radius:3px;cursor:pointer;background:transparent;color:var(--text-muted);font-family:inherit;margin-left:4px;}
-
-/* ── Student Bar ── */
-.student-bar{background:var(--section-bg);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.student-bar{background:var(--section-bg);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-right:var(--ribbon-w);}
 .student-bar label{font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
 .student-bar input,.student-bar select{font-size:0.9rem;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);}
 .student-bar input{width:160px;}
 .student-bar .period-inp{width:70px;}
 .student-bar select{width:130px;}
-
-/* ── Page Layout ── */
-.page-layout{display:flex;align-items:flex-start;}
-
-/* ── Main Content ── */
-.main-content{flex:1;min-width:0;padding:20px 22px 60px;max-width:900px;}
-
-/* ── Sticky Ribbon ── */
-.sticky-panel{
-  width:110px;flex-shrink:0;position:sticky;top:0;height:100vh;
-  display:flex;flex-direction:column;align-items:stretch;
-  background:var(--header-bg);overflow-y:auto;overflow-x:hidden;
-}
-.ribbon-btn{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;padding:10px 6px;border:none;background:transparent;cursor:pointer;
-  color:var(--header-text);font-family:inherit;transition:background .15s;
-  width:100%;
-}
+.main-content{padding:20px 22px 60px;margin-right:var(--ribbon-w);}
+/* Fixed Ribbon */
+.sticky-panel{position:fixed;right:0;top:0;height:100vh;width:var(--ribbon-w);display:flex;flex-direction:column;align-items:stretch;background:var(--header-bg);z-index:200;overflow-y:auto;overflow-x:hidden;}
+.ribbon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:11px 6px;border:none;background:transparent;cursor:pointer;color:var(--header-text);font-family:inherit;transition:background .15s;width:100%;}
 .ribbon-btn:hover{background:rgba(255,255,255,0.1);}
 .ribbon-btn:active{background:rgba(255,255,255,0.18);}
-.ribbon-btn .rb-icon{font-size:1.25rem;line-height:1;}
-.ribbon-btn .rb-label{font-size:0.62rem;font-family:'Arial',sans-serif;letter-spacing:0.06em;
-  text-transform:uppercase;color:rgba(255,255,255,0.75);text-align:center;line-height:1.2;}
+.rb-icon{font-size:1.3rem;line-height:1;}
+.rb-label{font-size:0.6rem;font-family:'Arial',sans-serif;letter-spacing:0.06em;text-transform:uppercase;color:rgba(255,255,255,0.72);text-align:center;line-height:1.2;}
 .ribbon-btn--video .rb-icon{color:#f0c040;}
-.ribbon-btn--save  .rb-icon{color:#7ee8a2;}
-.ribbon-btn--load  .rb-icon{color:#7ab8f5;}
-.ribbon-divider{height:1px;background:rgba(255,255,255,0.12);margin:2px 10px;}
-.ribbon-score{
-  padding:10px 6px 6px;text-align:center;
-  font-family:'Arial',sans-serif;
-}
+.ribbon-btn--save .rb-icon{color:#7ee8a2;}
+.ribbon-btn--load .rb-icon{color:#7ab8f5;}
+.ribbon-divider{height:1px;background:rgba(255,255,255,0.12);margin:2px 10px;flex-shrink:0;}
+.ribbon-score{padding:10px 6px 6px;text-align:center;font-family:'Arial',sans-serif;}
 .ribbon-score-num{font-size:1.05rem;font-weight:bold;color:#fff;line-height:1;}
-.ribbon-score-lbl{font-size:0.58rem;color:rgba(255,255,255,0.55);text-transform:uppercase;
-  letter-spacing:0.06em;margin-top:3px;}
-.ribbon-autosave{
-  font-size:0.6rem;font-family:'Arial',sans-serif;color:rgba(255,255,255,0.45);
-  text-align:center;padding:4px 6px 8px;line-height:1.3;word-break:break-word;
-  transition:color .4s;
-}
+.ribbon-score-lbl{font-size:0.57rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.ribbon-autosave{font-size:0.58rem;font-family:'Arial',sans-serif;color:rgba(255,255,255,0.4);text-align:center;padding:3px 6px 8px;line-height:1.35;word-break:break-word;transition:color .4s;}
 .ribbon-autosave.flash{color:#7ee8a2;}
-
-/* ── Floating video modal ── */
-.float-window{
-  position:fixed;width:560px;height:360px;
-  min-width:300px;min-height:200px;max-width:95vw;max-height:95vh;
-  background:#000;border-radius:6px;
-  box-shadow:0 8px 40px rgba(0,0,0,.45);z-index:1000;
-  display:none;flex-direction:column;overflow:hidden;
-}
+/* Floating Windows */
+.float-window{position:fixed;width:560px;height:370px;min-width:300px;min-height:220px;max-width:95vw;max-height:92vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.45);z-index:1000;display:none;flex-direction:column;overflow:hidden;}
 .float-window.open{display:flex;}
-.float-win-header{
-  background:var(--header-bg);color:var(--header-text);
-  padding:8px 12px;display:flex;justify-content:space-between;align-items:center;
-  cursor:move;user-select:none;touch-action:none;flex-shrink:0;
-}
+.float-win-header{background:var(--header-bg);color:var(--header-text);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:move;user-select:none;touch-action:none;flex-shrink:0;}
 .float-win-title{font-size:0.8rem;letter-spacing:0.06em;font-family:'Arial',sans-serif;}
-.float-win-close{
-  background:none;border:none;color:var(--header-text);
-  font-size:1.1rem;cursor:pointer;padding:2px 6px;line-height:1;opacity:0.8;
-}
+.float-win-close{background:none;border:none;color:var(--header-text);font-size:1.1rem;cursor:pointer;padding:2px 6px;line-height:1;opacity:0.8;}
 .float-win-close:hover{opacity:1;}
-.float-win-body{flex:1;background:#000;position:relative;overflow:hidden;}
-.float-win-body iframe{width:100%;height:100%;border:0;display:block;}
-.resize-handle{
-  position:absolute;bottom:0;right:0;width:20px;height:20px;
-  cursor:nwse-resize;z-index:10;touch-action:none;
-  background:linear-gradient(135deg,transparent 0 55%,rgba(255,255,255,.4) 55% 62%,transparent 62% 72%,rgba(255,255,255,.4) 72% 79%,transparent 79%);
-}
-
-/* ── Section Header ── */
-.section-header{
-  background:var(--header-bg);color:var(--header-text);padding:10px 16px;
-  margin:24px 0 0;border-radius:4px 4px 0 0;
-  font-size:0.85rem;letter-spacing:0.09em;font-family:'Arial',sans-serif;font-weight:bold;
-}
+.float-win-body--video{flex:1;background:#000;position:relative;overflow:hidden;}
+.float-win-body--video iframe{width:100%;height:100%;border:0;display:block;}
+.float-win-body--sol{flex:1;background:var(--accent-light);overflow-y:auto;position:relative;}
+.sol-inner{padding:14px 16px 16px;}
+.resize-handle{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:10;touch-action:none;background:linear-gradient(135deg,transparent 0 55%,rgba(100,100,100,.35) 55% 62%,transparent 62% 72%,rgba(100,100,100,.35) 72% 79%,transparent 79%);}
+/* Section */
+.section-header{background:var(--header-bg);color:var(--header-text);padding:10px 16px;margin:24px 0 0;border-radius:4px 4px 0 0;font-size:0.85rem;letter-spacing:0.09em;font-family:'Arial',sans-serif;font-weight:bold;}
 .section-subtitle{font-size:0.75rem;color:#c8bfb0;font-weight:normal;letter-spacing:0.04em;margin-top:2px;}
-
-/* ── Problems Block ── */
 .problems-block{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;background:var(--surface);padding:14px 12px 12px;}
-
-/* ── Steps List ── */
 .steps-list{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px;margin-bottom:14px;}
 .step-item{font-size:0.84rem;font-family:'Arial',sans-serif;margin-bottom:3px;display:flex;gap:7px;align-items:baseline;}
 .step-item:last-child{margin-bottom:0;}
-.step-circle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
-  border-radius:50%;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:bold;
-  flex-shrink:0;margin-top:1px;}
-
-/* ── Worked Example ── */
-.worked-example{
-  background:var(--accent-light);border:2px solid var(--accent);border-radius:6px;
-  margin-bottom:14px;overflow:hidden;
-}
-.we-header{
-  background:var(--accent);color:#fff;padding:8px 14px;
-  display:flex;align-items:center;gap:8px;
-}
-.we-pencil{font-size:1rem;}
-.we-header-text{font-size:0.8rem;font-family:'Arial',sans-serif;font-weight:bold;letter-spacing:0.08em;}
-.we-problem-label{font-size:0.78rem;color:rgba(255,255,255,0.8);margin-left:auto;font-family:'Arial',sans-serif;}
-.we-body{padding:14px 16px 12px;}
-.we-stem{
-  font-size:1.08rem;margin-bottom:13px;text-align:center;
-  padding:9px 12px;background:#fff;border-radius:4px;border:1px solid var(--border);
-}
-.step-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
-.step-badge{
-  width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;
-  font-size:0.7rem;font-family:'Arial',sans-serif;font-weight:bold;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;
-}
-.step-body{flex:1;}
-.step-desc{font-size:0.74rem;font-family:'Arial',sans-serif;color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;}
-.step-math{font-size:0.96rem;line-height:1.75;}
-.math-line{display:block;}
-
-.we-check{
-  background:#fff;border:1px solid var(--border);border-radius:4px;
-  padding:8px 11px;margin-top:6px;
-}
-.we-check-lbl{font-size:0.71rem;font-family:'Arial',sans-serif;text-transform:uppercase;
-  letter-spacing:0.07em;color:var(--text-muted);margin-bottom:5px;}
-.check-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:0.85rem;line-height:1.5;}
-.check-icon{flex-shrink:0;font-size:0.88rem;margin-top:1px;}
-.check-note{font-size:0.8rem;font-family:'Arial',sans-serif;margin-top:4px;}
-.check-note.bad{color:var(--incorrect);}
-.check-note.good{color:var(--correct);}
-
-.we-result{
-  border-radius:4px;padding:8px 12px;font-size:0.9rem;font-family:'Arial',sans-serif;
-  font-weight:bold;margin-top:10px;text-align:center;
-}
-.we-result.no-sol{background:var(--incorrect-bg);color:var(--incorrect);border:1px solid var(--incorrect);}
-.we-result.sol{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct);}
-
-/* ── Problem Grid ── */
-.problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0;}
+.step-circle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:bold;flex-shrink:0;margin-top:1px;}
+/* Problem Grid */
+.problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .problem-cell{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;}
-.prob-num{font-size:0.7rem;font-weight:bold;color:var(--text-muted);margin-bottom:5px;
-  font-family:'Arial',sans-serif;letter-spacing:0.06em;}
+.problem-cell.is-worked{border-color:var(--accent);background:var(--accent-light);}
+.prob-num{font-size:0.7rem;font-weight:bold;color:var(--text-muted);margin-bottom:5px;font-family:'Arial',sans-serif;letter-spacing:0.06em;}
+.prob-num.worked-label{color:var(--accent);}
 .prob-stem{font-size:0.97rem;margin-bottom:10px;min-height:1.5em;}
 .ans-label{font-size:0.73rem;font-family:'Arial',sans-serif;color:var(--text-muted);margin-bottom:3px;}
-select.ans{
-  font-size:0.88rem;padding:4px 6px;border:2px solid var(--border-strong);border-radius:3px;
-  background:#fff;color:var(--text);cursor:pointer;width:100%;
-  transition:border-color .15s,background .15s;
-}
+select.ans{font-size:0.88rem;padding:4px 6px;border:2px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);cursor:pointer;width:100%;transition:border-color .15s,background .15s;}
 select.ans.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
 select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg);color:var(--incorrect);}
 .feedback{font-size:0.75rem;margin-top:4px;font-family:'Arial',sans-serif;min-height:1em;display:block;}
 .feedback.correct{color:var(--correct);}
 .feedback.incorrect{color:var(--incorrect);}
-
-/* ── Score / Submit ── */
-#score-bar{
-  background:var(--accent-light);border:1px solid var(--border);border-radius:4px;
-  padding:9px 16px;font-size:0.95rem;color:var(--accent);font-family:'Arial',sans-serif;
-  margin-top:20px;display:none;
-}
+.view-sol-btn{display:inline-flex;align-items:center;gap:5px;margin-top:4px;background:var(--accent);color:#fff;border:none;border-radius:3px;padding:6px 12px;font-size:0.82rem;font-family:inherit;cursor:pointer;letter-spacing:0.02em;transition:opacity .15s;}
+.view-sol-btn:hover{opacity:0.85;}
+/* Worked example (inside modal) */
+.we-stem{font-size:1.05rem;margin-bottom:13px;text-align:center;padding:9px 12px;background:#fff;border-radius:4px;border:1px solid var(--border);}
+.step-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
+.step-badge{width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;font-size:0.7rem;font-family:'Arial',sans-serif;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;}
+.step-body{flex:1;}
+.step-desc{font-size:0.73rem;font-family:'Arial',sans-serif;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;}
+.step-math{font-size:0.95rem;line-height:1.75;}
+.math-line{display:block;}
+.we-check{background:#fff;border:1px solid var(--border);border-radius:4px;padding:8px 11px;margin-top:6px;}
+.we-check-lbl{font-size:0.7rem;font-family:'Arial',sans-serif;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:5px;}
+.check-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:0.85rem;line-height:1.5;}
+.check-icon{flex-shrink:0;font-size:0.88rem;margin-top:1px;}
+.check-note{font-size:0.79rem;font-family:'Arial',sans-serif;margin-top:4px;}
+.check-note.bad{color:var(--incorrect);}
+.check-note.good{color:var(--correct);}
+.we-result{border-radius:4px;padding:8px 12px;font-size:0.9rem;font-family:'Arial',sans-serif;font-weight:bold;margin-top:12px;text-align:center;}
+.we-result.no-sol{background:var(--incorrect-bg);color:var(--incorrect);border:1px solid var(--incorrect);}
+.we-result.sol{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct);}
+/* Score / Submit */
+#score-bar{background:var(--accent-light);border:1px solid var(--border);border-radius:4px;padding:9px 16px;font-size:0.95rem;color:var(--accent);font-family:'Arial',sans-serif;margin-top:20px;display:none;}
 .submit-wrap{margin-top:18px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-#submitBtn{
-  background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:4px;
-  font-size:1rem;cursor:pointer;font-family:inherit;letter-spacing:0.03em;
-}
+#submitBtn{background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:4px;font-size:1rem;cursor:pointer;font-family:inherit;letter-spacing:0.03em;}
 #submitBtn:hover{opacity:0.9;}
 #submitBtn:disabled{opacity:0.6;cursor:default;}
 #submitMsg{font-size:0.85rem;color:var(--text-muted);font-family:'Arial',sans-serif;}
-
-/* ── Responsive ── */
-@media(max-width:700px){
-  .page-layout{flex-direction:column-reverse;}
+@media(max-width:680px){
+  :root{--ribbon-w:0px;}
   .sticky-panel{position:static;width:100%;height:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;padding:4px 0;}
-  .ribbon-divider{width:1px;height:auto;margin:6px 0;}
+  .ribbon-divider{width:1px;height:28px;margin:0 2px;}
   .problem-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════ VIDEO MODAL ═══ -->
 <div class="float-window" id="videoModal">
   <div class="float-win-header" id="videoModalHeader">
     <span class="float-win-title">&#9654;&nbsp; Solving Logarithmic Equations &mdash; Video</span>
     <button class="float-win-close" onclick="closeVideoModal()">&#x2715;</button>
   </div>
-  <div class="float-win-body" id="videoModalBody">
-    <!-- iframe injected on open -->
+  <div class="float-win-body--video" id="videoModalBody"></div>
+</div>
+
+<div class="float-window" id="solutionModal" style="width:580px;height:500px;">
+  <div class="float-win-header" id="solutionModalHeader">
+    <span class="float-win-title" id="solutionModalTitle">&#9998; Worked Example</span>
+    <button class="float-win-close" onclick="closeSolutionModal()">&#x2715;</button>
+  </div>
+  <div class="float-win-body--sol" id="solutionModalBody">
+    <div class="resize-handle" id="solutionResizeHandle"></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ PAGE HEADER ═══ -->
 <div class="page-header">
   <h1>Solving Logarithmic Equations</h1>
   <p>Algebra II &middot; Dallas ISD</p>
 </div>
 
-<!-- ═══════════════════════════════════ GSI BAR ═══ -->
 <div class="gsi-bar" id="gsiBar">
   <div id="gsiBtnWrap">
-    <div id="g_id_onload"
-      data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com"
-      data-callback="handleGoogleSignIn"
-      data-auto_prompt="false"></div>
-    <div class="g_id_signin"
-      data-type="standard" data-shape="rectangular" data-theme="outline"
-      data-text="sign_in_with" data-size="medium" data-logo_alignment="left"></div>
+    <div id="g_id_onload" data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com" data-callback="handleGoogleSignIn" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="sign_in_with" data-size="medium" data-logo_alignment="left"></div>
   </div>
   <div class="gsi-signed-in" id="gsiSignedIn">
     <img id="gsiAvatar" src="" alt="" style="display:none;">
-    <div>
-      <div class="gsi-name" id="gsiName"></div>
-      <div class="gsi-email" id="gsiEmail"></div>
-    </div>
+    <div><div class="gsi-name" id="gsiName"></div><div class="gsi-email" id="gsiEmail"></div></div>
     <button class="gsi-signout" onclick="gsiSignOut()">sign out</button>
   </div>
   <span class="gsi-hint" id="gsiHint">Sign in with your school Google account to auto-fill your name.</span>
 </div>
 
-<!-- ═══════════════════════════════════ STUDENT BAR ═══ -->
 <div class="student-bar">
   <label>Name: <input type="text" id="studentName" placeholder="Last, First"></label>
   <label>Student ID: <input type="text" id="studentId" placeholder="ID Number"></label>
@@ -278,548 +174,335 @@ select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg
   </label>
 </div>
 
-<!-- ═══════════════════════════════════ PAGE LAYOUT ═══ -->
-<div class="page-layout">
+<aside class="sticky-panel">
+  <button class="ribbon-btn ribbon-btn--video" onclick="openVideoModal()" title="Watch instructional video">
+    <span class="rb-icon">&#9654;</span>
+    <span class="rb-label">Video</span>
+  </button>
+  <div class="ribbon-divider"></div>
+  <button class="ribbon-btn ribbon-btn--save" onclick="manualSave()" title="Save progress">
+    <span class="rb-icon">&#x1F4BE;</span>
+    <span class="rb-label">Save</span>
+  </button>
+  <button class="ribbon-btn ribbon-btn--load" onclick="loadProgress()" title="Load saved progress">
+    <span class="rb-icon">&#x1F4C2;</span>
+    <span class="rb-label">Load</span>
+  </button>
+  <div class="ribbon-autosave" id="saveStatus"></div>
+  <div class="ribbon-divider"></div>
+  <div class="ribbon-score">
+    <div class="ribbon-score-num" id="panelScore">&mdash;</div>
+    <div class="ribbon-score-lbl">Score</div>
+  </div>
+</aside>
 
-  <!-- ─────────────── MAIN CONTENT ─────────────── -->
-  <main class="main-content">
+<main class="main-content">
 
-    <!-- ══════════════════════════════════════════════
-         TYPE 1 : LOG = LOG
-    ══════════════════════════════════════════════ -->
-    <div class="section-header">
-      TYPE 1 &mdash; LOG = LOG
-      <div class="section-subtitle">Condense &rarr; One-to-One Property &rarr; Solve &rarr; Check</div>
+  <div class="section-header">TYPE 1 &mdash; LOG = LOG<div class="section-subtitle">Condense &rarr; One-to-One Property &rarr; Solve &rarr; Check</div></div>
+  <div class="problems-block">
+    <div class="steps-list">
+      <div class="step-item"><span class="step-circle">1</span><span><strong>CONDENSE</strong> each side into a single logarithm if needed.</span></div>
+      <div class="step-item"><span class="step-circle">2</span><span><strong>One-to-One Property:</strong> If \(\log_b m = \log_b n\), then \(m = n\).</span></div>
+      <div class="step-item"><span class="step-circle">3</span><span><strong>SOLVE</strong> and <strong>CHECK FOR EXTRANEOUS SOLUTIONS</strong> &mdash; arguments must be positive.</span></div>
     </div>
-    <div class="problems-block">
-
-      <!-- Steps -->
-      <div class="steps-list">
-        <div class="step-item"><span class="step-circle">1</span><span><strong>CONDENSE</strong> each side into a single logarithm if needed.</span></div>
-        <div class="step-item"><span class="step-circle">2</span><span><strong>One-to-One Property:</strong> If \(\log_b m = \log_b n\), then \(m = n\).</span></div>
-        <div class="step-item"><span class="step-circle">3</span><span><strong>SOLVE</strong> and <strong>CHECK FOR EXTRANEOUS SOLUTIONS</strong> &mdash; arguments must be positive.</span></div>
+    <div class="problem-grid">
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 1</div>
+        <div class="prob-stem">\(\log_5(5x+9) = \log_5(6x)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p1" data-correct="x9">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="x3">x = 3</option>
+          <option value="x9">x = 9</option>
+          <option value="xn9">x = &minus;9</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p1"></span>
       </div>
-
-      <!-- ── WORKED EXAMPLE: Problem 3 ── -->
-      <div class="worked-example">
-        <div class="we-header">
-          <span class="we-pencil">&#9998;</span>
-          <span class="we-header-text">WORKED EXAMPLE</span>
-          <span class="we-problem-label">Problem 3</span>
-        </div>
-        <div class="we-body">
-          <div class="we-stem">\(\log_9(6-3w) = \log_9(-2w)\)</div>
-
-          <div class="step-row">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-desc">Already condensed — same base on both sides</div>
-              <div class="step-math">Both sides use \(\log_9\), so we can apply the One-to-One Property directly.</div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-desc">One-to-One Property — set arguments equal</div>
-              <div class="step-math">
-                <span class="math-line">\(6 - 3w = -2w\)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-desc">Solve for w</div>
-              <div class="step-math">
-                <span class="math-line">\(6 = -2w + 3w\)</span>
-                <span class="math-line">\(w = 6\)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">4</div>
-            <div class="step-body">
-              <div class="step-desc">Check for extraneous solutions — substitute w = 6</div>
-              <div class="we-check">
-                <div class="we-check-lbl">Substitute w = 6 into original:</div>
-                <div class="check-item">
-                  <span class="check-icon">&#x2717;</span>
-                  <span>LHS: \(\log_9(6-3(6)) = \log_9(6-18) = \log_9(-12)\) &nbsp;&rarr;&nbsp; <strong>undefined</strong></span>
-                </div>
-                <div class="check-item">
-                  <span class="check-icon">&#x2717;</span>
-                  <span>RHS: \(\log_9(-2(6)) = \log_9(-12)\) &nbsp;&rarr;&nbsp; <strong>undefined</strong></span>
-                </div>
-                <div class="check-note bad">w = 6 produces a negative argument in both logs &rarr; Extraneous!</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="we-result no-sol">&#x1F6AB; No Solution &mdash; the only candidate was extraneous</div>
-        </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 2</div>
+        <div class="prob-stem">\(\log_2(1-4n) = \log_2(2n+43)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p2" data-correct="nn7">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="n7">n = 7</option>
+          <option value="nn6">n = &minus;6</option>
+          <option value="nn7">n = &minus;7</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p2"></span>
       </div>
-
-      <!-- ── PRACTICE PROBLEMS: Type 1 ── -->
-      <div class="problem-grid">
-
-        <!-- P1 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 1</div>
-          <div class="prob-stem">\(\log_5(5x+9) = \log_5(6x)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p1" data-correct="x9">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="x3">x = 3</option>
-            <option value="x9">x = 9</option>
-            <option value="xn9">x = &minus;9</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p1"></span>
-        </div>
-
-        <!-- P2 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 2</div>
-          <div class="prob-stem">\(\log_2(1-4n) = \log_2(2n+43)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p2" data-correct="nn7">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="n7">n = 7</option>
-            <option value="nn6">n = &minus;6</option>
-            <option value="nn7">n = &minus;7</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p2"></span>
-        </div>
-
-        <!-- P4 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 4</div>
-          <div class="prob-stem">\(\log(y+5)+\log 4 = \log 72\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p4" data-correct="y13">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="y3">y = 3</option>
-            <option value="y13">y = 13</option>
-            <option value="y18">y = 18</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p4"></span>
-        </div>
-
-        <!-- P5 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 5</div>
-          <div class="prob-stem">\(3 \cdot \log_7 4 = \log_7(4a-8)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p5" data-correct="a18">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="a6">a = 6</option>
-            <option value="a9">a = 9</option>
-            <option value="a18">a = 18</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p5"></span>
-        </div>
-
-        <!-- P6 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 6</div>
-          <div class="prob-stem">\(\log_4 68 - \log_4 4 = \log_4(3n+11)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p6" data-correct="n2">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="n2">n = 2</option>
-            <option value="n5">n = 5</option>
-            <option value="n17">n = 17</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p6"></span>
-        </div>
-
-        <!-- P7 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 7</div>
-          <div class="prob-stem">\(\dfrac{1}{2} \cdot \log_6 25 = \log_6(23-4w)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p7" data-correct="w92">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="w3">w = 3</option>
-            <option value="w92">w = 9/2</option>
-            <option value="w18">w = 18</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p7"></span>
-        </div>
-
-        <!-- P8 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 8</div>
-          <div class="prob-stem">\(\log_3(2p-5) = 2 \cdot \log_3 6 - \log_3 4\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p8" data-correct="p7">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="p2">p = 2</option>
-            <option value="p7">p = 7</option>
-            <option value="p9">p = 9</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p8"></span>
-        </div>
-
-        <!-- P9 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 9</div>
-          <div class="prob-stem">\(\log_4(m^2) = \log_4(18-7m)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p9" data-correct="both9">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="m2">m = 2 only</option>
-            <option value="mn9">m = &minus;9 only</option>
-            <option value="both9">m = 2 or m = &minus;9</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p9"></span>
-        </div>
-
-        <!-- P10 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 10</div>
-          <div class="prob-stem">\(\log 2 + \log(k^2) = \log(k^2+16)\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p10" data-correct="both10">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="k4">k = 4 only</option>
-            <option value="kn4">k = &minus;4 only</option>
-            <option value="both10">k = 4 or k = &minus;4</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p10"></span>
-        </div>
-
-      </div><!-- /.problem-grid -->
-    </div><!-- /.problems-block -->
-
-
-    <!-- ══════════════════════════════════════════════
-         TYPE 2 : LOG = NUMBER
-    ══════════════════════════════════════════════ -->
-    <div class="section-header">
-      TYPE 2 &mdash; LOG = NUMBER
-      <div class="section-subtitle">Condense &amp; Isolate &rarr; Exponential Form &rarr; Solve &rarr; Check</div>
+      <div class="problem-cell is-worked">
+        <div class="prob-num worked-label">PROBLEM 3 &mdash; WORKED EXAMPLE</div>
+        <div class="prob-stem">\(\log_9(6-3w) = \log_9(-2w)\)</div>
+        <button class="view-sol-btn" onclick="openSolutionModal(3)">&#9998;&nbsp; View Worked Solution</button>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 4</div>
+        <div class="prob-stem">\(\log(y+5)+\log 4 = \log 72\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p4" data-correct="y13">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="y3">y = 3</option>
+          <option value="y13">y = 13</option>
+          <option value="y18">y = 18</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p4"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 5</div>
+        <div class="prob-stem">\(3 \cdot \log_7 4 = \log_7(4a-8)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p5" data-correct="a18">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="a6">a = 6</option>
+          <option value="a9">a = 9</option>
+          <option value="a18">a = 18</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p5"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 6</div>
+        <div class="prob-stem">\(\log_4 68 - \log_4 4 = \log_4(3n+11)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p6" data-correct="n2">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="n2">n = 2</option>
+          <option value="n5">n = 5</option>
+          <option value="n17">n = 17</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p6"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 7</div>
+        <div class="prob-stem">\(\dfrac{1}{2} \cdot \log_6 25 = \log_6(23-4w)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p7" data-correct="w92">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="w3">w = 3</option>
+          <option value="w92">w = 9/2</option>
+          <option value="w18">w = 18</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p7"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 8</div>
+        <div class="prob-stem">\(\log_3(2p-5) = 2 \cdot \log_3 6 - \log_3 4\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p8" data-correct="p7">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="p2">p = 2</option>
+          <option value="p7">p = 7</option>
+          <option value="p9">p = 9</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p8"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 9</div>
+        <div class="prob-stem">\(\log_4(m^2) = \log_4(18-7m)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p9" data-correct="both9">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="m2">m = 2 only</option>
+          <option value="mn9">m = &minus;9 only</option>
+          <option value="both9">m = 2 or m = &minus;9</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p9"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 10</div>
+        <div class="prob-stem">\(\log 2 + \log(k^2) = \log(k^2+16)\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p10" data-correct="both10">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="k4">k = 4 only</option>
+          <option value="kn4">k = &minus;4 only</option>
+          <option value="both10">k = 4 or k = &minus;4</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p10"></span>
+      </div>
     </div>
-    <div class="problems-block">
+  </div>
 
-      <!-- Steps -->
-      <div class="steps-list">
-        <div class="step-item"><span class="step-circle">1</span><span><strong>CONDENSE</strong> and <strong>ISOLATE</strong> the logarithm on one side.</span></div>
-        <div class="step-item"><span class="step-circle">2</span><span>Write the equation in <strong>exponential form</strong>: \(\log_b x = n \;\Rightarrow\; b^n = x\).</span></div>
-        <div class="step-item"><span class="step-circle">3</span><span><strong>SOLVE</strong> and <strong>CHECK FOR EXTRANEOUS SOLUTIONS</strong> &mdash; arguments must be positive.</span></div>
-      </div>
-
-      <!-- ── WORKED EXAMPLE: Problem 13 ── -->
-      <div class="worked-example">
-        <div class="we-header">
-          <span class="we-pencil">&#9998;</span>
-          <span class="we-header-text">WORKED EXAMPLE</span>
-          <span class="we-problem-label">Problem 13</span>
-        </div>
-        <div class="we-body">
-          <div class="we-stem">\(\log(2x) + \log(x-5) = 2\)</div>
-
-          <div class="step-row">
-            <div class="step-badge">1</div>
-            <div class="step-body">
-              <div class="step-desc">Condense — Product Property</div>
-              <div class="step-math">
-                <span class="math-line">\(\log\!\bigl(2x \cdot (x-5)\bigr) = 2\)</span>
-                <span class="math-line">\(\log(2x^2 - 10x) = 2\)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">2</div>
-            <div class="step-body">
-              <div class="step-desc">Exponential form (base 10)</div>
-              <div class="step-math">
-                <span class="math-line">\(2x^2 - 10x = 10^2 = 100\)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">3</div>
-            <div class="step-body">
-              <div class="step-desc">Solve the quadratic</div>
-              <div class="step-math">
-                <span class="math-line">\(2x^2 - 10x - 100 = 0\)</span>
-                <span class="math-line">\(x^2 - 5x - 50 = 0\)</span>
-                <span class="math-line">\((x-10)(x+5) = 0\)</span>
-                <span class="math-line">\(x = 10 \quad\text{or}\quad x = -5\)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="step-row">
-            <div class="step-badge">4</div>
-            <div class="step-body">
-              <div class="step-desc">Check for extraneous solutions</div>
-              <div class="we-check">
-                <div class="we-check-lbl">Substitute each candidate:</div>
-                <div class="check-item">
-                  <span class="check-icon">&#x2713;</span>
-                  <span>x = 10: \(\log(20)+\log(5) = \log(100) = 2\) &nbsp;&#x2713;</span>
-                </div>
-                <div class="check-item">
-                  <span class="check-icon">&#x2717;</span>
-                  <span>x = &minus;5: \(\log\!\bigl(2(-5)\bigr) = \log(-10)\) &nbsp;&rarr;&nbsp; <strong>undefined</strong></span>
-                </div>
-                <div class="check-note bad">x = &minus;5 produces a negative argument &rarr; Extraneous!</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="we-result sol">&#x2713; Solution: x = 10</div>
-        </div>
-      </div>
-
-      <!-- ── PRACTICE PROBLEMS: Type 2 ── -->
-      <div class="problem-grid">
-
-        <!-- P11 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 11</div>
-          <div class="prob-stem">\(\log_2(x-4) = 6\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p11" data-correct="x68">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="x32">x = 32</option>
-            <option value="x64">x = 64</option>
-            <option value="x68">x = 68</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p11"></span>
-        </div>
-
-        <!-- P12 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 12</div>
-          <div class="prob-stem">\(\log_3(4x+8)-7 = -3\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p12" data-correct="x734">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="x18">x = 18</option>
-            <option value="x20">x = 20</option>
-            <option value="x734">x = 73/4</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p12"></span>
-        </div>
-
-        <!-- P14 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 14</div>
-          <div class="prob-stem">\(2 \cdot \log x - \log 4 = 2\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p14" data-correct="x20">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="xn20">x = &minus;20</option>
-            <option value="x20">x = 20</option>
-            <option value="xpm20">x = &plusmn;20</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p14"></span>
-        </div>
-
-        <!-- P15 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 15</div>
-          <div class="prob-stem">\(\log_6(x+9)+\log_6 x = 2\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p15" data-correct="x3">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="xn12">x = &minus;12</option>
-            <option value="x3">x = 3</option>
-            <option value="xboth">x = 3 or x = &minus;12</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p15"></span>
-        </div>
-
-        <!-- P16 -->
-        <div class="problem-cell">
-          <div class="prob-num">PROBLEM 16</div>
-          <div class="prob-stem">\(\log(x-3)+\log x = 1\)</div>
-          <div class="ans-label">Solution:</div>
-          <select class="ans" id="p16" data-correct="x5">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="xn2">x = &minus;2</option>
-            <option value="x5">x = 5</option>
-            <option value="xboth">x = 5 or x = &minus;2</option>
-            <option value="ns">No solution</option>
-          </select>
-          <span class="feedback" id="fb_p16"></span>
-        </div>
-
-      </div><!-- /.problem-grid -->
-    </div><!-- /.problems-block -->
-
-    <!-- Score Bar -->
-    <div id="score-bar"></div>
-
-    <!-- Submit -->
-    <div class="submit-wrap">
-      <button id="submitBtn">Submit</button>
-      <span id="submitMsg"></span>
+  <div class="section-header">TYPE 2 &mdash; LOG = NUMBER<div class="section-subtitle">Condense &amp; Isolate &rarr; Exponential Form &rarr; Solve &rarr; Check</div></div>
+  <div class="problems-block">
+    <div class="steps-list">
+      <div class="step-item"><span class="step-circle">1</span><span><strong>CONDENSE</strong> and <strong>ISOLATE</strong> the logarithm on one side.</span></div>
+      <div class="step-item"><span class="step-circle">2</span><span>Write the equation in <strong>exponential form</strong>: \(\log_b x = n \;\Rightarrow\; b^n = x\).</span></div>
+      <div class="step-item"><span class="step-circle">3</span><span><strong>SOLVE</strong> and <strong>CHECK FOR EXTRANEOUS SOLUTIONS</strong> &mdash; arguments must be positive.</span></div>
     </div>
-
-  </main><!-- /.main-content -->
-
-
-  <!-- ─────────────── STICKY RIBBON ─────────────── -->
-  <aside class="sticky-panel">
-
-    <!-- Video -->
-    <button class="ribbon-btn ribbon-btn--video" onclick="openVideoModal()" title="Watch instructional video">
-      <span class="rb-icon">&#9654;</span>
-      <span class="rb-label">Video</span>
-    </button>
-
-    <div class="ribbon-divider"></div>
-
-    <!-- Save -->
-    <button class="ribbon-btn ribbon-btn--save" onclick="manualSave()" title="Save progress">
-      <span class="rb-icon">&#x1F4BE;</span>
-      <span class="rb-label">Save</span>
-    </button>
-
-    <!-- Load -->
-    <button class="ribbon-btn ribbon-btn--load" onclick="loadProgress()" title="Load saved progress">
-      <span class="rb-icon">&#x1F4C2;</span>
-      <span class="rb-label">Load</span>
-    </button>
-
-    <!-- Autosave status -->
-    <div class="ribbon-autosave" id="saveStatus"></div>
-
-    <div class="ribbon-divider"></div>
-
-    <!-- Score -->
-    <div class="ribbon-score">
-      <div class="ribbon-score-num" id="panelScore">&mdash;</div>
-      <div class="ribbon-score-lbl">Score</div>
+    <div class="problem-grid">
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 11</div>
+        <div class="prob-stem">\(\log_2(x-4) = 6\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p11" data-correct="x68">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="x32">x = 32</option>
+          <option value="x64">x = 64</option>
+          <option value="x68">x = 68</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p11"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 12</div>
+        <div class="prob-stem">\(\log_3(4x+8)-7 = -3\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p12" data-correct="x734">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="x18">x = 18</option>
+          <option value="x20">x = 20</option>
+          <option value="x734">x = 73/4</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p12"></span>
+      </div>
+      <div class="problem-cell is-worked">
+        <div class="prob-num worked-label">PROBLEM 13 &mdash; WORKED EXAMPLE</div>
+        <div class="prob-stem">\(\log(2x) + \log(x-5) = 2\)</div>
+        <button class="view-sol-btn" onclick="openSolutionModal(13)">&#9998;&nbsp; View Worked Solution</button>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 14</div>
+        <div class="prob-stem">\(2 \cdot \log x - \log 4 = 2\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p14" data-correct="x20">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="xn20">x = &minus;20</option>
+          <option value="x20">x = 20</option>
+          <option value="xpm20">x = &plusmn;20</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p14"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 15</div>
+        <div class="prob-stem">\(\log_6(x+9)+\log_6 x = 2\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p15" data-correct="x3">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="xn12">x = &minus;12</option>
+          <option value="x3">x = 3</option>
+          <option value="xboth">x = 3 or x = &minus;12</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p15"></span>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 16</div>
+        <div class="prob-stem">\(\log(x-3)+\log x = 1\)</div>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p16" data-correct="x5">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="xn2">x = &minus;2</option>
+          <option value="x5">x = 5</option>
+          <option value="xboth">x = 5 or x = &minus;2</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p16"></span>
+      </div>
     </div>
+  </div>
 
-  </aside>
+  <div id="score-bar"></div>
+  <div class="submit-wrap">
+    <button id="submitBtn">Submit</button>
+    <span id="submitMsg"></span>
+  </div>
 
-</div><!-- /.page-layout -->
-
+</main>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   SAVE / LOAD / AUTOSAVE
-═══════════════════════════════════════════════════ */
-var SAVE_KEY = 'solvingLogs_v1';
-var _hasSavedOnce = false;
-var _autoSaveTimer = null;
+var SOLUTION_HTML = {};
 
-function _collectState() {
-  var state = { v: 1, name: '', sid: '', period: '', teacher: '', answers: {} };
-  var el;
-  el = document.getElementById('studentName');  if (el) state.name    = el.value;
-  el = document.getElementById('studentId');    if (el) state.sid     = el.value;
-  el = document.getElementById('period');       if (el) state.period  = el.value;
-  el = document.getElementById('teacher');      if (el) state.teacher = el.value;
-  document.querySelectorAll('select.ans[id]').forEach(function(sel) {
-    state.answers[sel.id] = sel.value;
-  });
-  return state;
-}
+SOLUTION_HTML[3] =
+  '<div class="sol-inner">' +
+  '<div class="we-stem">\\(\\log_9(6-3w) = \\log_9(-2w)\\)</div>' +
+  '<div class="step-row"><div class="step-badge">1</div><div class="step-body">' +
+  '<div class="step-desc">Same base on both sides &mdash; already condensed</div>' +
+  '<div class="step-math">Both sides use \\(\\log_9\\), so apply the One-to-One Property directly.</div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">2</div><div class="step-body">' +
+  '<div class="step-desc">One-to-One Property &mdash; set arguments equal</div>' +
+  '<div class="step-math"><span class="math-line">\\(6 - 3w = -2w\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">3</div><div class="step-body">' +
+  '<div class="step-desc">Solve for w</div>' +
+  '<div class="step-math"><span class="math-line">\\(6 = -2w + 3w\\)</span><span class="math-line">\\(w = 6\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">4</div><div class="step-body">' +
+  '<div class="step-desc">Check for extraneous solutions &mdash; substitute w = 6</div>' +
+  '<div class="we-check"><div class="we-check-lbl">Substitute w = 6 into original:</div>' +
+  '<div class="check-item"><span class="check-icon">&#x2717;</span><span>LHS: \\(\\log_9(6-3(6)) = \\log_9(-12)\\) &rarr; <strong>undefined</strong></span></div>' +
+  '<div class="check-item"><span class="check-icon">&#x2717;</span><span>RHS: \\(\\log_9(-2(6)) = \\log_9(-12)\\) &rarr; <strong>undefined</strong></span></div>' +
+  '<div class="check-note bad">w = 6 produces a negative argument &rarr; Extraneous!</div>' +
+  '</div></div></div>' +
+  '<div class="we-result no-sol">&#x1F6AB; No Solution &mdash; the only candidate was extraneous</div>' +
+  '</div>';
 
-function _applyState(state) {
-  if (!state || state.v !== 1) return;
-  var el;
-  el = document.getElementById('studentName');  if (el && state.name)    el.value = state.name;
-  el = document.getElementById('studentId');    if (el && state.sid)     el.value = state.sid;
-  el = document.getElementById('period');       if (el && state.period)  el.value = state.period;
-  el = document.getElementById('teacher');      if (el && state.teacher) el.value = state.teacher;
-  if (state.answers) {
-    Object.keys(state.answers).forEach(function(id) {
-      var sel = document.getElementById(id);
-      if (sel && state.answers[id]) {
-        sel.value = state.answers[id];
-        sel.dispatchEvent(new Event('change'));
-      }
+SOLUTION_HTML[13] =
+  '<div class="sol-inner">' +
+  '<div class="we-stem">\\(\\log(2x) + \\log(x-5) = 2\\)</div>' +
+  '<div class="step-row"><div class="step-badge">1</div><div class="step-body">' +
+  '<div class="step-desc">Condense &mdash; Product Property</div>' +
+  '<div class="step-math"><span class="math-line">\\(\\log\\!\\bigl(2x(x-5)\\bigr) = 2\\)</span><span class="math-line">\\(\\log(2x^2 - 10x) = 2\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">2</div><div class="step-body">' +
+  '<div class="step-desc">Exponential form (base 10)</div>' +
+  '<div class="step-math"><span class="math-line">\\(2x^2 - 10x = 10^2 = 100\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">3</div><div class="step-body">' +
+  '<div class="step-desc">Solve the quadratic</div>' +
+  '<div class="step-math"><span class="math-line">\\(2x^2 - 10x - 100 = 0\\)</span><span class="math-line">\\(x^2 - 5x - 50 = 0\\)</span><span class="math-line">\\((x-10)(x+5) = 0\\)</span><span class="math-line">\\(x = 10 \\quad\\text{or}\\quad x = -5\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">4</div><div class="step-body">' +
+  '<div class="step-desc">Check for extraneous solutions</div>' +
+  '<div class="we-check"><div class="we-check-lbl">Substitute each candidate:</div>' +
+  '<div class="check-item"><span class="check-icon">&#x2713;</span><span>x = 10: \\(\\log(20)+\\log(5)=\\log(100)=2\\) &#x2713;</span></div>' +
+  '<div class="check-item"><span class="check-icon">&#x2717;</span><span>x = &minus;5: \\(\\log(2(-5))=\\log(-10)\\) &rarr; <strong>undefined</strong></span></div>' +
+  '<div class="check-note bad">x = &minus;5 produces a negative argument &rarr; Extraneous!</div>' +
+  '</div></div></div>' +
+  '<div class="we-result sol">&#x2713; Solution: x = 10</div>' +
+  '</div>';
+
+function openSolutionModal(num) {
+  var modal = document.getElementById('solutionModal');
+  var body  = document.getElementById('solutionModalBody');
+  var title = document.getElementById('solutionModalTitle');
+  title.innerHTML = '&#9998; Worked Example &mdash; Problem ' + num;
+  body.innerHTML  = (SOLUTION_HTML[num] || '<div class="sol-inner">Not found.</div>') +
+                    '<div class="resize-handle" id="solutionResizeHandle"></div>';
+  modal.classList.add('open');
+  if (!modal.dataset.positioned) {
+    modal.style.left = Math.max(8, (window.innerWidth  - modal.offsetWidth)  / 2) + 'px';
+    modal.style.top  = Math.max(8, (window.innerHeight - modal.offsetHeight) / 2) + 'px';
+    modal.dataset.positioned = '1';
+  }
+  _makeFloatWindow('solutionModal','solutionModalHeader','solutionResizeHandle');
+  if (typeof renderMathInElement !== 'undefined') {
+    renderMathInElement(body, {
+      delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],
+      throwOnError:false
     });
   }
 }
+function closeSolutionModal() { document.getElementById('solutionModal').classList.remove('open'); }
 
-function _writeStorage() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(_collectState())); return true; }
-  catch(e) { return false; }
-}
-
-function manualSave() {
-  if (_writeStorage()) {
-    _hasSavedOnce = true;
-    _setStatus('Saved! &#x2713;', true);
-    _startAutoSave();
-  } else {
-    _setStatus('Save failed.', false);
-  }
-}
-
-function loadProgress() {
-  try {
-    var raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) { _setStatus('No saved data found.', false); return; }
-    _applyState(JSON.parse(raw));
-    _hasSavedOnce = true;
-    _setStatus('Loaded! &#x2713;', true);
-    _startAutoSave();
-    _updateScore();
-  } catch(e) { _setStatus('Load error.', false); }
-}
-
-function _startAutoSave() {
-  if (_autoSaveTimer) return;
-  _autoSaveTimer = setInterval(function() {
-    if (!_hasSavedOnce) return;
-    _writeStorage();
-    var now = new Date();
-    var h = now.getHours(), m = now.getMinutes();
-    var ap = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    var ms = (m < 10 ? '0' : '') + m;
-    _setStatus('Auto-saved ' + h + ':' + ms + ' ' + ap, false);
-  }, 5 * 60 * 1000);
-}
-
-function _setStatus(msg, flash) {
-  var el = document.getElementById('saveStatus');
-  if (!el) return;
-  el.innerHTML = msg;
-  el.className = 'ribbon-autosave' + (flash ? ' flash' : '');
-  if (flash) {
-    setTimeout(function() { el.classList.remove('flash'); }, 3000);
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   VIDEO MODAL — drag + resize
-═══════════════════════════════════════════════════ */
 function openVideoModal() {
   var modal = document.getElementById('videoModal');
   var body  = document.getElementById('videoModalBody');
   body.innerHTML =
     '<iframe src="https://www.youtube-nocookie.com/embed/Jj2vpPnt_Is?rel=0&modestbranding=1" ' +
     'title="Solving Logarithmic Equations" ' +
-    'allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" ' +
-    'allowfullscreen></iframe>' +
+    'allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>' +
     '<div class="resize-handle" id="videoResizeHandle"></div>';
   modal.classList.add('open');
   if (!modal.dataset.positioned) {
@@ -827,9 +510,8 @@ function openVideoModal() {
     modal.style.top  = Math.max(8, (window.innerHeight - modal.offsetHeight) / 2) + 'px';
     modal.dataset.positioned = '1';
   }
-  _makeFloatWindow('videoModal', 'videoModalHeader', 'videoResizeHandle');
+  _makeFloatWindow('videoModal','videoModalHeader','videoResizeHandle');
 }
-
 function closeVideoModal() {
   document.getElementById('videoModal').classList.remove('open');
   document.getElementById('videoModalBody').innerHTML = '';
@@ -840,198 +522,122 @@ function _makeFloatWindow(modalId, headerId, resizeId) {
   var header = document.getElementById(headerId);
   var handle = document.getElementById(resizeId);
   if (!modal || !header) return;
-
-  var mode = null, sx = 0, sy = 0, sLeft = 0, sTop = 0, sW = 0, sH = 0;
-
+  var mode=null,sx=0,sy=0,sLeft=0,sTop=0,sW=0,sH=0;
   header.onpointerdown = function(e) {
     if (e.target.closest && e.target.closest('.float-win-close')) return;
-    mode = 'drag';
-    var r = modal.getBoundingClientRect();
-    sx = e.clientX; sy = e.clientY; sLeft = r.left; sTop = r.top;
-    header.setPointerCapture(e.pointerId);
-    e.preventDefault();
+    mode='drag'; var r=modal.getBoundingClientRect();
+    sx=e.clientX;sy=e.clientY;sLeft=r.left;sTop=r.top;
+    header.setPointerCapture(e.pointerId);e.preventDefault();
   };
   header.onpointermove = function(e) {
-    if (mode !== 'drag') return;
-    modal.style.left = (sLeft + e.clientX - sx) + 'px';
-    modal.style.top  = (sTop  + e.clientY - sy) + 'px';
+    if (mode!=='drag') return;
+    modal.style.left=(sLeft+e.clientX-sx)+'px';modal.style.top=(sTop+e.clientY-sy)+'px';
   };
-  header.onpointerup = function() { mode = null; };
-
+  header.onpointerup = function() { mode=null; };
   if (!handle) return;
   handle.onpointerdown = function(e) {
-    mode = 'resize';
-    var r = modal.getBoundingClientRect();
-    sx = e.clientX; sy = e.clientY; sW = r.width; sH = r.height;
-    handle.setPointerCapture(e.pointerId);
-    e.preventDefault(); e.stopPropagation();
+    mode='resize'; var r=modal.getBoundingClientRect();
+    sx=e.clientX;sy=e.clientY;sW=r.width;sH=r.height;
+    handle.setPointerCapture(e.pointerId);e.preventDefault();e.stopPropagation();
   };
   handle.onpointermove = function(e) {
-    if (mode !== 'resize') return;
-    modal.style.width  = Math.max(300, sW + e.clientX - sx) + 'px';
-    modal.style.height = Math.max(200, sH + e.clientY - sy) + 'px';
+    if (mode!=='resize') return;
+    modal.style.width=Math.max(300,sW+e.clientX-sx)+'px';
+    modal.style.height=Math.max(200,sH+e.clientY-sy)+'px';
   };
-  handle.onpointerup = function() { mode = null; };
+  handle.onpointerup = function() { mode=null; };
 }
 
-/* ═══════════════════════════════════════════════════
-   SCORE
-═══════════════════════════════════════════════════ */
-function _updateScore() {
-  var total = 0, correct = 0;
-  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel) {
-    total++;
-    if (sel.value && sel.value === sel.getAttribute('data-correct')) correct++;
-  });
-  var panelEl = document.getElementById('panelScore');
-  if (panelEl) panelEl.textContent = correct + ' / ' + total;
-  var barEl = document.getElementById('score-bar');
-  if (barEl) {
-    barEl.style.display = 'block';
-    barEl.textContent = 'Score: ' + correct + ' / ' + total + ' correct';
-  }
-  return { correct: correct, total: total };
+var SAVE_KEY='solvingLogs_v1',_hasSavedOnce=false,_autoSaveTimer=null;
+function _collectState() {
+  var s={v:1,name:'',sid:'',period:'',teacher:'',answers:{}},el;
+  el=document.getElementById('studentName');if(el)s.name=el.value;
+  el=document.getElementById('studentId');if(el)s.sid=el.value;
+  el=document.getElementById('period');if(el)s.period=el.value;
+  el=document.getElementById('teacher');if(el)s.teacher=el.value;
+  document.querySelectorAll('select.ans[id]').forEach(function(sel){s.answers[sel.id]=sel.value;});
+  return s;
+}
+function _applyState(s) {
+  if(!s||s.v!==1)return;var el;
+  el=document.getElementById('studentName');if(el&&s.name)el.value=s.name;
+  el=document.getElementById('studentId');if(el&&s.sid)el.value=s.sid;
+  el=document.getElementById('period');if(el&&s.period)el.value=s.period;
+  el=document.getElementById('teacher');if(el&&s.teacher)el.value=s.teacher;
+  if(s.answers){Object.keys(s.answers).forEach(function(id){
+    var sel=document.getElementById(id);
+    if(sel&&s.answers[id]){sel.value=s.answers[id];sel.dispatchEvent(new Event('change'));}
+  });}
+}
+function _writeStorage(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(_collectState()));return true;}catch(e){return false;}}
+function manualSave(){if(_writeStorage()){_hasSavedOnce=true;_setStatus('Saved &#x2713;',true);_startAutoSave();}else{_setStatus('Failed',false);}}
+function loadProgress(){try{var raw=localStorage.getItem(SAVE_KEY);if(!raw){_setStatus('None found',false);return;}_applyState(JSON.parse(raw));_hasSavedOnce=true;_setStatus('Loaded &#x2713;',true);_startAutoSave();_updateScore();}catch(e){_setStatus('Error',false);}}
+function _startAutoSave(){if(_autoSaveTimer)return;_autoSaveTimer=setInterval(function(){if(!_hasSavedOnce)return;_writeStorage();var now=new Date(),h=now.getHours(),m=now.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;_setStatus('Auto<br>'+h+':'+(m<10?'0':'')+m+' '+ap,false);},5*60*1000);}
+function _setStatus(msg,flash){var el=document.getElementById('saveStatus');if(!el)return;el.innerHTML=msg;el.className='ribbon-autosave'+(flash?' flash':'');if(flash)setTimeout(function(){el.classList.remove('flash');},3000);}
+
+function _updateScore(){
+  var total=0,correct=0;
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel){total++;if(sel.value&&sel.value===sel.getAttribute('data-correct'))correct++;});
+  var p=document.getElementById('panelScore');if(p)p.textContent=correct+'/'+total;
+  var b=document.getElementById('score-bar');if(b){b.style.display='block';b.textContent='Score: '+correct+' / '+total+' correct';}
+  return{correct:correct,total:total};
 }
 
-/* ═══════════════════════════════════════════════════
-   GOOGLE SIGN-IN
-═══════════════════════════════════════════════════ */
-function handleGoogleSignIn(response) {
-  try {
-    var parts = response.credential.split('.');
-    var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
-    var user = { name: payload.name, email: payload.email, picture: payload.picture };
-    sessionStorage.setItem('gsiUser_solvlogs', JSON.stringify(user));
-    _applyGsiUser(user);
-  } catch(e) {}
+function handleGoogleSignIn(response){
+  try{var parts=response.credential.split('.'),b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+  while(b64.length%4)b64+='=';
+  var payload=JSON.parse(atob(b64)),user={name:payload.name,email:payload.email,picture:payload.picture||''};
+  sessionStorage.setItem('gsiUser_solvlogs',JSON.stringify(user));_applyGsiUser(user);}catch(e){}
 }
-
-function _applyGsiUser(user) {
-  var btnWrap  = document.getElementById('gsiBtnWrap');
-  var signedIn = document.getElementById('gsiSignedIn');
-  var hint     = document.getElementById('gsiHint');
-  if (btnWrap)  btnWrap.style.display  = 'none';
-  if (signedIn) signedIn.style.display = 'flex';
-  if (hint)     hint.style.display     = 'none';
-  var avatar = document.getElementById('gsiAvatar');
-  var nameEl = document.getElementById('gsiName');
-  var emailEl= document.getElementById('gsiEmail');
-  if (avatar && user.picture) { avatar.src = user.picture; avatar.style.display = 'block'; }
-  if (nameEl)  nameEl.textContent  = user.name;
-  if (emailEl) emailEl.textContent = user.email;
-  var nameInp = document.getElementById('studentName');
-  var idInp   = document.getElementById('studentId');
-  if (nameInp && !nameInp.value) nameInp.value = user.name;
-  if (idInp   && !idInp.value)   idInp.value   = user.email;
+function _applyGsiUser(user){
+  var bw=document.getElementById('gsiBtnWrap'),si=document.getElementById('gsiSignedIn'),hi=document.getElementById('gsiHint');
+  if(bw)bw.style.display='none';if(si)si.style.display='flex';if(hi)hi.style.display='none';
+  var av=document.getElementById('gsiAvatar'),ne=document.getElementById('gsiName'),ee=document.getElementById('gsiEmail');
+  if(av&&user.picture){av.src=user.picture;av.style.display='block';}
+  if(ne)ne.textContent=user.name;if(ee)ee.textContent=user.email;
+  var ni=document.getElementById('studentName'),ii=document.getElementById('studentId');
+  if(ni&&!ni.value)ni.value=user.name;if(ii&&!ii.value)ii.value=user.email;
 }
-
-function gsiSignOut() {
+function gsiSignOut(){
   sessionStorage.removeItem('gsiUser_solvlogs');
-  var btnWrap  = document.getElementById('gsiBtnWrap');
-  var signedIn = document.getElementById('gsiSignedIn');
-  var hint     = document.getElementById('gsiHint');
-  if (btnWrap)  btnWrap.style.display  = 'block';
-  if (signedIn) signedIn.style.display = 'none';
-  if (hint)     hint.style.display     = 'inline';
-  if (window.google && google.accounts && google.accounts.id) {
-    google.accounts.id.disableAutoSelect();
-  }
+  var bw=document.getElementById('gsiBtnWrap'),si=document.getElementById('gsiSignedIn'),hi=document.getElementById('gsiHint');
+  if(bw)bw.style.display='block';if(si)si.style.display='none';if(hi)hi.style.display='inline';
+  if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect();
 }
 
-/* ═══════════════════════════════════════════════════
-   DOM READY
-═══════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', function() {
-
-  /* Restore GSI session */
-  var stored = sessionStorage.getItem('gsiUser_solvlogs');
-  if (stored) { try { _applyGsiUser(JSON.parse(stored)); } catch(e) {} }
-
-  /* Auto-check selects on change */
-  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel) {
-    sel.addEventListener('change', function() {
-      if (!sel.value) {
-        sel.classList.remove('correct', 'incorrect');
-        var fb = document.getElementById('fb_' + sel.id);
-        if (fb) { fb.textContent = ''; fb.className = 'feedback'; }
-      } else {
-        var isOk = sel.value === sel.getAttribute('data-correct');
-        sel.classList.toggle('correct',   isOk);
-        sel.classList.toggle('incorrect', !isOk);
-        var fb = document.getElementById('fb_' + sel.id);
-        if (fb) {
-          fb.textContent = isOk ? '\u2713 Correct!' : '\u2717 Try again';
-          fb.className = 'feedback ' + (isOk ? 'correct' : 'incorrect');
-        }
-      }
+document.addEventListener('DOMContentLoaded',function(){
+  var stored=sessionStorage.getItem('gsiUser_solvlogs');
+  if(stored){try{_applyGsiUser(JSON.parse(stored));}catch(e){}}
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel){
+    sel.addEventListener('change',function(){
+      if(!sel.value){sel.classList.remove('correct','incorrect');var fb=document.getElementById('fb_'+sel.id);if(fb){fb.textContent='';fb.className='feedback';}}
+      else{var isOk=sel.value===sel.getAttribute('data-correct');sel.classList.toggle('correct',isOk);sel.classList.toggle('incorrect',!isOk);var fb=document.getElementById('fb_'+sel.id);if(fb){fb.textContent=isOk?'\u2713 Correct!':'\u2717 Try again';fb.className='feedback '+(isOk?'correct':'incorrect');}}
       _updateScore();
     });
   });
-
-  /* Submit */
-  document.getElementById('submitBtn').addEventListener('click', function() {
-    var name    = document.getElementById('studentName').value.trim();
-    var sid     = document.getElementById('studentId').value.trim();
-    var period  = document.getElementById('period').value.trim();
-    var teacher = document.getElementById('teacher').value;
-    if (!name || !teacher) {
-      document.getElementById('submitMsg').textContent =
-        'Please enter your name and select your teacher before submitting.';
-      return;
-    }
-    var sc  = _updateScore();
-    var payload = {
-      worksheet:   'Solving Logarithmic Equations',
-      studentName: name,
-      studentId:   sid,
-      period:      period,
-      teacher:     teacher,
-      seedCode:    'N/A',
-      score:       sc.correct + '/' + sc.total,
-      answers: {
-        total_correct:   sc.correct,
-        total_incorrect: sc.total - sc.correct,
-        total_questions: sc.total
-      }
-    };
-    var msgEl = document.getElementById('submitMsg');
-    var btn   = document.getElementById('submitBtn');
-    msgEl.textContent = 'Submitting\u2026';
-    btn.disabled = true;
-    fetch(
-      'https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec',
-      {
-        method:  'POST',
-        mode:    'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body:    'data=' + encodeURIComponent(JSON.stringify(payload))
-      }
-    ).then(function() {
-      msgEl.textContent = 'Submitted! Score: ' + sc.correct + '/' + sc.total;
-      btn.disabled = false;
-    }).catch(function() {
-      msgEl.textContent = 'Submission error \u2014 please try again.';
-      btn.disabled = false;
-    });
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    var name=document.getElementById('studentName').value.trim(),sid=document.getElementById('studentId').value.trim(),period=document.getElementById('period').value.trim(),teacher=document.getElementById('teacher').value;
+    if(!name||!teacher){document.getElementById('submitMsg').textContent='Please enter your name and select your teacher before submitting.';return;}
+    var sc=_updateScore(),payload={worksheet:'Solving Logarithmic Equations',studentName:name,studentId:sid,period:period,teacher:teacher,seedCode:'N/A',score:sc.correct+'/'+sc.total,answers:{total_correct:sc.correct,total_incorrect:sc.total-sc.correct,total_questions:sc.total}};
+    var msgEl=document.getElementById('submitMsg'),btn=document.getElementById('submitBtn');
+    msgEl.textContent='Submitting\u2026';btn.disabled=true;
+    fetch('https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec',
+      {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(JSON.stringify(payload))})
+    .then(function(){msgEl.textContent='Submitted! Score: '+sc.correct+'/'+sc.total;btn.disabled=false;})
+    .catch(function(){msgEl.textContent='Submission error \u2014 please try again.';btn.disabled=false;});
   });
-
-}); /* end DOMContentLoaded */
+});
 </script>
 
-<!-- KaTeX render -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof renderMathInElement !== 'undefined') {
-    renderMathInElement(document.body, {
-      delimiters: [
-        { left: '\\(', right: '\\)', display: false },
-        { left: '\\[', right: '\\]', display: true  }
-      ],
-      throwOnError: false
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof renderMathInElement!=='undefined'){
+    renderMathInElement(document.body,{
+      delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],
+      throwOnError:false
     });
   }
 });
 </script>
-
 </body>
 </html>
