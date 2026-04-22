@@ -235,7 +235,16 @@ select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg
       <div class="problem-cell is-worked">
         <div class="prob-num worked-label">PROBLEM 3 &mdash; WORKED EXAMPLE</div>
         <div class="prob-stem">\(\log_9(6-3w) = \log_9(-2w)\)</div>
-        <button class="view-sol-btn" onclick="openSolutionModal(3)">&#9998;&nbsp; View Worked Solution</button>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p3" data-correct="ns">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="w3">w = 3</option>
+          <option value="w6">w = 6</option>
+          <option value="wn6">w = &minus;6</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p3"></span>
+        <button class="view-sol-btn" style="margin-top:8px;" onclick="openSolutionModal(3)">&#9998;&nbsp; View Worked Solution</button>
       </div>
       <div class="problem-cell">
         <div class="prob-num">PROBLEM 4</div>
@@ -368,7 +377,16 @@ select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg
       <div class="problem-cell is-worked">
         <div class="prob-num worked-label">PROBLEM 13 &mdash; WORKED EXAMPLE</div>
         <div class="prob-stem">\(\log(2x) + \log(x-5) = 2\)</div>
-        <button class="view-sol-btn" onclick="openSolutionModal(13)">&#9998;&nbsp; View Worked Solution</button>
+        <div class="ans-label">Solution:</div>
+        <select class="ans" id="p13" data-correct="x10">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="xn5">x = &minus;5</option>
+          <option value="xboth">x = 10 or x = &minus;5</option>
+          <option value="x10">x = 10</option>
+          <option value="ns">No solution</option>
+        </select>
+        <span class="feedback" id="fb_p13"></span>
+        <button class="view-sol-btn" style="margin-top:8px;" onclick="openSolutionModal(13)">&#9998;&nbsp; View Worked Solution</button>
       </div>
       <div class="problem-cell">
         <div class="prob-num">PROBLEM 14</div>
