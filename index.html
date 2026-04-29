@@ -470,13 +470,45 @@ function updateGUI(user){
 async function loadDriveConfig(){var token=await ensureToken();if(!token)return null;var q=encodeURIComponent("name='"+DRIVE_CONFIG_FILENAME+"' and trashed=false");try{var r=await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)',{headers:{Authorization:'Bearer '+token}});if(!r.ok)return null;var l=await r.json();if(!l.files||!l.files.length)return null;_driveConfigFileId=l.files[0].id;var fr=await fetch('https://www.googleapis.com/drive/v3/files/'+_driveConfigFileId+'?alt=media',{headers:{Authorization:'Bearer '+token}});if(!fr.ok)return null;return await fr.json()}catch(e){return null}}
 async function saveDriveConfig(cfg){var token=await ensureToken();if(!token)return;try{var content=JSON.stringify(cfg);if(_driveConfigFileId){await fetch('https://www.googleapis.com/upload/drive/v3/files/'+_driveConfigFileId+'?uploadType=media',{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:content})}else{var meta=JSON.stringify({name:DRIVE_CONFIG_FILENAME,parents:['appDataFolder']});var form=new FormData();form.append('metadata',new Blob([meta],{type:'application/json'}));form.append('file',new Blob([content],{type:'application/json'}));var r=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{Authorization:'Bearer '+token},body:form});if(r.ok){var d=await r.json();_driveConfigFileId=d.id}}}catch(e){}}
 async function applyConfig(c){if(!c)return;if(c.appsScriptURL)localStorage.setItem('appsScriptURL',c.appsScriptURL.trim());if(c.spreadsheetURL)localStorage.setItem('spreadsheetURL',c.spreadsheetURL.trim());if(c.teacherList)localStorage.setItem('teacherList',JSON.stringify(c.teacherList));if(c.ghTokenBlob)localStorage.setItem(TOKEN_STORAGE_KEY,c.ghTokenBlob);
-  /* NOTE: resources and unitOrder are intentionally NOT loaded from Drive.
+async function migrateLocalToDrive(driveCfg){
+  if(!_teacherGoogleUser)return false;
+  var localBlob=localStorage.getItem(TOKEN_STORAGE_KEY);
+  var localScript=localStorage.getItem('appsScriptURL');
+  var localSheet=localStorage.getItem('spreadsheetURL');
+  var localTeachers=localStorage.getItem('teacherList');
+  if(!(localBlob||localScript||localSheet||localTeachers))return false;
+  var needsPush=!driveCfg||(localBlob&&!driveCfg.ghTokenBlob)||(localScript&&!driveCfg.appsScriptURL)||(localSheet&&!driveCfg.spreadsheetURL);
+  if(!needsPush)return false;
+  var st=document.getElementById('driveConfigStatus');
+  if(st)st.textContent='⟳ Backing up local config to Drive…';
+  try{
+    await saveDriveConfig(buildConfig());
+    if(st)st.textContent='✓ Local config synced to Drive ('+new Date().toLocaleTimeString()+')';
+    return true;
+  }catch(e){
+    if(st)st.textContent='⚠ Drive sync failed.';
+    console.warn('[migrateLocalToDrive]',e);
+    return false;
+  }
+}
+    /* NOTE: resources and unitOrder are intentionally NOT loaded from Drive.
      INDEX_DATA (the JSON block in the committed index.html) is the single source of truth.
      Loading them from Drive caused a data-loss bug where a stale Drive snapshot
      overwrote newer resources, which then got published back to GitHub. */
   console.log('[applyConfig] applied settings from Drive; resources/unitOrder kept from INDEX_DATA ('+resources.length+' resources)');}
 function buildConfig(){return{appsScriptURL:localStorage.getItem('appsScriptURL')||'',spreadsheetURL:localStorage.getItem('spreadsheetURL')||'',teacherList:getTeachers(),ghTokenBlob:localStorage.getItem(TOKEN_STORAGE_KEY)||null,savedAt:new Date().toISOString()}}
-async function autoSave(){/* data persisted via GitHub publish only */}
+async function autoSave(){
+  if(!_teacherGoogleUser||!_tokenClient)return;
+  var st=document.getElementById('driveConfigStatus');
+  if(st)st.textContent='⟳ Syncing…';
+  try{
+    await saveDriveConfig(buildConfig());
+    if(st)st.textContent='✓ Synced to Drive '+new Date().toLocaleTimeString();
+  }catch(e){
+    if(st)st.textContent='⚠ Sync failed';
+    console.warn('[autoSave]',e);
+  }
+}
 
 function getTeachers(){var s=localStorage.getItem('teacherList');return s?JSON.parse(s):['Mueller','Reed','Singleton','Pacayra','Jafari']}
 
@@ -579,7 +611,15 @@ async function checkPin(){
   var pin=document.getElementById('pinInput').value.trim(),h=await hashPin(pin);
   if(h===PIN_HASH){
     _decryptedToken=await getDecryptedToken(pin);closePinModal();
-    if(_teacherGoogleUser){var st=document.getElementById('driveConfigStatus');if(st)st.textContent='⟳ Loading…';var cfg=await loadDriveConfig();if(cfg){await applyConfig(cfg);if(!_decryptedToken&&cfg.ghTokenBlob)_decryptedToken=await decryptToken(pin,cfg.ghTokenBlob);if(st)st.textContent='✓ Config loaded from Drive.'}else{if(st)st.textContent='No saved config.'}}
+    if(_teacherGoogleUser){
+      var st=document.getElementById('driveConfigStatus');
+      if(st)st.textContent='⟳ Loading…';
+      var cfg=await loadDriveConfig();
+      if(cfg){await applyConfig(cfg);if(!_decryptedToken&&cfg.ghTokenBlob)_decryptedToken=await decryptToken(pin,cfg.ghTokenBlob);if(st)st.textContent='✓ Config loaded from Drive.'}
+      else{if(st)st.textContent='No saved config.'}
+      var pushed=await migrateLocalToDrive(cfg);
+      if(pushed&&!_decryptedToken){var lb=localStorage.getItem(TOKEN_STORAGE_KEY);if(lb)_decryptedToken=await decryptToken(pin,lb)}
+    }
     enterTeacher();
   } else {document.getElementById('pinError').style.display='block';document.getElementById('pinInput').value='';document.getElementById('pinInput').focus()}
 }
@@ -591,7 +631,7 @@ function enterTeacher(){
   var stored=sessionStorage.getItem('teacherGoogleUser');
   if(stored&&!_teacherGoogleUser){_teacherGoogleUser=JSON.parse(stored);loadGSI().then(function(){initTClient();updateGUI(_teacherGoogleUser)})}
   else if(_teacherGoogleUser){updateGUI(_teacherGoogleUser)}
-  else{loadGSI().then(function(){var t=document.getElementById('googleSignInTarget');if(t){google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:async function(resp){var p=parseJwt(resp.credential);_teacherGoogleUser={name:p.name,email:p.email,picture:p.picture,sub:p.sub,accessToken:null};sessionStorage.setItem('teacherGoogleUser',JSON.stringify(_teacherGoogleUser));initTClient();updateGUI(_teacherGoogleUser);var cfg=await loadDriveConfig();if(cfg){await applyConfig(cfg);prefillSettings();var st=document.getElementById('driveConfigStatus');if(st)st.textContent='✓ Config loaded.'}},auto_select:false});google.accounts.id.renderButton(t,{theme:'outline',size:'large',text:'sign_in_with',width:260})}})}
+  else{loadGSI().then(function(){var t=document.getElementById('googleSignInTarget');if(t){google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:async function(resp){var p=parseJwt(resp.credential);_teacherGoogleUser={name:p.name,email:p.email,picture:p.picture,sub:p.sub,accessToken:null};sessionStorage.setItem('teacherGoogleUser',JSON.stringify(_teacherGoogleUser));initTClient();updateGUI(_teacherGoogleUser);var cfg=await loadDriveConfig();if(cfg){await applyConfig(cfg);prefillSettings();var st=document.getElementById('driveConfigStatus');if(st)st.textContent='✓ Config loaded.'}await migrateLocalToDrive(cfg);},auto_select:false});google.accounts.id.renderButton(t,{theme:'outline',size:'large',text:'sign_in_with',width:260})}})}
   render();
 }
 function exitTeacher(){teacherMode=false;_decryptedToken=null;document.body.classList.remove('teacher-mode');document.getElementById('teacherToggleBtn').classList.remove('active');document.getElementById('teacherToggleBtn').textContent='Teacher mode';document.getElementById('teacherBanner').classList.remove('visible');document.getElementById('settingsPanel').style.display='none';document.getElementById('scanResults').style.display='none';render()}
