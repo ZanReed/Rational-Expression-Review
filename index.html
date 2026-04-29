@@ -240,7 +240,7 @@ body.teacher-mode .add-unit-row{display:flex}
     <h3>Teacher access</h3>
     <p style="font-size:13px;color:var(--ink-mid);margin-bottom:16px;font-family:var(--sans)">Enter your PIN to enable teacher mode.</p>
     <div class="mf">
-      <input class="pin-input" id="pinInput" type="password" maxlength="8" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+      <input class="pin-input" id="pinInput" type="password" maxlength="128" placeholder="passphrase" autocomplete="current-password" onkeydown="if(event.key==='Enter')checkPin()">
       <div class="pin-error" id="pinError" style="display: none;">Incorrect PIN. Please try again.</div>
     </div>
     <div class="modal-actions" style="justify-content:center">
@@ -450,6 +450,28 @@ async function encryptToken(pin,tok){var s=crypto.getRandomValues(new Uint8Array
 async function decryptToken(pin,blob){try{var p=blob.split(':');if(p.length<3)return null;var k=await deriveKey(pin,p[0]),pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:hexToBytes(p[1])},k,hexToBytes(p[2]));return new TextDecoder().decode(pt)}catch(e){return null}}
 async function getDecryptedToken(pin){var b=localStorage.getItem(TOKEN_STORAGE_KEY);if(!b)return null;return decryptToken(pin,b)}
 
+async function changePassphrase(){
+  var oldPP=prompt('Current passphrase:');
+  if(!oldPP)return;
+  var oldH=await hashPin(oldPP);
+  if(oldH!==PIN_HASH){alert('Current passphrase is wrong.');return}
+  var newPP=prompt('New passphrase (recommend 4+ random words or 20+ chars):');
+  if(!newPP||newPP.length<12){alert('Too short — use at least 12 characters.');return}
+  var newPP2=prompt('Confirm new passphrase:');
+  if(newPP!==newPP2){alert('Passphrases did not match.');return}
+  var newHash=await hashPin(newPP);
+  var blob=localStorage.getItem(TOKEN_STORAGE_KEY);
+  if(blob){
+    var tok=await decryptToken(oldPP,blob);
+    if(!tok){alert('Could not decrypt existing token. Aborting.');return}
+    var newBlob=await encryptToken(newPP,tok);
+    localStorage.setItem(TOKEN_STORAGE_KEY,newBlob);
+    _decryptedToken=tok;
+  }
+  if(_teacherGoogleUser){try{await saveDriveConfig(buildConfig())}catch(e){console.warn(e)}}
+  prompt('SUCCESS. Now edit index.html line 425, replace PIN_HASH with the value below, then click "Publish index". Until you publish, this device works but new devices will reject the new passphrase.',newHash);
+}
+  
 function loadGSI(){return new Promise(function(r){if(_gsiLoaded||(window.google&&google.accounts)){_gsiLoaded=true;r();return}var s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=function(){_gsiLoaded=true;r()};document.head.appendChild(s)})}
 function initTClient(){_tokenClient=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',callback:function(r){if(_teacherGoogleUser)_teacherGoogleUser.accessToken=r.error?null:r.access_token;if(_tokenResolve){_tokenResolve(r.error?null:r.access_token);_tokenResolve=null}}})}
 function reqToken(){return new Promise(function(r){_tokenResolve=r;_tokenClient.requestAccessToken({prompt:''})})}
