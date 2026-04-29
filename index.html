@@ -167,14 +167,18 @@ body.teacher-mode .add-unit-row{display:flex}
       </div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
-      <label class="sl">GitHub token (encrypted with PIN)</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input id="ghTokenInput" type="password" placeholder="github_pat_…" class="si" style="flex:1">
-        <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
-        <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
-      </div>
-      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token encrypted and ready.</div>
-    </div>
+  <label class="sl">GitHub token (encrypted with passphrase)</label>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input id="ghTokenInput" type="password" placeholder="github_pat_…" class="si" style="flex:1">
+    <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
+    <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
+  </div>
+  <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token encrypted and ready.</div>
+  <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+    <button onclick="changePassphrase()" class="mb" style="font-size:11px">Change passphrase</button>
+    <span style="font-size:11px;color:var(--ink-mid);font-family:var(--sans)">Re-encrypts token + gives you a new PIN_HASH to publish</span>
+  </div>
+</div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Apps Script web app URL</label>
       <div style="display:flex;gap:8px">
