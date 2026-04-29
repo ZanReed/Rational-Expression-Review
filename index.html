@@ -473,8 +473,11 @@ async function changePassphrase(){
     _decryptedToken=tok;
   }
   if(_teacherGoogleUser){try{await saveDriveConfig(buildConfig())}catch(e){console.warn(e)}}
-  prompt('SUCCESS. Now edit index.html line 425, replace PIN_HASH with the value below, then click "Publish index". Until you publish, this device works but new devices will reject the new passphrase.',newHash);
-}
+  var st=document.getElementById('tokenStatus');
+st.style.color='var(--green)';
+st.innerHTML='✓ Passphrase changed. New PIN_HASH: <code style="user-select:all;background:#f4f4f4;padding:2px 4px;border-radius:3px">'+newHash+'</code> — copy this, replace line 425 of index.html, then Publish.';
+await navigator.clipboard.writeText(newHash).catch(function(){});
+alert('New PIN_HASH copied to clipboard. Replace line 425 of index.html and publish.');
   
 function loadGSI(){return new Promise(function(r){if(_gsiLoaded||(window.google&&google.accounts)){_gsiLoaded=true;r();return}var s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=function(){_gsiLoaded=true;r()};document.head.appendChild(s)})}
 function initTClient(){_tokenClient=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',callback:function(r){if(_teacherGoogleUser)_teacherGoogleUser.accessToken=r.error?null:r.access_token;if(_tokenResolve){_tokenResolve(r.error?null:r.access_token);_tokenResolve=null}}})}
