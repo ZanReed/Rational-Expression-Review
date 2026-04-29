@@ -115,7 +115,7 @@ body.teacher-mode .add-unit-row{display:flex}
 .scan-panel{display:none;background:var(--green-bg);border:1px solid var(--green-rule);border-radius:6px;padding:14px 18px;margin-bottom:18px}
 </style>
 <script src="https://accounts.google.com/gsi/client" async=""></script>
-<link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"></head>
+<link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"><link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet"></head>
 <body class="">
 <div class="shell">
 
@@ -127,9 +127,9 @@ body.teacher-mode .add-unit-row{display:flex}
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <button class="teacher-btn" id="teacherToggleBtn" onclick="handleTeacherToggle()">Teacher mode</button>
-      <div id="teacherGoogleStatus" style="display:none;font-family:var(--sans);font-size:11px;color:var(--ink-mid);align-items:center;gap:6px">
-        <img id="teacherAvatar" src="" style="width:18px;height:18px;border-radius:50%;display:none">
-        <span id="teacherGoogleName"></span>
+      <div id="teacherGoogleStatus" style="display: none; font-family: var(--sans); font-size: 11px; color: var(--ink-mid); align-items: center; gap: 6px;">
+        <img id="teacherAvatar" src="https://lh3.googleusercontent.com/a/ACg8ocKAzQY9LdLJhOlK_QdFKdZKsOq-XxWQ_zR1ZOBsNdd1lKaTFA5Q=s96-c" style="width: 18px; height: 18px; border-radius: 50%; display: block;">
+        <span id="teacherGoogleName">Alexander Reed</span>
         <button onclick="signOutTeacher()" style="font-family:var(--mono);font-size:10px;padding:2px 6px;border:1px solid var(--rule);border-radius:3px;cursor:pointer;background:transparent;color:var(--ink-light)">sign out</button>
       </div>
     </div>
@@ -139,11 +139,11 @@ body.teacher-mode .add-unit-row{display:flex}
     <span class="teacher-banner-dot"></span>
     <span><strong>Teacher mode</strong> — drag cards and units to reorder, ❖ to edit, × to remove. Double-click a unit name to rename it.</span>
     <div class="banner-actions">
-      <a id="gradebookBannerBtn" href="#" target="_blank" class="bbtn green" style="display:none">📊 Gradebook</a>
+      <a id="gradebookBannerBtn" href="https://docs.google.com/spreadsheets/d/1S1yqn_n-s7CnHVKcgk-ojeWSFuFK9MeOAt_WRlYf7nc/edit?gid=0#gid=0" target="_blank" class="bbtn green" style="display: inline-flex;">📊 Gradebook</a>
       <a href="activity-builder.html" class="bbtn blue">✏ Activity builder</a>
       <button id="publishIndexBtn" onclick="publishIndex()" class="bbtn blue">☁ Publish index</button>
       <button id="scanRepoBtn" onclick="scanRepository()" class="bbtn green">🔍 Scan activities/</button>
-      <span id="bannerPublishStatus" style="display: none;"></span>
+      <span id="bannerPublishStatus" style="display: none; color: var(--red);"></span>
       <button onclick="toggleSettings()" class="bbtn amber">⚙ Settings</button>
     </div>
   </div>
@@ -156,11 +156,11 @@ body.teacher-mode .add-unit-row{display:flex}
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Google account</label>
-      <div id="googleSignInTarget" style="display: block;"><div class="S9gUrf-YoZ4jf" style="position: relative;"><div></div><div id="gsi_857101_818151-wrapper" class="L5Fo6c-sM5MNb" style="width: fit-content;"><iframe src="https://accounts.google.com/gsi/button?theme=outline&amp;size=large&amp;text=sign_in_with&amp;width=260&amp;is_fedcm_supported=false&amp;client_id=438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com&amp;iframe_id=gsi_857101_818151&amp;cas=2PJp7astW5Z9DvQ4HvVOTXkB6XA3jJ8t9H%2FHiNx0nA4" class="L5Fo6c-PQbLGe" allow="identity-credentials-get" id="gsi_857101_818151" title="Sign in with Google Button" style="display: block; position: relative; top: 0px; left: 0px; height: 44px; width: 280px; border: 0px; margin: -2px -10px;" tabindex="-1"></iframe><div class="L5Fo6c-bF1uUb" id="gsi_857101_818151-overlay" aria-label="Sign in with Google. Opens in new tab" role="button" tabindex="0"></div></div></div></div>
-      <div id="teacherSignedInInfo" style="display:none;padding:8px 10px;background:white;border:1px solid #d4b800;border-radius:4px">
+      <div id="googleSignInTarget" style="display: block;"><div class="S9gUrf-YoZ4jf" style="position: relative;"><div></div><div id="gsi_574110_535054-wrapper" class="L5Fo6c-sM5MNb" style="width: fit-content;"><iframe src="https://accounts.google.com/gsi/button?theme=outline&amp;size=large&amp;text=sign_in_with&amp;width=260&amp;is_fedcm_supported=false&amp;client_id=438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com&amp;iframe_id=gsi_574110_535054&amp;cas=3Vc2pr0qnn1BJgNnmQMUrSk1SdrVITAtMbXEpGd3nc0" class="L5Fo6c-PQbLGe" allow="identity-credentials-get" id="gsi_574110_535054" title="Sign in with Google Button" style="display: block; position: relative; top: 0px; left: 0px; height: 44px; width: 280px; border: 0px; margin: -2px -10px;" tabindex="-1"></iframe><div class="L5Fo6c-bF1uUb" id="gsi_574110_535054-overlay" aria-label="Sign in with Google. Opens in new tab" role="button" tabindex="0"></div></div></div></div>
+      <div id="teacherSignedInInfo" style="display: none; padding: 8px 10px; background: white; border: 1px solid rgb(212, 184, 0); border-radius: 4px;">
         <div style="display:flex;align-items:center;gap:10px">
-          <img id="settingsAvatar" src="" style="width:28px;height:28px;border-radius:50%">
-          <div><div id="settingsName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)"></div><div id="settingsEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)"></div></div>
+          <img id="settingsAvatar" src="https://lh3.googleusercontent.com/a/ACg8ocKAzQY9LdLJhOlK_QdFKdZKsOq-XxWQ_zR1ZOBsNdd1lKaTFA5Q=s96-c" style="width:28px;height:28px;border-radius:50%">
+          <div><div id="settingsName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)">Alexander Reed</div><div id="settingsEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)">alreed@dallasisd.org</div></div>
           <button onclick="signOutTeacher()" class="mb" style="margin-left:auto;font-size:11px;padding:4px 8px">Sign out</button>
         </div>
         <div id="driveConfigStatus" style="margin-top:6px;font-family:var(--sans);font-size:11px;color:var(--green)"></div>
@@ -173,7 +173,7 @@ body.teacher-mode .add-unit-row{display:flex}
         <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
         <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
       </div>
-      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token unlocked.</div>
+      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token encrypted and ready.</div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Apps Script web app URL</label>
@@ -188,7 +188,7 @@ body.teacher-mode .add-unit-row{display:flex}
       <div style="display:flex;gap:8px">
         <input id="spreadsheetInput" type="text" placeholder="https://docs.google.com/spreadsheets/d/…" class="si" style="flex:1">
         <button onclick="saveSpreadsheetURL()" class="mb save" style="font-size:11px;white-space:nowrap">Save</button>
-        <a id="openSheetBtn" href="#" target="_blank" style="display:none;padding:7px 10px;background:var(--green);color:#fff;border-radius:4px;font-size:11px;font-weight:500;text-decoration:none;white-space:nowrap">Open ↗</a>
+        <a id="openSheetBtn" href="https://docs.google.com/spreadsheets/d/1S1yqn_n-s7CnHVKcgk-ojeWSFuFK9MeOAt_WRlYf7nc/edit?gid=0#gid=0" target="_blank" style="display: inline-block; padding: 7px 10px; background: var(--green); color: rgb(255, 255, 255); border-radius: 4px; font-size: 11px; font-weight: 500; text-decoration: none; white-space: nowrap;">Open ↗</a>
       </div>
       <div id="sheetSavedMsg" style="display:none;font-size:11px;color:var(--green);margin-top:4px">✓ Saved.</div>
     </div>
@@ -197,13 +197,13 @@ body.teacher-mode .add-unit-row{display:flex}
       <textarea id="teacherListInput" rows="5" class="si" style="resize:vertical;font-size:13px;line-height:1.6"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
         <button onclick="saveTeachers()" class="mb save" style="font-size:11px">Save teachers</button>
-        <div id="teacherSavedMsg" style="display:none;font-size:11px;color:var(--green)">✓ Saved.</div>
+        <div id="teacherSavedMsg" style="display: none; font-size: 11px; color: var(--green);">✓ Saved.</div>
       </div>
     </div>
   </div>
 
   <!-- Scan results -->
-  <div class="scan-panel" id="scanResults" style="display: none;"><div style="font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:8px">3 new files found:</div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">solving_logs.html</span><button onclick="quickAdd('solving_logs.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">test_activity.html</span><button onclick="quickAdd('test_activity.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">unit7_graphing_exponentials.html.html</span><button onclick="quickAdd('unit7_graphing_exponentials.html.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div></div>
+  <div class="scan-panel" id="scanResults" style="display: none;"><div style="font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:8px">3 new files found:</div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">e_and_solving_exp.html</span><button onclick="quickAdd('e_and_solving_exp.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">test_activity.html</span><button onclick="quickAdd('test_activity.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">unit7_graphing_exponentials.html.html</span><button onclick="quickAdd('unit7_graphing_exponentials.html.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div></div>
 
   <!-- Add unit row (teacher only) -->
   <div class="add-unit-row">
@@ -230,7 +230,7 @@ body.teacher-mode .add-unit-row{display:flex}
 
   <footer class="site-footer">
     <span>Dallas ISD — Algebra II — 2025–2026</span>
-    <span id="resourceCount">8 resources</span>
+    <span id="resourceCount">9 resources</span>
   </footer>
 </div>
 
@@ -398,6 +398,15 @@ body.teacher-mode .add-unit-row{display:flex}
       "title": "Solving Logs",
       "desc": "",
       "file": "activities/solving_logs.html",
+      "unit": "Exponentials and Logarithms",
+      "type": "activity",
+      "tags": []
+    },
+    {
+      "id": "r1777428331200",
+      "title": "E And Solving Exp",
+      "desc": "",
+      "file": "activities/e_and_solving_exp.html",
       "unit": "Exponentials and Logarithms",
       "type": "activity",
       "tags": []
