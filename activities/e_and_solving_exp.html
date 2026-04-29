@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Natural Base e &amp; Solving Exponential Equations &mdash; Algebra II</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#faf8f4;--surface:#fff;--border:#d4c9b8;--border-strong:#9e8f7c;
+  --text:#1a1410;--text-muted:#6b5f52;--accent:#2d5a8e;--accent-light:#e8f0f9;
+  --correct:#2a6b3c;--correct-bg:#eaf4ed;--incorrect:#8b2020;--incorrect-bg:#faeaea;
+  --header-bg:#1a1410;--header-text:#faf8f4;--section-bg:#f2ede4;
+  --ribbon-w:110px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:16px;line-height:1.5;}
+.page-header{background:var(--header-bg);color:var(--header-text);text-align:center;padding:18px 20px 14px;margin-right:var(--ribbon-w);}
+.page-header h1{font-size:1.6rem;letter-spacing:0.04em;}
+.page-header p{font-size:0.9rem;color:#c8bfb0;margin-top:4px;}
+.gsi-bar{background:var(--accent-light);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:52px;margin-right:var(--ribbon-w);}
+.gsi-hint{font-size:0.82rem;color:var(--text-muted);}
+.gsi-signed-in{display:none;align-items:center;gap:10px;}
+.gsi-signed-in img{width:26px;height:26px;border-radius:50%;border:1px solid var(--border);}
+.gsi-name{font-size:0.88rem;font-weight:bold;color:var(--text);}
+.gsi-email{font-size:0.75rem;color:var(--text-muted);}
+.gsi-signout{font-size:0.76rem;padding:2px 9px;border:1px solid var(--border-strong);border-radius:3px;cursor:pointer;background:transparent;color:var(--text-muted);font-family:inherit;margin-left:4px;}
+.student-bar{background:var(--section-bg);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-right:var(--ribbon-w);}
+.student-bar label{font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.student-bar input,.student-bar select{font-size:0.9rem;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);}
+.student-bar input{width:160px;}
+.student-bar .period-inp{width:70px;}
+.student-bar select{width:130px;}
+.main-content{padding:20px 22px 60px;margin-right:var(--ribbon-w);}
+/* Fixed Ribbon */
+.sticky-panel{position:fixed;right:0;top:0;height:100vh;width:var(--ribbon-w);display:flex;flex-direction:column;align-items:stretch;background:var(--header-bg);z-index:200;overflow-y:auto;overflow-x:hidden;}
+.ribbon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:none;background:transparent;cursor:pointer;color:var(--header-text);font-family:inherit;transition:background .15s;width:100%;}
+.ribbon-btn:hover{background:rgba(255,255,255,0.1);}
+.ribbon-btn:active{background:rgba(255,255,255,0.18);}
+.rb-icon{font-size:1.25rem;line-height:1;}
+.rb-label{font-size:0.58rem;font-family:'Arial',sans-serif;letter-spacing:0.05em;text-transform:uppercase;color:rgba(255,255,255,0.72);text-align:center;line-height:1.2;}
+.ribbon-btn--video .rb-icon{color:#f0c040;}
+.ribbon-btn--video2 .rb-icon{color:#f0c040;}
+.ribbon-btn--save .rb-icon{color:#7ee8a2;}
+.ribbon-btn--load .rb-icon{color:#7ab8f5;}
+.ribbon-divider{height:1px;background:rgba(255,255,255,0.12);margin:2px 10px;flex-shrink:0;}
+.ribbon-score{padding:10px 6px 6px;text-align:center;font-family:'Arial',sans-serif;}
+.ribbon-score-num{font-size:1.05rem;font-weight:bold;color:#fff;line-height:1;}
+.ribbon-score-lbl{font-size:0.57rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.ribbon-autosave{font-size:0.58rem;font-family:'Arial',sans-serif;color:rgba(255,255,255,0.4);text-align:center;padding:3px 6px 8px;line-height:1.35;word-break:break-word;transition:color .4s;}
+.ribbon-autosave.flash{color:#7ee8a2;}
+/* Floating Windows */
+.float-window{position:fixed;width:560px;height:370px;min-width:300px;min-height:220px;max-width:95vw;max-height:92vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.45);z-index:1000;display:none;flex-direction:column;overflow:hidden;}
+.float-window.open{display:flex;}
+.float-win-header{background:var(--header-bg);color:var(--header-text);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:move;user-select:none;touch-action:none;flex-shrink:0;}
+.float-win-title{font-size:0.8rem;letter-spacing:0.06em;font-family:'Arial',sans-serif;}
+.float-win-close{background:none;border:none;color:var(--header-text);font-size:1.1rem;cursor:pointer;padding:2px 6px;line-height:1;opacity:0.8;}
+.float-win-close:hover{opacity:1;}
+.float-win-body--video{flex:1;background:#000;position:relative;overflow:hidden;}
+.float-win-body--video iframe{width:100%;height:100%;border:0;display:block;}
+.float-win-body--sol{flex:1;background:var(--accent-light);overflow-y:auto;position:relative;}
+.sol-inner{padding:14px 16px 16px;}
+.resize-handle{position:absolute;bottom:0;right:0;width:20px;height:20px;cursor:nwse-resize;z-index:10;touch-action:none;background:linear-gradient(135deg,transparent 0 55%,rgba(100,100,100,.35) 55% 62%,transparent 62% 72%,rgba(100,100,100,.35) 72% 79%,transparent 79%);}
+/* Section */
+.section-header{background:var(--header-bg);color:var(--header-text);padding:10px 16px;margin:24px 0 0;border-radius:4px 4px 0 0;font-size:0.85rem;letter-spacing:0.09em;font-family:'Arial',sans-serif;font-weight:bold;}
+.section-subtitle{font-size:0.75rem;color:#c8bfb0;font-weight:normal;letter-spacing:0.04em;margin-top:2px;}
+.problems-block{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;background:var(--surface);padding:14px 12px 12px;}
+.steps-list{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px;margin-bottom:14px;}
+.step-item{font-size:0.84rem;font-family:'Arial',sans-serif;margin-bottom:3px;display:flex;gap:7px;align-items:baseline;}
+.step-item:last-child{margin-bottom:0;}
+.step-circle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:bold;flex-shrink:0;margin-top:1px;}
+/* Concept blurb (used for e definition, ln definition) */
+.concept-box{background:var(--accent-light);border:1px solid #b9d2eb;border-radius:4px;padding:10px 14px;margin-bottom:14px;font-size:0.92rem;}
+.concept-box strong{color:var(--accent);}
+.concept-box .concept-eq{font-family:'Georgia',serif;font-size:1rem;display:block;margin-top:4px;}
+/* Sub-section divider inside a problems-block */
+.sub-section-label{margin:14px 0 8px;padding:6px 10px;background:var(--section-bg);border-left:3px solid var(--accent);font-family:'Arial',sans-serif;font-size:0.78rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.07em;color:var(--text);}
+.sub-section-label:first-child{margin-top:0;}
+/* Problem Grid */
+.problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.problem-cell{background:var(--section-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;}
+.problem-cell.is-worked{border-color:var(--accent);background:var(--accent-light);}
+.prob-num{font-size:0.7rem;font-weight:bold;color:var(--text-muted);margin-bottom:5px;font-family:'Arial',sans-serif;letter-spacing:0.06em;}
+.prob-num.worked-label{color:var(--accent);}
+.prob-stem{font-size:0.97rem;margin-bottom:10px;min-height:1.5em;}
+.prob-context{font-size:0.84rem;line-height:1.45;margin-bottom:8px;color:var(--text);}
+.ans-label{font-size:0.73rem;font-family:'Arial',sans-serif;color:var(--text-muted);margin-bottom:3px;}
+select.ans{font-size:0.88rem;padding:4px 6px;border:2px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);cursor:pointer;width:100%;transition:border-color .15s,background .15s;font-family:inherit;}
+select.ans.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
+select.ans.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg);color:var(--incorrect);}
+input.ans-num{font-size:0.95rem;padding:5px 8px;border:2px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);width:100%;font-family:inherit;transition:border-color .15s,background .15s;}
+input.ans-num:focus{outline:none;border-color:var(--accent);}
+input.ans-num.correct{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
+input.ans-num.incorrect{border-color:var(--incorrect);background:var(--incorrect-bg);color:var(--incorrect);}
+.input-units{font-size:0.8rem;color:var(--text-muted);margin-left:6px;font-family:'Arial',sans-serif;}
+.input-hint{font-size:0.7rem;color:var(--text-muted);margin-top:3px;font-family:'Arial',sans-serif;font-style:italic;}
+.feedback{font-size:0.75rem;margin-top:4px;font-family:'Arial',sans-serif;min-height:1em;display:block;}
+.feedback.correct{color:var(--correct);}
+.feedback.incorrect{color:var(--incorrect);}
+.view-sol-btn{display:inline-flex;align-items:center;gap:5px;margin-top:6px;background:var(--accent);color:#fff;border:none;border-radius:3px;padding:6px 12px;font-size:0.82rem;font-family:inherit;cursor:pointer;letter-spacing:0.02em;transition:opacity .15s;}
+.view-sol-btn:hover{opacity:0.85;}
+/* Worked example (inside modal) */
+.we-stem{font-size:1.05rem;margin-bottom:13px;text-align:center;padding:9px 12px;background:#fff;border-radius:4px;border:1px solid var(--border);}
+.we-stem-context{font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;line-height:1.45;}
+.step-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;}
+.step-badge{width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;font-size:0.7rem;font-family:'Arial',sans-serif;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;}
+.step-body{flex:1;}
+.step-desc{font-size:0.73rem;font-family:'Arial',sans-serif;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;}
+.step-math{font-size:0.95rem;line-height:1.75;}
+.math-line{display:block;}
+.we-check{background:#fff;border:1px solid var(--border);border-radius:4px;padding:8px 11px;margin-top:6px;}
+.we-check-lbl{font-size:0.7rem;font-family:'Arial',sans-serif;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:5px;}
+.check-item{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:0.85rem;line-height:1.5;}
+.check-icon{flex-shrink:0;font-size:0.88rem;margin-top:1px;}
+.check-note{font-size:0.79rem;font-family:'Arial',sans-serif;margin-top:4px;}
+.check-note.bad{color:var(--incorrect);}
+.check-note.good{color:var(--correct);}
+.we-result{border-radius:4px;padding:8px 12px;font-size:0.9rem;font-family:'Arial',sans-serif;font-weight:bold;margin-top:12px;text-align:center;}
+.we-result.no-sol{background:var(--incorrect-bg);color:var(--incorrect);border:1px solid var(--incorrect);}
+.we-result.sol{background:var(--correct-bg);color:var(--correct);border:1px solid var(--correct);}
+/* Score / Submit */
+#score-bar{background:var(--accent-light);border:1px solid var(--border);border-radius:4px;padding:9px 16px;font-size:0.95rem;color:var(--accent);font-family:'Arial',sans-serif;margin-top:20px;display:none;}
+.submit-wrap{margin-top:18px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+#submitBtn{background:var(--accent);color:#fff;border:none;padding:10px 30px;border-radius:4px;font-size:1rem;cursor:pointer;font-family:inherit;letter-spacing:0.03em;}
+#submitBtn:hover{opacity:0.9;}
+#submitBtn:disabled{opacity:0.6;cursor:default;}
+#submitMsg{font-size:0.85rem;color:var(--text-muted);font-family:'Arial',sans-serif;}
+@media(max-width:680px){
+  :root{--ribbon-w:0px;}
+  .sticky-panel{position:static;width:100%;height:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;padding:4px 0;}
+  .ribbon-divider{width:1px;height:28px;margin:0 2px;}
+  .problem-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="float-window" id="videoModal">
+  <div class="float-win-header" id="videoModalHeader">
+    <span class="float-win-title" id="videoModalTitle">&#9654;&nbsp; Video</span>
+    <button class="float-win-close" onclick="closeVideoModal()">&#x2715;</button>
+  </div>
+  <div class="float-win-body--video" id="videoModalBody"></div>
+</div>
+
+<div class="float-window" id="solutionModal" style="width:580px;height:500px;">
+  <div class="float-win-header" id="solutionModalHeader">
+    <span class="float-win-title" id="solutionModalTitle">&#9998; Worked Example</span>
+    <button class="float-win-close" onclick="closeSolutionModal()">&#x2715;</button>
+  </div>
+  <div class="float-win-body--sol" id="solutionModalBody">
+    <div class="resize-handle" id="solutionResizeHandle"></div>
+  </div>
+</div>
+
+<div class="page-header">
+  <h1>Natural Base <em>e</em> &amp; Solving Exponential Equations</h1>
+  <p>Algebra II &middot; Dallas ISD</p>
+</div>
+
+<div class="gsi-bar" id="gsiBar">
+  <div id="gsiBtnWrap">
+    <div id="g_id_onload" data-client_id="438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com" data-callback="handleGoogleSignIn" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline" data-text="sign_in_with" data-size="medium" data-logo_alignment="left"></div>
+  </div>
+  <div class="gsi-signed-in" id="gsiSignedIn">
+    <img id="gsiAvatar" src="" alt="" style="display:none;">
+    <div><div class="gsi-name" id="gsiName"></div><div class="gsi-email" id="gsiEmail"></div></div>
+    <button class="gsi-signout" onclick="gsiSignOut()">sign out</button>
+  </div>
+  <span class="gsi-hint" id="gsiHint">Sign in with your school Google account to auto-fill your name.</span>
+</div>
+
+<div class="student-bar">
+  <label>Name: <input type="text" id="studentName" placeholder="Last, First"></label>
+  <label>Student ID: <input type="text" id="studentId" placeholder="ID Number"></label>
+  <label>Period: <input type="text" id="period" class="period-inp" placeholder="Period"></label>
+  <label>Teacher:
+    <select id="teacher">
+      <option value="">&mdash; Select &mdash;</option>
+      <option value="Mueller">Mueller</option>
+      <option value="Reed">Reed</option>
+      <option value="Singleton">Singleton</option>
+      <option value="Pacayra">Pacayra</option>
+      <option value="Jafari">Jafari</option>
+    </select>
+  </label>
+</div>
+
+<aside class="sticky-panel">
+  <button class="ribbon-btn ribbon-btn--video" onclick="openVideoModal('eln')" title="Watch: Natural Base e and ln">
+    <span class="rb-icon">&#9654;</span>
+    <span class="rb-label">e &amp; ln<br>Video</span>
+  </button>
+  <button class="ribbon-btn ribbon-btn--video2" onclick="openVideoModal('exp')" title="Watch: Solving Exponentials with Logs">
+    <span class="rb-icon">&#9654;</span>
+    <span class="rb-label">Solve Exp<br>Video</span>
+  </button>
+  <div class="ribbon-divider"></div>
+  <button class="ribbon-btn ribbon-btn--save" onclick="manualSave()" title="Save progress">
+    <span class="rb-icon">&#x1F4BE;</span>
+    <span class="rb-label">Save</span>
+  </button>
+  <button class="ribbon-btn ribbon-btn--load" onclick="loadProgress()" title="Load saved progress">
+    <span class="rb-icon">&#x1F4C2;</span>
+    <span class="rb-label">Load</span>
+  </button>
+  <div class="ribbon-autosave" id="saveStatus"></div>
+  <div class="ribbon-divider"></div>
+  <div class="ribbon-score">
+    <div class="ribbon-score-num" id="panelScore">&mdash;</div>
+    <div class="ribbon-score-lbl">Score</div>
+  </div>
+</aside>
+
+<main class="main-content">
+
+  <!-- ============== SECTION 1 (was Sec 4): SOLVING EXPONENTIALS WITH LOGS ============== -->
+  <div class="section-header">SECTION 1 &mdash; SOLVING GENERAL EXPONENTIALS USING LOGS<div class="section-subtitle">When a common base is NOT possible</div></div>
+  <div class="problems-block">
+    <div class="steps-list">
+      <div class="step-item"><span class="step-circle">1</span><span><strong>ISOLATE</strong> the exponential expression on one side.</span></div>
+      <div class="step-item"><span class="step-circle">2</span><span><strong>TAKE LOG of both sides</strong> &mdash; either \(\log\) (base 10) or \(\ln\) works.</span></div>
+      <div class="step-item"><span class="step-circle">3</span><span><strong>POWER PROPERTY:</strong> bring the exponent down: \(\log(b^x) = x \cdot \log b\).</span></div>
+      <div class="step-item"><span class="step-circle">4</span><span><strong>SOLVE</strong> for the variable; round to nearest tenth.</span></div>
+    </div>
+
+    <div class="sub-section-label">Review &mdash; Common Base Method (when bases match)</div>
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 1</div>
+        <div class="prob-stem">\(5^{n+10} = 25\)</div>
+        <div class="ans-label">n =</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p1" data-correct="-8" data-type="int" placeholder="integer">
+        <div class="input-hint">Rewrite \(25\) as a power of \(5\), then equate exponents.</div>
+        <span class="feedback" id="fb_p1"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 2</div>
+        <div class="prob-stem">\(9^{a+2} = 27^{4a-2}\)</div>
+        <div class="ans-label">a =</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p2" data-correct="1" data-type="int" placeholder="integer">
+        <div class="input-hint">Rewrite both sides as powers of \(3\).</div>
+        <span class="feedback" id="fb_p2"></span>
+      </div>
+
+    </div>
+
+    <div class="sub-section-label">Solve Using Logs</div>
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 3</div>
+        <div class="prob-stem">\(12^x = 8\)</div>
+        <div class="ans-label">x =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p3" data-correct="0.84" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p3"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 4</div>
+        <div class="prob-stem">\(8^{m-7} = 92\)</div>
+        <div class="ans-label">m =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p4" data-correct="9.17" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p4"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 5</div>
+        <div class="prob-stem">\(4 \cdot 7^n = 148\)</div>
+        <div class="ans-label">n =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p5" data-correct="1.86" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p5"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 6</div>
+        <div class="prob-stem">\(4^{3w} - 5 = 3\)</div>
+        <div class="ans-label">w =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p6" data-correct="0.50" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p6"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 7</div>
+        <div class="prob-stem">\(7 - 4^{x+1} = 18\)</div>
+        <div class="ans-label">Solution:</div>
+        <input type="text" class="ans-num" id="p7" data-correct="ns" data-type="ns" placeholder="ns for no solution">
+        <div class="input-hint">Hint: an exponential expression cannot equal a negative number.</div>
+        <span class="feedback" id="fb_p7"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 8</div>
+        <div class="prob-stem">\(10 \cdot 5^{3k-3} = 40\)</div>
+        <div class="ans-label">k =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p8" data-correct="1.29" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p8"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 9</div>
+        <div class="prob-stem">\(4 \cdot 3^n + 15 = 359\)</div>
+        <div class="ans-label">n =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p9" data-correct="4.05" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p9"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 10</div>
+        <div class="prob-stem">\(-2 \cdot 5^p + 7 = -63\)</div>
+        <div class="ans-label">p =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p10" data-correct="2.21" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p10"></span>
+      </div>
+
+      <div class="problem-cell is-worked">
+        <div class="prob-num worked-label">PROBLEM 11 &mdash; WORKED EXAMPLE</div>
+        <div class="prob-stem">\(5 \cdot 9^{y-1} + 1 = 181\)</div>
+        <div class="ans-label">y =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p11" data-correct="2.63" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p11"></span>
+        <button class="view-sol-btn" onclick="openSolutionModal(11)">&#9998;&nbsp; View Worked Solution</button>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 12</div>
+        <div class="prob-stem">\(8 \cdot 11^{7k} - 3 = 213\)</div>
+        <div class="ans-label">k =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p12" data-correct="0.20" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p12"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 13</div>
+        <div class="prob-stem">\(6 \cdot 16^{7y+2} - 2 = 82\)</div>
+        <div class="ans-label">y =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p13" data-correct="-0.15" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p13"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 14</div>
+        <div class="prob-stem">\(3 \cdot 8^{3-7n} + 10 = 94\)</div>
+        <div class="ans-label">n =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p14" data-correct="0.20" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p14"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============== SECTION 2 (was Sec 2): CONVERTING & SIMPLIFYING WITH ln ============== -->
+  <div class="section-header">SECTION 2 &mdash; CONVERTING &amp; SIMPLIFYING WITH ln<div class="section-subtitle">Natural log: ln x means \(\log_e x\)</div></div>
+  <div class="problems-block">
+    <div class="concept-box">
+      A <strong>natural logarithm</strong> is a logarithm with base \(e\). It is written as \(\log_e x\), but usually as \(\ln x\).
+      <span class="concept-eq">Conversion: &nbsp;\(e^x = y \;\Longleftrightarrow\; \ln y = x\)</span>
+    </div>
+
+    <div class="sub-section-label">Convert Between Exponential &amp; Logarithmic Form</div>
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 15</div>
+        <div class="prob-stem">Write \(e^x = 24\) in logarithmic form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p15" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(24) = x</option>
+          <option value="B">log(24) = x</option>
+          <option value="C">e &middot; x = 24</option>
+          <option value="D">x = 24 / e</option>
+        </select>
+        <span class="feedback" id="fb_p15"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 16</div>
+        <div class="prob-stem">Write \(e^9 = x\) in logarithmic form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p16" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(x) = 9</option>
+          <option value="B">ln(9) = x</option>
+          <option value="C">log(x) = 9</option>
+          <option value="D">x = ln(9)</option>
+        </select>
+        <span class="feedback" id="fb_p16"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 17</div>
+        <div class="prob-stem">Write \(e^{x+5} = 72\) in logarithmic form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p17" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(72) = x + 5</option>
+          <option value="B">ln(x + 5) = 72</option>
+          <option value="C">log(72) = x + 5</option>
+          <option value="D">x + 5 = log&#8325;(72)</option>
+        </select>
+        <span class="feedback" id="fb_p17"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 18</div>
+        <div class="prob-stem">Write \(\ln x = 58\) in exponential form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p18" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">e&#8309;&#8312; = x</option>
+          <option value="B">e^x = 58</option>
+          <option value="C">10&#8309;&#8312; = x</option>
+          <option value="D">x = 58e</option>
+        </select>
+        <span class="feedback" id="fb_p18"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 19</div>
+        <div class="prob-stem">Write \(\ln 6 = x\) in exponential form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p19" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">e^x = 6</option>
+          <option value="B">e&#8310; = x</option>
+          <option value="C">10^x = 6</option>
+          <option value="D">x = 6 / e</option>
+        </select>
+        <span class="feedback" id="fb_p19"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 20</div>
+        <div class="prob-stem">Write \(\ln(x-9) = 32\) in exponential form.</div>
+        <div class="ans-label">Equivalent form:</div>
+        <select class="ans" id="p20" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">e&#179;&#178; = x &minus; 9</option>
+          <option value="B">e^(x &minus; 9) = 32</option>
+          <option value="C">10&#179;&#178; = x &minus; 9</option>
+          <option value="D">x &minus; 9 = log(32)</option>
+        </select>
+        <span class="feedback" id="fb_p20"></span>
+      </div>
+
+    </div>
+
+    <div class="sub-section-label">Condense each Expression into a Single Logarithm</div>
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 21</div>
+        <div class="prob-stem">\(\ln 3 + \ln 16\)</div>
+        <div class="ans-label">Condensed form:</div>
+        <select class="ans" id="p21" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(48)</option>
+          <option value="B">ln(19)</option>
+          <option value="C">ln(13)</option>
+          <option value="D">ln(3) &middot; ln(16)</option>
+        </select>
+        <span class="feedback" id="fb_p21"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 22</div>
+        <div class="prob-stem">\(\ln 63 - 2 \cdot \ln 3\)</div>
+        <div class="ans-label">Condensed form:</div>
+        <select class="ans" id="p22" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(7)</option>
+          <option value="B">ln(21)</option>
+          <option value="C">ln(60)</option>
+          <option value="D">ln(57)</option>
+        </select>
+        <span class="feedback" id="fb_p22"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 23</div>
+        <div class="prob-stem">\(\dfrac{1}{3} \cdot \ln 64 + 2 \cdot \ln x\)</div>
+        <div class="ans-label">Condensed form:</div>
+        <select class="ans" id="p23" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(4x&#178;)</option>
+          <option value="B">ln(64x&#178; / 3)</option>
+          <option value="C">ln(64 &middot; x^(2/3))</option>
+          <option value="D">ln(64^(2/3) &middot; x)</option>
+        </select>
+        <span class="feedback" id="fb_p23"></span>
+      </div>
+
+    </div>
+
+    <div class="sub-section-label">Expand each Logarithm</div>
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 24</div>
+        <div class="prob-stem">\(\ln 5x\)</div>
+        <div class="ans-label">Expanded form:</div>
+        <select class="ans" id="p24" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">ln(5) + ln(x)</option>
+          <option value="B">ln(5) &middot; ln(x)</option>
+          <option value="C">ln(5x) is already expanded</option>
+          <option value="D">5 &middot; ln(x)</option>
+        </select>
+        <span class="feedback" id="fb_p24"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 25</div>
+        <div class="prob-stem">\(\ln\!\left(\dfrac{a^3}{b}\right)^{\!2}\)</div>
+        <div class="ans-label">Expanded form:</div>
+        <select class="ans" id="p25" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">6 &middot; ln(a) &minus; 2 &middot; ln(b)</option>
+          <option value="B">3 &middot; ln(a) &minus; ln(b)</option>
+          <option value="C">2 &middot; ln(a&#179;) + 2 &middot; ln(b)</option>
+          <option value="D">2 &middot; ln(a&#179; &minus; b)</option>
+        </select>
+        <span class="feedback" id="fb_p25"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 26</div>
+        <div class="prob-stem">\(\ln \sqrt[3]{m^2 n}\)</div>
+        <div class="ans-label">Expanded form:</div>
+        <select class="ans" id="p26" data-correct="A">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="A">(2/3) &middot; ln(m) + (1/3) &middot; ln(n)</option>
+          <option value="B">(1/3) &middot; ln(m) + (1/3) &middot; ln(n)</option>
+          <option value="C">3 &middot; ln(m) + 3 &middot; ln(n)</option>
+          <option value="D">2 &middot; ln(m) + ln(n)</option>
+        </select>
+        <span class="feedback" id="fb_p26"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============== SECTION 3 (was Sec 3): SOLVING WITH ln ============== -->
+  <div class="section-header">SECTION 3 &mdash; SOLVING EQUATIONS WITH <em>e</em> AND ln<div class="section-subtitle">Convert form &rarr; Solve &rarr; Round to nearest tenth &rarr; Check</div></div>
+  <div class="problems-block">
+    <div class="steps-list">
+      <div class="step-item"><span class="step-circle">1</span><span><strong>For ln = ln:</strong> use the One-to-One Property &rarr; set arguments equal.</span></div>
+      <div class="step-item"><span class="step-circle">2</span><span><strong>For ln = number:</strong> condense, isolate the log, then convert to <em>e</em>-form: \(\ln x = n \Rightarrow e^n = x\).</span></div>
+      <div class="step-item"><span class="step-circle">3</span><span><strong>For \(e^{(\ldots)} = \text{number}\):</strong> isolate the exponential, then take \(\ln\) of both sides: \(e^{(\ldots)} = n \Rightarrow (\ldots) = \ln n\).</span></div>
+      <div class="step-item"><span class="step-circle">4</span><span><strong>CHECK FOR EXTRANEOUS SOLUTIONS</strong> &mdash; arguments of ln must be positive.</span></div>
+    </div>
+
+    <div class="problem-grid">
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 27</div>
+        <div class="prob-stem">\(\ln(4x-27) = \ln(15-2x)\)</div>
+        <div class="ans-label">x =</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p27" data-correct="7" data-type="int" placeholder="integer">
+        <span class="feedback" id="fb_p27"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 28</div>
+        <div class="prob-stem">\(2 \cdot \ln k = \ln(2k+15)\)</div>
+        <div class="ans-label">k = (only valid solution):</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p28" data-correct="5" data-type="int" placeholder="integer">
+        <div class="input-hint">Hint: discard any value that makes \(\ln k\) undefined.</div>
+        <span class="feedback" id="fb_p28"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 29</div>
+        <div class="prob-stem">\(\ln 72 - \ln 4 = \ln 6 + \ln(a-2)\)</div>
+        <div class="ans-label">a =</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p29" data-correct="5" data-type="int" placeholder="integer">
+        <span class="feedback" id="fb_p29"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 30</div>
+        <div class="prob-stem">\(2 \cdot \ln(m+4) = \ln 4\)</div>
+        <div class="ans-label">m = (only valid solution):</div>
+        <input type="text" inputmode="numeric" class="ans-num" id="p30" data-correct="-2" data-type="int" placeholder="integer">
+        <div class="input-hint">Hint: discard any value that makes \(\ln(m+4)\) undefined.</div>
+        <span class="feedback" id="fb_p30"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 31</div>
+        <div class="prob-stem">\(\ln 8x = 2\)</div>
+        <div class="ans-label">x =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p31" data-correct="0.92" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p31"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 32</div>
+        <div class="prob-stem">\(\ln x - \ln 9 = 7\)</div>
+        <div class="ans-label">x =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p32" data-correct="9869.70" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p32"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 33</div>
+        <div class="prob-stem">\(e^x = 57\)</div>
+        <div class="ans-label">x =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p33" data-correct="4.04" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p33"></span>
+      </div>
+
+      <div class="problem-cell is-worked">
+        <div class="prob-num worked-label">PROBLEM 34 &mdash; WORKED EXAMPLE</div>
+        <div class="prob-stem">\(e^{y+3} - 6 = 24\)</div>
+        <div class="ans-label">y =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p34" data-correct="0.40" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p34"></span>
+        <button class="view-sol-btn" onclick="openSolutionModal(34)">&#9998;&nbsp; View Worked Solution</button>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 35</div>
+        <div class="prob-stem">\(5e^{4n} = 95\)</div>
+        <div class="ans-label">n =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p35" data-correct="0.74" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p35"></span>
+      </div>
+
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 36</div>
+        <div class="prob-stem">\(2e^{c-9} + 3 = 87\)</div>
+        <div class="ans-label">c =</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p36" data-correct="12.74" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p36"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============== SECTION 4 (was Sec 1): APPLICATIONS OF e ============== -->
+  <div class="section-header">SECTION 4 &mdash; APPLICATIONS OF NATURAL BASE <em>e</em><div class="section-subtitle">Substitute &rarr; Compute &rarr; Round to nearest tenth</div></div>
+  <div class="problems-block">
+    <div class="concept-box">
+      Like \(\pi\), <strong><em>e</em></strong> is a special irrational number that occurs in <em>continuous</em> exponential growth and decay. Its value is approximately
+      <span class="concept-eq">\(e \approx 2.71828\ldots\)</span>
+      <strong>Growth:</strong> \(f(t)=ae^{kt}\) with \(k>0\). &nbsp; <strong>Decay:</strong> \(f(t)=ae^{kt}\) with \(k&lt;0\).
+    </div>
+
+    <div class="problem-grid">
+      <div class="problem-cell is-worked">
+        <div class="prob-num worked-label">PROBLEM 37 &mdash; WORKED EXAMPLE</div>
+        <div class="prob-context">A person is given <strong>800 mg</strong> of medicine. The amount in their system after \(t\) hours is modeled by \(f(t)=800\,e^{-0.6t}\). How many milligrams remain after <strong>2 hours</strong>?</div>
+        <div class="ans-label">Answer (mg):</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p37" data-correct="240.96" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p37"></span>
+        <button class="view-sol-btn" onclick="openSolutionModal(37)">&#9998;&nbsp; View Worked Solution</button>
+      </div>
+      <div class="problem-cell">
+        <div class="prob-num">PROBLEM 38</div>
+        <div class="prob-context">An investment account is modeled by \(f(t)=2000\,e^{0.05t}\), where \(t\) is years since the initial investment. Find the balance after <strong>15 years</strong>.</div>
+        <div class="ans-label">Answer ($):</div>
+        <input type="text" inputmode="decimal" class="ans-num" id="p38" data-correct="4234.00" data-tol="0.1" data-type="num" placeholder="Round to nearest tenth">
+        <span class="feedback" id="fb_p38"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="score-bar"></div>
+  <div class="submit-wrap">
+    <button id="submitBtn">Submit</button>
+    <span id="submitMsg"></span>
+  </div>
+
+</main>
+
+<script>
+/* ============== WORKED-EXAMPLE SOLUTIONS ============== */
+var SOLUTION_HTML = {};
+
+SOLUTION_HTML[37] =
+  '<div class="sol-inner">' +
+  '<div class="we-stem-context">A person is given 800 mg of medicine. \\(f(t)=800\\,e^{-0.6t}\\). Find the amount remaining after \\(t = 2\\) hours.</div>' +
+  '<div class="we-stem">\\(f(2) = 800\\,e^{-0.6(2)}\\)</div>' +
+  '<div class="step-row"><div class="step-badge">1</div><div class="step-body">' +
+  '<div class="step-desc">Substitute t = 2</div>' +
+  '<div class="step-math"><span class="math-line">\\(f(2) = 800\\,e^{-0.6 \\cdot 2}\\)</span><span class="math-line">\\(f(2) = 800\\,e^{-1.2}\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">2</div><div class="step-body">' +
+  '<div class="step-desc">Compute on calculator</div>' +
+  '<div class="step-math"><span class="math-line">\\(e^{-1.2} \\approx 0.30119\\)</span><span class="math-line">\\(800 \\cdot 0.30119 \\approx 240.96\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">3</div><div class="step-body">' +
+  '<div class="step-desc">Round to nearest tenth</div>' +
+  '<div class="step-math"><span class="math-line">\\(f(2) \\approx 241.0 \\text{ mg}\\)</span></div>' +
+  '</div></div>' +
+  '<div class="we-result sol">&#x2713; About 241.0 mg of medicine remain after 2 hours</div>' +
+  '</div>';
+
+SOLUTION_HTML[34] =
+  '<div class="sol-inner">' +
+  '<div class="we-stem">\\(e^{y+3} - 6 = 24\\)</div>' +
+  '<div class="step-row"><div class="step-badge">1</div><div class="step-body">' +
+  '<div class="step-desc">Isolate the exponential expression</div>' +
+  '<div class="step-math"><span class="math-line">\\(e^{y+3} - 6 = 24\\)</span><span class="math-line">\\(e^{y+3} = 30\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">2</div><div class="step-body">' +
+  '<div class="step-desc">Convert to logarithmic form: \\(e^x = n \\Rightarrow x = \\ln n\\)</div>' +
+  '<div class="step-math"><span class="math-line">\\(y + 3 = \\ln 30\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">3</div><div class="step-body">' +
+  '<div class="step-desc">Solve for y</div>' +
+  '<div class="step-math"><span class="math-line">\\(y = \\ln 30 - 3\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">4</div><div class="step-body">' +
+  '<div class="step-desc">Compute and round to nearest tenth</div>' +
+  '<div class="step-math"><span class="math-line">\\(\\ln 30 \\approx 3.4012\\)</span><span class="math-line">\\(y \\approx 3.4012 - 3 = 0.4012\\)</span><span class="math-line">\\(y \\approx 0.4\\)</span></div>' +
+  '</div></div>' +
+  '<div class="we-result sol">&#x2713; Solution: y &asymp; 0.4</div>' +
+  '</div>';
+
+SOLUTION_HTML[11] =
+  '<div class="sol-inner">' +
+  '<div class="we-stem">\\(5 \\cdot 9^{y-1} + 1 = 181\\)</div>' +
+  '<div class="step-row"><div class="step-badge">1</div><div class="step-body">' +
+  '<div class="step-desc">Isolate the exponential expression</div>' +
+  '<div class="step-math"><span class="math-line">\\(5 \\cdot 9^{y-1} = 180\\)</span><span class="math-line">\\(9^{y-1} = 36\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">2</div><div class="step-body">' +
+  '<div class="step-desc">Take log of both sides</div>' +
+  '<div class="step-math"><span class="math-line">\\(\\log\\!\\left(9^{y-1}\\right) = \\log 36\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">3</div><div class="step-body">' +
+  '<div class="step-desc">Power Property &mdash; bring the exponent down</div>' +
+  '<div class="step-math"><span class="math-line">\\((y-1) \\cdot \\log 9 = \\log 36\\)</span><span class="math-line">\\(y - 1 = \\dfrac{\\log 36}{\\log 9}\\)</span></div>' +
+  '</div></div>' +
+  '<div class="step-row"><div class="step-badge">4</div><div class="step-body">' +
+  '<div class="step-desc">Compute and solve for y</div>' +
+  '<div class="step-math"><span class="math-line">\\(\\dfrac{\\log 36}{\\log 9} \\approx 1.6309\\)</span><span class="math-line">\\(y \\approx 1.6309 + 1 = 2.6309\\)</span><span class="math-line">\\(y \\approx 2.6\\)</span></div>' +
+  '</div></div>' +
+  '<div class="we-result sol">&#x2713; Solution: y &asymp; 2.6</div>' +
+  '</div>';
+
+/* ============== VIDEO SOURCES ============== */
+var VIDEO_SOURCES = {
+  'eln': {
+    id: '4WaeexJoSFU',
+    title: 'Natural Base e and ln &mdash; Video'
+  },
+  'exp': {
+    id: 'acY7nRdtAaI',
+    title: 'Solving Exponentials with Logs &mdash; Video'
+  }
+};
+
+/* ============== MODAL OPEN/CLOSE ============== */
+function openSolutionModal(num) {
+  var modal = document.getElementById('solutionModal');
+  var body  = document.getElementById('solutionModalBody');
+  var title = document.getElementById('solutionModalTitle');
+  title.innerHTML = '&#9998; Worked Example &mdash; Problem ' + num;
+  body.innerHTML  = (SOLUTION_HTML[num] || '<div class="sol-inner">Not found.</div>') +
+                    '<div class="resize-handle" id="solutionResizeHandle"></div>';
+  modal.classList.add('open');
+  if (!modal.dataset.positioned) {
+    modal.style.left = Math.max(8, (window.innerWidth  - modal.offsetWidth)  / 2) + 'px';
+    modal.style.top  = Math.max(8, (window.innerHeight - modal.offsetHeight) / 2) + 'px';
+    modal.dataset.positioned = '1';
+  }
+  _makeFloatWindow('solutionModal','solutionModalHeader','solutionResizeHandle');
+  if (typeof renderMathInElement !== 'undefined') {
+    renderMathInElement(body, {
+      delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],
+      throwOnError:false
+    });
+  }
+}
+function closeSolutionModal() { document.getElementById('solutionModal').classList.remove('open'); }
+
+function openVideoModal(which) {
+  var src = VIDEO_SOURCES[which];
+  if (!src) return;
+  var modal = document.getElementById('videoModal');
+  var body  = document.getElementById('videoModalBody');
+  var titleEl = document.getElementById('videoModalTitle');
+  titleEl.innerHTML = '&#9654;&nbsp; ' + src.title;
+  body.innerHTML =
+    '<iframe src="https://www.youtube-nocookie.com/embed/' + src.id + '?rel=0&modestbranding=1" ' +
+    'title="' + src.title + '" ' +
+    'allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>' +
+    '<div class="resize-handle" id="videoResizeHandle"></div>';
+  modal.classList.add('open');
+  if (!modal.dataset.positioned) {
+    modal.style.left = Math.max(8, (window.innerWidth  - modal.offsetWidth)  / 2) + 'px';
+    modal.style.top  = Math.max(8, (window.innerHeight - modal.offsetHeight) / 2) + 'px';
+    modal.dataset.positioned = '1';
+  }
+  _makeFloatWindow('videoModal','videoModalHeader','videoResizeHandle');
+}
+function closeVideoModal() {
+  document.getElementById('videoModal').classList.remove('open');
+  document.getElementById('videoModalBody').innerHTML = '';
+}
+
+function _makeFloatWindow(modalId, headerId, resizeId) {
+  var modal  = document.getElementById(modalId);
+  var header = document.getElementById(headerId);
+  var handle = document.getElementById(resizeId);
+  if (!modal || !header) return;
+  var mode=null,sx=0,sy=0,sLeft=0,sTop=0,sW=0,sH=0;
+  header.onpointerdown = function(e) {
+    if (e.target.closest && e.target.closest('.float-win-close')) return;
+    mode='drag'; var r=modal.getBoundingClientRect();
+    sx=e.clientX;sy=e.clientY;sLeft=r.left;sTop=r.top;
+    header.setPointerCapture(e.pointerId);e.preventDefault();
+  };
+  header.onpointermove = function(e) {
+    if (mode!=='drag') return;
+    modal.style.left=(sLeft+e.clientX-sx)+'px';modal.style.top=(sTop+e.clientY-sy)+'px';
+  };
+  header.onpointerup = function() { mode=null; };
+  if (!handle) return;
+  handle.onpointerdown = function(e) {
+    mode='resize'; var r=modal.getBoundingClientRect();
+    sx=e.clientX;sy=e.clientY;sW=r.width;sH=r.height;
+    handle.setPointerCapture(e.pointerId);e.preventDefault();e.stopPropagation();
+  };
+  handle.onpointermove = function(e) {
+    if (mode!=='resize') return;
+    modal.style.width=Math.max(300,sW+e.clientX-sx)+'px';
+    modal.style.height=Math.max(200,sH+e.clientY-sy)+'px';
+  };
+  handle.onpointerup = function() { mode=null; };
+}
+
+/* ============== INPUT VALIDATION ============== */
+function _normalizeNumber(raw) {
+  // Replace Unicode minus variants with ASCII hyphen, strip commas (US thousands) and spaces
+  return String(raw)
+    .replace(/[\u2212\u2013\u2014\u2010\u2011]/g, '-')
+    .replace(/,/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+function _validateInput(inp) {
+  var val = inp.value.trim();
+  var fb = document.getElementById('fb_' + inp.id);
+  if (!val) {
+    inp.classList.remove('correct','incorrect');
+    if (fb) { fb.textContent=''; fb.className='feedback'; }
+    return;
+  }
+  var type = inp.getAttribute('data-type') || 'num';
+  var correct = inp.getAttribute('data-correct');
+  var isOk = false;
+  if (type === 'ns') {
+    var nrm = val.toLowerCase().replace(/[\s.]+/g,'');
+    isOk = (nrm === 'ns' || nrm === 'nosolution' || nrm === 'none' || nrm === 'nosol' || nrm === 'undefined' || nrm === 'noreal' || nrm === 'norealsolution');
+  } else if (type === 'int') {
+    var n = parseFloat(_normalizeNumber(val));
+    if (!isNaN(n)) {
+      isOk = (Math.abs(n - parseFloat(correct)) < 0.5);
+    }
+  } else {
+    var tol = parseFloat(inp.getAttribute('data-tol') || '0.1');
+    var nv = parseFloat(_normalizeNumber(val));
+    if (!isNaN(nv)) {
+      isOk = (Math.abs(nv - parseFloat(correct)) <= tol + 1e-9);
+    }
+  }
+  inp.classList.toggle('correct', isOk);
+  inp.classList.toggle('incorrect', !isOk);
+  if (fb) {
+    fb.textContent = isOk ? '\u2713 Correct!' : '\u2717 Try again';
+    fb.className = 'feedback ' + (isOk ? 'correct' : 'incorrect');
+  }
+}
+
+/* ============== SAVE / LOAD ============== */
+var SAVE_KEY='eAndExp_v2',_hasSavedOnce=false,_autoSaveTimer=null;
+function _collectState() {
+  var s={v:1,name:'',sid:'',period:'',teacher:'',answers:{}},el;
+  el=document.getElementById('studentName');if(el)s.name=el.value;
+  el=document.getElementById('studentId');if(el)s.sid=el.value;
+  el=document.getElementById('period');if(el)s.period=el.value;
+  el=document.getElementById('teacher');if(el)s.teacher=el.value;
+  document.querySelectorAll('select.ans[id]').forEach(function(sel){s.answers[sel.id]=sel.value;});
+  document.querySelectorAll('input.ans-num[id]').forEach(function(inp){s.answers[inp.id]=inp.value;});
+  return s;
+}
+function _applyState(s) {
+  if(!s||s.v!==1)return;var el;
+  el=document.getElementById('studentName');if(el&&s.name)el.value=s.name;
+  el=document.getElementById('studentId');if(el&&s.sid)el.value=s.sid;
+  el=document.getElementById('period');if(el&&s.period)el.value=s.period;
+  el=document.getElementById('teacher');if(el&&s.teacher)el.value=s.teacher;
+  if(s.answers){Object.keys(s.answers).forEach(function(id){
+    var el2=document.getElementById(id);
+    if(el2 && s.answers[id]){
+      el2.value=s.answers[id];
+      if (el2.tagName === 'SELECT') {
+        el2.dispatchEvent(new Event('change'));
+      } else {
+        _validateInput(el2);
+      }
+    }
+  });}
+}
+function _writeStorage(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(_collectState()));return true;}catch(e){return false;}}
+function manualSave(){if(_writeStorage()){_hasSavedOnce=true;_setStatus('Saved &#x2713;',true);_startAutoSave();}else{_setStatus('Failed',false);}}
+function loadProgress(){try{var raw=localStorage.getItem(SAVE_KEY);if(!raw){_setStatus('None found',false);return;}_applyState(JSON.parse(raw));_hasSavedOnce=true;_setStatus('Loaded &#x2713;',true);_startAutoSave();_updateScore();}catch(e){_setStatus('Error',false);}}
+function _startAutoSave(){if(_autoSaveTimer)return;_autoSaveTimer=setInterval(function(){if(!_hasSavedOnce)return;_writeStorage();var now=new Date(),h=now.getHours(),m=now.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;_setStatus('Auto<br>'+h+':'+(m<10?'0':'')+m+' '+ap,false);},5*60*1000);}
+function _setStatus(msg,flash){var el=document.getElementById('saveStatus');if(!el)return;el.innerHTML=msg;el.className='ribbon-autosave'+(flash?' flash':'');if(flash)setTimeout(function(){el.classList.remove('flash');},3000);}
+
+/* ============== SCORING ============== */
+function _updateScore(){
+  var total=0,correct=0;
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel){
+    total++;
+    if(sel.value && sel.value === sel.getAttribute('data-correct')) correct++;
+  });
+  document.querySelectorAll('input.ans-num[data-correct]').forEach(function(inp){
+    total++;
+    if(inp.classList.contains('correct')) correct++;
+  });
+  var p=document.getElementById('panelScore');if(p)p.textContent=correct+'/'+total;
+  var b=document.getElementById('score-bar');if(b){b.style.display='block';b.textContent='Score: '+correct+' / '+total+' correct';}
+  return{correct:correct,total:total};
+}
+
+/* ============== GOOGLE SIGN-IN ============== */
+function handleGoogleSignIn(response){
+  try{var parts=response.credential.split('.'),b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+  while(b64.length%4)b64+='=';
+  var payload=JSON.parse(atob(b64)),user={name:payload.name,email:payload.email,picture:payload.picture||''};
+  sessionStorage.setItem('gsiUser_eAndExp',JSON.stringify(user));_applyGsiUser(user);}catch(e){}
+}
+function _applyGsiUser(user){
+  var bw=document.getElementById('gsiBtnWrap'),si=document.getElementById('gsiSignedIn'),hi=document.getElementById('gsiHint');
+  if(bw)bw.style.display='none';if(si)si.style.display='flex';if(hi)hi.style.display='none';
+  var av=document.getElementById('gsiAvatar'),ne=document.getElementById('gsiName'),ee=document.getElementById('gsiEmail');
+  if(av&&user.picture){av.src=user.picture;av.style.display='block';}
+  if(ne)ne.textContent=user.name;if(ee)ee.textContent=user.email;
+  var ni=document.getElementById('studentName'),ii=document.getElementById('studentId');
+  if(ni&&!ni.value)ni.value=user.name;if(ii&&!ii.value)ii.value=user.email;
+}
+function gsiSignOut(){
+  sessionStorage.removeItem('gsiUser_eAndExp');
+  var bw=document.getElementById('gsiBtnWrap'),si=document.getElementById('gsiSignedIn'),hi=document.getElementById('gsiHint');
+  if(bw)bw.style.display='block';if(si)si.style.display='none';if(hi)hi.style.display='inline';
+  if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect();
+}
+
+/* ============== INIT ============== */
+document.addEventListener('DOMContentLoaded',function(){
+  var stored=sessionStorage.getItem('gsiUser_eAndExp');
+  if(stored){try{_applyGsiUser(JSON.parse(stored));}catch(e){}}
+
+  // Wire up MC selects
+  document.querySelectorAll('select.ans[data-correct]').forEach(function(sel){
+    sel.addEventListener('change',function(){
+      if(!sel.value){
+        sel.classList.remove('correct','incorrect');
+        var fb=document.getElementById('fb_'+sel.id);
+        if(fb){fb.textContent='';fb.className='feedback';}
+      } else {
+        var isOk = sel.value === sel.getAttribute('data-correct');
+        sel.classList.toggle('correct',isOk);
+        sel.classList.toggle('incorrect',!isOk);
+        var fb=document.getElementById('fb_'+sel.id);
+        if(fb){
+          fb.textContent = isOk ? '\u2713 Correct!' : '\u2717 Try again';
+          fb.className = 'feedback ' + (isOk ? 'correct' : 'incorrect');
+        }
+      }
+      _updateScore();
+    });
+  });
+
+  // Wire up text/number inputs (validate on blur and on Enter)
+  document.querySelectorAll('input.ans-num[data-correct]').forEach(function(inp){
+    inp.addEventListener('blur', function(){ _validateInput(inp); _updateScore(); });
+    inp.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') { _validateInput(inp); _updateScore(); inp.blur(); }
+    });
+    // Clear feedback when actively editing
+    inp.addEventListener('input', function(){
+      if (inp.classList.contains('correct') || inp.classList.contains('incorrect')) {
+        inp.classList.remove('correct','incorrect');
+        var fb=document.getElementById('fb_'+inp.id);
+        if(fb){fb.textContent='';fb.className='feedback';}
+      }
+    });
+  });
+
+  // Submit button
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    // Force-validate any unvalidated inputs (e.g., student typed but never blurred)
+    document.querySelectorAll('input.ans-num[data-correct]').forEach(function(inp){
+      if (inp.value.trim() && !inp.classList.contains('correct') && !inp.classList.contains('incorrect')) {
+        _validateInput(inp);
+      }
+    });
+    var name=document.getElementById('studentName').value.trim(),sid=document.getElementById('studentId').value.trim(),period=document.getElementById('period').value.trim(),teacher=document.getElementById('teacher').value;
+    if(!name||!teacher){document.getElementById('submitMsg').textContent='Please enter your name and select your teacher before submitting.';return;}
+    var sc=_updateScore(),payload={worksheet:'Natural Base e and Solving Exponential Equations',studentName:name,studentId:sid,period:period,teacher:teacher,seedCode:'N/A',score:sc.correct+'/'+sc.total,answers:{total_correct:sc.correct,total_incorrect:sc.total-sc.correct,total_questions:sc.total}};
+    var msgEl=document.getElementById('submitMsg'),btn=document.getElementById('submitBtn');
+    msgEl.textContent='Submitting\u2026';btn.disabled=true;
+    fetch('https://script.google.com/macros/s/AKfycbztB6ErYv3sf8jmjARLJEAaITre6gMUnskNHmwI2hLHUFIWgLKYAY58FfT8EinV9uF4/exec',
+      {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(JSON.stringify(payload))})
+    .then(function(){msgEl.textContent='Submitted! Score: '+sc.correct+'/'+sc.total;btn.disabled=false;})
+    .catch(function(){msgEl.textContent='Submission error \u2014 please try again.';btn.disabled=false;});
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof renderMathInElement!=='undefined'){
+    renderMathInElement(document.body,{
+      delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],
+      throwOnError:false
+    });
+  }
+});
+</script>
+</body>
+</html>
