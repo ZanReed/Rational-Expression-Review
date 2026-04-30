@@ -98,6 +98,22 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .feedback.correct{color:var(--green)}
 .feedback.incorrect{color:var(--red)}
 
+/* ---------- CUSTOM DROPDOWN (math + text choices) ---------- */
+.md-dropdown{position:relative;display:inline-block;min-width:240px;vertical-align:middle}
+.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s}
+.md-trigger::-webkit-details-marker{display:none}
+.md-trigger::marker{display:none;content:''}
+.md-trigger::after{content:'\\25BE';color:var(--ink-light);font-size:11px;flex-shrink:0}
+.md-trigger:hover{border-color:var(--accent)}
+.md-dropdown[open] .md-trigger{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-lt)}
+.md-trigger.correct{border-color:var(--green-rule);background:var(--green-bg)}
+.md-trigger.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
+.md-trigger-label{display:inline-block;flex:1}
+.md-placeholder{color:var(--ink-light);font-style:italic}
+.md-options{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px}
+.md-option{padding:8px 11px;cursor:pointer;border-radius:2px;font-family:var(--mono);font-size:14px;color:var(--ink);transition:background .1s}
+.md-option:hover,.md-option:focus{background:var(--accent-lt);color:var(--accent);outline:none}
+
 /* ---------- SUBMIT ---------- */
 .submit-wrap{margin-top:24px;padding:18px 22px;background:var(--accent-lt);border:1px solid #8aaad4;border-radius:5px;display:flex;align-items:center;gap:14px}
 #submitBtn{font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 20px;border:none;border-radius:3px;cursor:pointer;background:var(--accent);color:white;transition:background .15s}
@@ -525,7 +541,52 @@ function loadProgress(){
   }
 }
 
-// ---------- Validation ----------------------------------------------------
+// ---------- Custom dropdowns (shuffle + click + close-on-outside) --------
+function _shuffle(arr){
+  for (var i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+function _initDropdowns(){
+  document.querySelectorAll('.md-dropdown').forEach(function(wrap){
+    var input   = wrap.parentNode.querySelector('input.ans-num');
+    var trigger = wrap.querySelector('.md-trigger');
+    var label   = wrap.querySelector('.md-trigger-label');
+    var optsBox = wrap.querySelector('.md-options');
+    if (!input || !trigger || !optsBox) return;
+
+    // Shuffle options if requested
+    if (wrap.getAttribute('data-randomize') === '1') {
+      var shuffled = _shuffle(Array.from(optsBox.querySelectorAll('.md-option')));
+      shuffled.forEach(function(el){ optsBox.appendChild(el); });
+    }
+
+    // Wire option clicks
+    optsBox.querySelectorAll('.md-option').forEach(function(opt){
+      function pick(){
+        label.classList.remove('md-placeholder');
+        label.innerHTML = opt.innerHTML;
+        input.value = opt.getAttribute('data-value') || '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        wrap.removeAttribute('open');
+      }
+      opt.addEventListener('click', pick);
+      opt.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+      });
+    });
+  });
+
+  // Close-on-outside-click
+  document.addEventListener('click', function(e){
+    document.querySelectorAll('.md-dropdown[open]').forEach(function(d){
+      if (!d.contains(e.target)) d.removeAttribute('open');
+    });
+  });
+}
 function validateInput(el){
   var correct = el.getAttribute('data-correct');
   if (correct === null) return;
@@ -533,6 +594,7 @@ function validateInput(el){
   var fb = document.getElementById('fb_' + el.id);
   if (!el.value.trim()) {
     el.classList.remove('correct', 'incorrect');
+    _mirrorDropdownState(el, null);
     if (fb) fb.textContent = '';
     return;
   }
@@ -546,10 +608,24 @@ function validateInput(el){
   }
   el.classList.toggle('correct', ok);
   el.classList.toggle('incorrect', !ok);
+  _mirrorDropdownState(el, ok);
   if (fb) {
     fb.className = 'feedback ' + (ok ? 'correct' : 'incorrect');
     fb.textContent = ok ? '\u2713' : '\u2717';
   }
+}
+
+// If the input is the hidden value-holder of a custom dropdown, mirror the
+// correct/incorrect state to the visible trigger so the student sees feedback.
+function _mirrorDropdownState(el, ok){
+  if (!el.closest) return;
+  var wrap = el.closest('.md-dropdown');
+  if (!wrap) return;
+  var trigger = wrap.querySelector('.md-trigger');
+  if (!trigger) return;
+  trigger.classList.remove('correct', 'incorrect');
+  if (ok === true)  trigger.classList.add('correct');
+  if (ok === false) trigger.classList.add('incorrect');
 }
 
 function _wireValidation(){
@@ -668,6 +744,7 @@ document.addEventListener('DOMContentLoaded', function(){
   renderSidebar();
   _wireValidation();
   _renderMath();
+  _initDropdowns();
   _initGSI();
 });
 <\/script>

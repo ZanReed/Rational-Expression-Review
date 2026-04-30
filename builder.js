@@ -74,14 +74,21 @@ function clearDraft() {
 // PROBLEM MANAGEMENT
 // =============================================================================
 function addProblem(type) {
+  const isDropdown = (type === 'dropdown');
   const p = {
     id: _newId(),
     type: type || 'fill_in',
     stem: '',
     answer: '',
     tol: 0,
-    choices: type === 'dropdown' ? ['', '', '', ''] : null,
-    correctChoice: type === 'dropdown' ? 0 : null
+    choices: isDropdown ? [
+      { mode: 'text', value: '' },
+      { mode: 'text', value: '' },
+      { mode: 'text', value: '' },
+      { mode: 'text', value: '' }
+    ] : null,
+    correctChoice: isDropdown ? 0 : null,
+    randomize: isDropdown ? true : null
   };
   builderState.problems.push(p);
   saveDraft();
@@ -205,34 +212,76 @@ function _renderFillInFields(card, p) {
 }
 
 function _renderDropdownFields(card, p) {
+  // --- Randomize toggle (above choices) ---
+  const randRow = document.createElement('div');
+  randRow.className = 'check-row';
+  randRow.style.marginBottom = '10px';
+  randRow.innerHTML = '<label><input type="checkbox" ' + (p.randomize !== false ? 'checked' : '') + '> Randomize choice order at runtime</label>';
+  randRow.querySelector('input').onchange = (e) => updateProblem(p.id, 'randomize', e.target.checked);
+  card.appendChild(randRow);
+
+  // --- Choices label ---
   const choicesLabel = document.createElement('label');
   choicesLabel.className = 'field-label';
-  choicesLabel.textContent = 'Choices (select the correct one — appears in dropdown order)';
+  choicesLabel.textContent = 'Choices (select the correct one)';
   card.appendChild(choicesLabel);
 
-  (p.choices || ['', '', '', '']).forEach((c, i) => {
+  // --- Normalize choices: tolerate old string-array format from prior drafts ---
+  const choices = (p.choices || []).map(c => {
+    if (typeof c === 'string') return { mode: 'text', value: c };
+    return c || { mode: 'text', value: '' };
+  });
+
+  // --- Render each choice row ---
+  choices.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'choice-row';
 
+    // Correct-answer radio
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'correct_' + p.id;
     radio.checked = (p.correctChoice === i);
     radio.onchange = () => updateProblem(p.id, 'correctChoice', i);
-
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'text-input';
-    inp.value = c;
-    inp.placeholder = 'Choice ' + String.fromCharCode(65 + i);
-    inp.oninput = () => {
-      const choices = [...(p.choices || ['', '', '', ''])];
-      choices[i] = inp.value;
-      updateProblem(p.id, 'choices', choices);
-    };
-
     row.appendChild(radio);
+
+    // Mode toggle pill (math|text)
+    const modePill = document.createElement('button');
+    modePill.type = 'button';
+    modePill.className = 'mode-pill mode-' + c.mode;
+    modePill.textContent = c.mode;
+    modePill.title = 'Click to toggle math/text';
+    modePill.onclick = () => {
+      const newChoices = choices.map((cc, j) => j === i ? { mode: cc.mode === 'math' ? 'text' : 'math', value: cc.value } : cc);
+      updateProblem(p.id, 'choices', newChoices);
+      renderProblems(); // re-render to swap input type
+    };
+    row.appendChild(modePill);
+
+    // Choice input — math-field for math mode, text input for text mode
+    let inp;
+    if (c.mode === 'math') {
+      inp = document.createElement('math-field');
+      inp.className = 'mf-choice';
+      inp.setAttribute('virtual-keyboard-mode', 'manual');
+      inp.value = c.value || '';
+      inp.addEventListener('input', () => {
+        const newChoices = choices.map((cc, j) => j === i ? { mode: 'math', value: inp.getValue('latex-expanded') } : cc);
+        updateProblem(p.id, 'choices', newChoices);
+      });
+    } else {
+      inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'text-input';
+      inp.value = c.value || '';
+      inp.placeholder = 'Choice ' + String.fromCharCode(65 + i);
+      inp.oninput = () => {
+        const newChoices = choices.map((cc, j) => j === i ? { mode: 'text', value: inp.value } : cc);
+        updateProblem(p.id, 'choices', newChoices);
+      };
+    }
     row.appendChild(inp);
+
     card.appendChild(row);
   });
 }
@@ -528,19 +577,37 @@ function _compileProblem(p, idx) {
   }
 
   if (p.type === 'dropdown') {
-    const correctText = (p.choices && p.choices[p.correctChoice] !== undefined) ? p.choices[p.correctChoice] : '';
-    const options = (p.choices || [])
-      .filter(c => c && c.trim())
-      .map(c => '<option value="' + _escAttr(c) + '">' + _esc(c) + '</option>')
-      .join('');
+    // Normalize choices for tolerance with old drafts
+    const norm = (p.choices || []).map(c => typeof c === 'string' ? { mode: 'text', value: c } : (c || { mode: 'text', value: '' }));
+
+    // Determine the correct choice's value (used for data-correct on hidden input)
+    const correctChoice = norm[p.correctChoice];
+    const correctValue = correctChoice ? correctChoice.value : '';
+
+    // Build options HTML — math wrapped in \( \) for KaTeX, text rendered as-is
+    const options = norm
+      .filter(c => c.value && String(c.value).trim())
+      .map(c => {
+        const display = (c.mode === 'math')
+          ? '\\(' + c.value + '\\)'
+          : _esc(c.value);
+        return '<div class="md-option" data-value="' + _escAttr(c.value) + '" tabindex="0">' + display + '</div>';
+      })
+      .join('\n      ');
+
+    const randomizeAttr = (p.randomize === false) ? '' : ' data-randomize="1"';
+
     return [
       '<div class="problem-cell">',
       '  <div class="prob-num">PROBLEM ' + num + '</div>',
       '  <div class="prob-stem">' + stemLatex + '</div>',
-      '  <select class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctText) + '">',
-      '    <option value="">&mdash; Select &mdash;</option>',
-      '    ' + options,
-      '  </select>',
+      '  <details class="md-dropdown"' + randomizeAttr + '>',
+      '    <summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary>',
+      '    <div class="md-options">',
+      '      ' + options,
+      '    </div>',
+      '  </details>',
+      '  <input type="hidden" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctValue) + '">',
       '  <span class="feedback" id="fb_' + inputId + '"></span>',
       '</div>'
     ].join('\n');

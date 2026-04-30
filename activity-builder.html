@@ -96,6 +96,11 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .choice-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .choice-row input[type=radio]{margin:0;flex-shrink:0}
 .choice-row .text-input{flex:1}
+.mode-pill{font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 7px;border:1px solid var(--rule);border-radius:10px;cursor:pointer;background:white;color:var(--ink-light);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;min-width:42px;text-align:center;transition:all .12s}
+.mode-pill:hover{border-color:var(--accent);color:var(--accent)}
+.mode-pill.mode-math{background:var(--accent-lt);border-color:#8aaad4;color:var(--accent)}
+.mf-choice{flex:1;display:block;padding:5px 8px;margin:0;border:1px solid var(--rule);border-radius:3px;font-size:13px;background:white;min-height:30px}
+.mf-choice:focus,.mf-choice:focus-within{border-color:var(--accent);outline:none}
 .vp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
 .vp-grid input{padding:5px 7px;font-size:12px}
 .vp-grid .field-label{margin-bottom:2px;text-transform:lowercase;font-family:var(--mono);font-size:10px}
