@@ -5,119 +5,14 @@
 // configuration, live preview compilation, PIN unlock, GitHub publish.
 //
 // PAIRS WITH: builder-template.js (defines window.WORKSHEET_TEMPLATE)
-// REUSES:    PIN/token/publishToGitHub patterns from index.html (mirrored
-//            below — KEEP IN SYNC if you change the auth crypto in index.html)
+// REUSES:    auth.js (PIN_HASH, GITHUB_OWNER, GITHUB_REPO, GOOGLE_CLIENT_ID,
+//            TOKEN_STORAGE_KEY, _decryptedToken, hashPin, getDecryptedToken,
+//            decryptToken, encryptToken, _encodePath, toBase64, fromBase64,
+//            publishToGitHub) — must be loaded BEFORE this file.
 // =============================================================================
 
-// ---------- Constants (mirror index.html) ----------------------------------
-const GITHUB_OWNER     = 'ZanReed';
-const GITHUB_REPO      = 'Rational-Expression-Review';
-const PIN_HASH         = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
-const TOKEN_STORAGE_KEY = 'gh_token_blob';
-const GOOGLE_CLIENT_ID = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
+// Builder-specific constant (auth constants come from auth.js)
 const DRAFT_STORAGE_KEY = 'builder_draft_v1';
-
-// In-memory token after PIN unlock — never persisted as plaintext
-let _decryptedToken = null;
-
-// =============================================================================
-// SHARED AUTH (mirrored from index.html lines 445–451, 621–653)
-// =============================================================================
-async function hashPin(p) {
-  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
-  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
-}
-function bytesToHex(b) { return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''); }
-function hexToBytes(h) {
-  const a = new Uint8Array(h.length / 2);
-  for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16);
-  return a;
-}
-async function deriveKey(pin, salt) {
-  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: hexToBytes(salt), iterations: 310000, hash: 'SHA-256' },
-    km,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-async function decryptToken(pin, blob) {
-  try {
-    const p = blob.split(':');
-    if (p.length < 3) return null;
-    const k = await deriveKey(pin, p[0]);
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: hexToBytes(p[1]) }, k, hexToBytes(p[2]));
-    return new TextDecoder().decode(pt);
-  } catch (e) {
-    return null;
-  }
-}
-async function getDecryptedToken(pin) {
-  const b = localStorage.getItem(TOKEN_STORAGE_KEY);
-  if (!b) return null;
-  return decryptToken(pin, b);
-}
-
-// Path-aware encoder — fixes the bug noted in index.html:621
-function _encodePath(filename) {
-  return filename.split('/').map(encodeURIComponent).join('/');
-}
-
-// Base64 encoder safe for unicode
-function _toBase64(str) {
-  return btoa(unescape(encodeURIComponent(str)));
-}
-function _fromBase64(b64) {
-  return decodeURIComponent(escape(atob(b64)));
-}
-
-async function publishToGitHub(filename, html, sid) {
-  const el = sid ? document.getElementById(sid) : null;
-  const status = (msg, ok) => {
-    if (!el) return;
-    el.style.display = 'block';
-    el.style.color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--amber)';
-    el.textContent = msg;
-  };
-  if (!_decryptedToken) { status('⚠ No token — unlock with PIN first.', false); return false; }
-  status('⟳ Checking file on GitHub…', null);
-
-  const base = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${_encodePath(filename)}`;
-  const hdrs = { Authorization: `Bearer ${_decryptedToken}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
-  let sha = null;
-
-  try {
-    const gr = await fetch(`${base}?t=${Date.now()}`, { headers: hdrs, cache: 'no-store' });
-    if (gr.ok) sha = (await gr.json()).sha;
-    else if (gr.status !== 404) {
-      const ge = await gr.json();
-      status(`✗ GitHub ${gr.status}: ${ge.message}`, false);
-      return false;
-    }
-  } catch (e) {
-    status(`✗ Network error: ${e.message}`, false);
-    return false;
-  }
-
-  status('⟳ Publishing to GitHub…', null);
-  try {
-    const body = { message: `Update ${filename} via builder`, content: _toBase64(html) };
-    if (sha) body.sha = sha;
-    const pr = await fetch(base, { method: 'PUT', headers: hdrs, body: JSON.stringify(body) });
-    if (pr.ok) {
-      status('✓ Published! GitHub Pages updates in ~30s.', true);
-      return true;
-    }
-    const pe = await pr.json();
-    status(`✗ GitHub ${pr.status}: ${pe.message}`, false);
-    return false;
-  } catch (e) {
-    status(`✗ Network error: ${e.message}`, false);
-    return false;
-  }
-}
 
 // =============================================================================
 // BUILDER STATE
@@ -804,7 +699,7 @@ async function _addToIndex(resource) {
     });
     if (!r.ok) return false;
     const meta = await r.json();
-    const indexHTML = _fromBase64(meta.content.replace(/\n/g, ''));
+    const indexHTML = fromBase64(meta.content.replace(/\n/g, ''));
 
     // Find INDEX_DATA block
     const re = /<script id="INDEX_DATA" type="application\/json">([\s\S]*?)<\/script>/;
