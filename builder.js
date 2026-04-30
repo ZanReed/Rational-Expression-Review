@@ -80,8 +80,8 @@ function addProblem(type) {
     stem: '',
     answer: '',
     tol: 0,
-    choices: type === 'multiple_choice' ? ['', '', '', ''] : null,
-    correctChoice: type === 'multiple_choice' ? 0 : null
+    choices: type === 'dropdown' ? ['', '', '', ''] : null,
+    correctChoice: type === 'dropdown' ? 0 : null
   };
   builderState.problems.push(p);
   saveDraft();
@@ -158,8 +158,8 @@ function renderProblems() {
     // Type-specific fields
     if (p.type === 'fill_in') {
       _renderFillInFields(card, p);
-    } else if (p.type === 'multiple_choice') {
-      _renderMultipleChoiceFields(card, p);
+    } else if (p.type === 'dropdown') {
+      _renderDropdownFields(card, p);
     }
 
     container.appendChild(card);
@@ -168,7 +168,7 @@ function renderProblems() {
 
 function _problemTypeLabel(t) {
   if (t === 'fill_in') return 'Fill in';
-  if (t === 'multiple_choice') return 'Multiple choice';
+  if (t === 'dropdown') return 'Dropdown';
   return t;
 }
 
@@ -204,10 +204,10 @@ function _renderFillInFields(card, p) {
   card.appendChild(adv);
 }
 
-function _renderMultipleChoiceFields(card, p) {
+function _renderDropdownFields(card, p) {
   const choicesLabel = document.createElement('label');
   choicesLabel.className = 'field-label';
-  choicesLabel.textContent = 'Choices (select the correct one)';
+  choicesLabel.textContent = 'Choices (select the correct one — appears in dropdown order)';
   card.appendChild(choicesLabel);
 
   (p.choices || ['', '', '', '']).forEach((c, i) => {
@@ -527,16 +527,20 @@ function _compileProblem(p, idx) {
     ].join('\n');
   }
 
-  if (p.type === 'multiple_choice') {
-    const choices = (p.choices || []).map((c, i) => {
-      const letter = String.fromCharCode(65 + i);
-      return '<label class="mc-choice"><input type="radio" name="' + inputId + '" value="' + letter + '" data-correct="' + (i === p.correctChoice ? '1' : '0') + '" onchange="validateMC(\'' + inputId + '\')"> <strong>' + letter + '.</strong> ' + _esc(c) + '</label>';
-    }).join('');
+  if (p.type === 'dropdown') {
+    const correctText = (p.choices && p.choices[p.correctChoice] !== undefined) ? p.choices[p.correctChoice] : '';
+    const options = (p.choices || [])
+      .filter(c => c && c.trim())
+      .map(c => '<option value="' + _escAttr(c) + '">' + _esc(c) + '</option>')
+      .join('');
     return [
       '<div class="problem-cell">',
       '  <div class="prob-num">PROBLEM ' + num + '</div>',
       '  <div class="prob-stem">' + stemLatex + '</div>',
-      '  <div class="mc-choices" id="' + inputId + '">' + choices + '</div>',
+      '  <select class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctText) + '">',
+      '    <option value="">&mdash; Select &mdash;</option>',
+      '    ' + options,
+      '  </select>',
       '  <span class="feedback" id="fb_' + inputId + '"></span>',
       '</div>'
     ].join('\n');
@@ -733,15 +737,6 @@ async function _addToIndex(resource) {
     return false;
   }
 }
-
-// =============================================================================
-// MULTI-CHOICE VALIDATION (referenced in compiled activity HTML — ALSO inline
-// inside the worksheet template would be cleaner, but keeping the validator
-// pluggable here keeps the template tighter)
-// =============================================================================
-// Note: the compiled activity references validateMC, which lives inside the
-// worksheet template's inline script. This builder.js function is for preview
-// rendering only; it gets injected via srcdoc and the template's logic runs.
 
 // =============================================================================
 // RENDER ALL
