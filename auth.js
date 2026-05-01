@@ -8,7 +8,7 @@
 // =============================================================================
 
 // ---------- Constants -----------------------------------------------------
-var PIN_HASH         = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba600924586af0f';
+var PIN_HASH         = '2e02b888e3dbcf99cb1b5173225d586e080abacbbca6680395e27f432cc08af3';
 var GITHUB_OWNER     = 'ZanReed';
 var GITHUB_REPO      = 'Rational-Expression-Review';
 var GOOGLE_CLIENT_ID = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
