@@ -632,7 +632,8 @@ function validateInput(el){
   var correct = el.getAttribute('data-correct');
   if (correct === null) return;
   var tol = parseFloat(el.getAttribute('data-tol') || '0');
-  var fb = document.getElementById('fb_' + el.id);
+  var cell = el.closest ? el.closest('.problem-cell') : null;
+  var fb = cell ? cell.querySelector('.prob-feedback') : null;
   var hasValue = !!el.value.trim();
 
   if (!hasValue) {
@@ -656,7 +657,7 @@ function validateInput(el){
   el.setAttribute('data-is-correct', ok ? '1' : '0');
   _mirrorDropdownState(el, ok);
   if (fb) {
-    fb.className = 'feedback ' + (ok ? 'correct' : 'incorrect');
+    fb.className = 'feedback prob-feedback ' + (ok ? 'correct' : 'incorrect');
     fb.textContent = ok ? '\u2713' : '\u2717';
   }
   _updateScoreBadge();
@@ -665,10 +666,11 @@ function validateInput(el){
 // If the input is the hidden value-holder of a custom dropdown, mirror the
 // correct/incorrect state to the visible trigger so the student sees feedback.
 function _mirrorDropdownState(el, ok){
-  if (!el.closest) return;
-  var wrap = el.closest('.md-dropdown');
-  if (!wrap) return;
-  var trigger = wrap.querySelector('.md-trigger');
+  var parent = el.parentNode;
+  if (!parent) return;
+  var dropdown = parent.querySelector('.md-dropdown');
+  if (!dropdown) return;
+  var trigger = dropdown.querySelector('.md-trigger');
   if (!trigger) return;
   trigger.classList.remove('correct', 'incorrect');
   if (ok === true)  trigger.classList.add('correct');
