@@ -495,7 +495,7 @@ function renderSidebar(){
   if (!ribbon) return;
   var raw = document.getElementById('sidebar-tools-config');
   var tools = [];
-  try { tools = JSON.parse(raw.textContent.trim() || '[]'); }
+  try { tools = JSON.parse((raw ? raw.textContent : '').trim() || '[]'); }
   catch (e) { console.error('sidebar-tools-config parse failed:', e); return; }
 
   ribbon.innerHTML = '';
@@ -828,8 +828,13 @@ function signOutStudent(){
 
 // ---------- KaTeX auto-render ---------------------------------------------
 function _renderMath(){
+  _renderMath._retries = (_renderMath._retries || 0) + 1;
   if (typeof renderMathInElement !== 'function') {
-    setTimeout(_renderMath, 100);
+    if (_renderMath._retries < 50) {
+      setTimeout(_renderMath, 100);
+    } else {
+      console.warn('[activity] KaTeX auto-render did not load after 5s. Math will not render. Check cdn.jsdelivr.net is reachable.');
+    }
     return;
   }
   renderMathInElement(document.body, {

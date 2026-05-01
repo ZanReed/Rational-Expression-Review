@@ -846,17 +846,21 @@ function compileActivity() {
     defaults: builderState.defaults || { liveFeedback: true, scoreOnly: false }
   });
 
-  // Slot replacement
+  // Slot replacement — use function replacements so that $ signs in JSON/HTML
+  // (e.g. $15 in a student answer, $1 in a tool label) are never interpreted
+  // as backreference patterns by String.replace, which would silently corrupt
+  // the output and break the sidebar JSON parse and/or the runtime script block.
+  const _slot = (v) => () => v;
   let html = window.WORKSHEET_TEMPLATE;
-  html = html.replace(/\{\{TITLE\}\}/g,             _esc(builderState.title));
-  html = html.replace(/\{\{ACTIVITY_SLUG\}\}/g,     builderState.slug);
-  html = html.replace(/\{\{WEBHOOK_URL\}\}/g,       _esc(webhookForBake));
-  html = html.replace(/\{\{GOOGLE_CLIENT_ID\}\}/g,  GOOGLE_CLIENT_ID);
-  html = html.replace(/\{\{DESMOS_API_SCRIPT\}\}/g, desmosScript);
-  html = html.replace(/\{\{PROBLEMS_HTML\}\}/g,     problemsHTML);
-  html = html.replace(/\{\{SIDEBAR_TOOLS_JSON\}\}/g, sidebarToolsJSON);
-  html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g, settingsJSON);
-  html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g, stateJSON);
+  html = html.replace(/\{\{TITLE\}\}/g,                   _slot(_esc(builderState.title)));
+  html = html.replace(/\{\{ACTIVITY_SLUG\}\}/g,           _slot(builderState.slug));
+  html = html.replace(/\{\{WEBHOOK_URL\}\}/g,             _slot(_esc(webhookForBake)));
+  html = html.replace(/\{\{GOOGLE_CLIENT_ID\}\}/g,        _slot(GOOGLE_CLIENT_ID));
+  html = html.replace(/\{\{DESMOS_API_SCRIPT\}\}/g,       _slot(desmosScript));
+  html = html.replace(/\{\{PROBLEMS_HTML\}\}/g,           _slot(problemsHTML));
+  html = html.replace(/\{\{SIDEBAR_TOOLS_JSON\}\}/g,      _slot(sidebarToolsJSON));
+  html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g,  _slot(settingsJSON));
+  html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g,      _slot(stateJSON));
 
   return html;
 }
