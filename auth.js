@@ -12,7 +12,13 @@ var PIN_HASH         = 'a00551e4974f122b8c15fb31765e0d87447b117def7f68331ba60092
 var GITHUB_OWNER     = 'ZanReed';
 var GITHUB_REPO      = 'Rational-Expression-Review';
 var GOOGLE_CLIENT_ID = '438116037519-f0tk55p4h6s5pgh16m4dllkmqb4ah8i6.apps.googleusercontent.com';
-var TOKEN_STORAGE_KEY = 'ghTokenBlob';
+var TOKEN_STORAGE_KEY  = 'ghTokenBlob';
+var DRIVE_TOKEN_FILE   = 'teacher_token.json';   // appdata-folder filename
+
+// PBKDF2 iteration counts. Old blobs were encrypted at 310k. New blobs at 600k.
+// We encode the count INSIDE the blob (4th component) so old blobs still decrypt.
+var PBKDF2_ITERATIONS_LEGACY = 310000;
+var PBKDF2_ITERATIONS_NEW    = 600000;
 
 // ---------- Shared state --------------------------------------------------
 // _decryptedToken holds the in-memory plaintext GitHub token after PIN unlock.
@@ -32,38 +38,65 @@ function hexToBytes(h) {
   for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i*2, 2), 16);
   return a;
 }
-async function deriveKey(pin, sh) {
+async function deriveKey(pin, sh, iterations) {
+  // iterations is optional — defaults to legacy count for backward compatibility
+  var iters = iterations || PBKDF2_ITERATIONS_LEGACY;
   var km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    { name:'PBKDF2', salt:hexToBytes(sh), iterations:310000, hash:'SHA-256' },
+    { name:'PBKDF2', salt:hexToBytes(sh), iterations:iters, hash:'SHA-256' },
     km,
     { name:'AES-GCM', length:256 },
     false,
     ['encrypt','decrypt']
   );
 }
+// Encrypt with the new format (4-part: salt:iv:ciphertext:iterations).
+// Always uses PBKDF2_ITERATIONS_NEW for newly-created blobs.
 async function encryptToken(pin, tok) {
   var s = crypto.getRandomValues(new Uint8Array(16));
   var iv = crypto.getRandomValues(new Uint8Array(12));
-  var k = await deriveKey(pin, bytesToHex(s));
+  var iters = PBKDF2_ITERATIONS_NEW;
+  var k = await deriveKey(pin, bytesToHex(s), iters);
   var e = await crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, k, new TextEncoder().encode(tok));
-  return bytesToHex(s) + ':' + bytesToHex(iv) + ':' + bytesToHex(e);
+  return bytesToHex(s) + ':' + bytesToHex(iv) + ':' + bytesToHex(e) + ':' + iters;
 }
+// Decrypt — handles both old 3-part blobs (legacy 310k) and new 4-part blobs
+// (with iterations encoded). Returns null on any failure.
 async function decryptToken(pin, blob) {
   try {
     var p = blob.split(':');
     if (p.length < 3) return null;
-    var k = await deriveKey(pin, p[0]);
+    // 4th part = iteration count; if missing, use legacy default
+    var iters = (p.length >= 4) ? parseInt(p[3], 10) : PBKDF2_ITERATIONS_LEGACY;
+    if (!iters || iters < 100000) iters = PBKDF2_ITERATIONS_LEGACY; // sanity floor
+    var k = await deriveKey(pin, p[0], iters);
     var pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:hexToBytes(p[1]) }, k, hexToBytes(p[2]));
     return new TextDecoder().decode(pt);
   } catch (e) {
     return null;
   }
 }
+// Decrypts the blob currently in secureStore (Drive first, localStorage fallback).
+// If the decrypted token came from a legacy-format blob, opportunistically
+// re-encrypts and re-saves it in the new format on the same backend.
 async function getDecryptedToken(pin) {
-  var b = localStorage.getItem(TOKEN_STORAGE_KEY);
+  var b = await secureStore.getBlob();
   if (!b) return null;
-  return decryptToken(pin, b);
+  var tok = await decryptToken(pin, b);
+  if (!tok) return null;
+  // Opportunistic upgrade: if the loaded blob was legacy-format, re-encrypt
+  // and save back to whichever backend it came from. Never blocks the unlock.
+  try {
+    var parts = b.split(':');
+    if (parts.length < 4) {
+      var newBlob = await encryptToken(pin, tok);
+      await secureStore.putBlob(newBlob);
+      console.log('[auth] upgraded token blob to 600k iterations');
+    }
+  } catch (e) {
+    console.warn('[auth] blob upgrade failed (non-fatal):', e);
+  }
+  return tok;
 }
 
 // ---------- Path / Base64 helpers ----------------------------------------
@@ -149,3 +182,210 @@ async function publishToGitHub(filename, html, sid) {
     return false;
   }
 }
+
+// =============================================================================
+// secureStore — abstracts where the encrypted token blob lives.
+// -----------------------------------------------------------------------------
+// Backends, in priority order:
+//   1. Google Drive appdata folder (cross-device, requires sign-in)
+//   2. localStorage (single-device fallback, always available)
+//
+// The page (index.html or activity-builder.html) is responsible for setting up
+// _tokenClient via google.accounts.oauth2.initTokenClient and providing reqToken().
+// secureStore detects whether reqToken is callable; if not, falls back to local.
+//
+// First-use migration: if Drive is available but empty, and localStorage has a
+// blob, secureStore.getBlob() copies it to Drive on read.
+// =============================================================================
+var secureStore = (function(){
+  // Cache the appdata file ID so we don't re-search every call
+  var _cachedFileId = null;
+
+  // Returns true if the page has set up Drive auth (i.e., reqToken exists).
+  function _driveAvailable() {
+    return typeof reqToken === 'function' && typeof _tokenClient !== 'undefined' && _tokenClient !== null;
+  }
+
+  // Get a fresh access token via the page's existing token client.
+  async function _getAccessToken() {
+    if (!_driveAvailable()) return null;
+    try {
+      return await reqToken();
+    } catch (e) {
+      console.warn('[secureStore] reqToken failed:', e);
+      return null;
+    }
+  }
+
+  // Find the appdata file ID (cached). Returns null if not found.
+  async function _findFileId(accessToken) {
+    if (_cachedFileId) return _cachedFileId;
+    var url = 'https://www.googleapis.com/drive/v3/files'
+      + '?spaces=appDataFolder'
+      + '&q=' + encodeURIComponent("name='" + DRIVE_TOKEN_FILE + "' and trashed=false")
+      + '&fields=files(id,name)';
+    var r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!r.ok) {
+      console.warn('[secureStore] _findFileId search failed:', r.status);
+      return null;
+    }
+    var data = await r.json();
+    if (data.files && data.files.length > 0) {
+      _cachedFileId = data.files[0].id;
+      return _cachedFileId;
+    }
+    return null;
+  }
+
+  // Read the file's text content from Drive, given its ID.
+  async function _readFile(fileId, accessToken) {
+    var r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+      { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!r.ok) {
+      console.warn('[secureStore] _readFile failed:', r.status);
+      return null;
+    }
+    return r.text();
+  }
+
+  // Create the file in appdata folder with the given content. Returns file ID.
+  async function _createFile(content, accessToken) {
+    var metadata = { name: DRIVE_TOKEN_FILE, parents: ['appDataFolder'] };
+    var boundary = 'sec_store_' + Math.random().toString(36).slice(2);
+    var body =
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) + '\r\n' +
+      '--' + boundary + '\r\n' +
+      'Content-Type: text/plain\r\n\r\n' +
+      content + '\r\n' +
+      '--' + boundary + '--';
+    var r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'multipart/related; boundary=' + boundary
+      },
+      body: body
+    });
+    if (!r.ok) {
+      console.warn('[secureStore] _createFile failed:', r.status, await r.text());
+      return null;
+    }
+    var data = await r.json();
+    _cachedFileId = data.id;
+    return data.id;
+  }
+
+  // Update an existing file's content.
+  async function _updateFile(fileId, content, accessToken) {
+    var r = await fetch('https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media', {
+      method: 'PATCH',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'text/plain'
+      },
+      body: content
+    });
+    if (!r.ok) {
+      console.warn('[secureStore] _updateFile failed:', r.status);
+      return false;
+    }
+    return true;
+  }
+
+  // ----- Public API -----
+
+  // Read the encrypted blob. Tries Drive first, falls back to localStorage.
+  // If Drive is reachable but empty AND localStorage has a blob, migrates it.
+  async function getBlob() {
+    // Try Drive
+    if (_driveAvailable()) {
+      try {
+        var token = await _getAccessToken();
+        if (token) {
+          var fid = await _findFileId(token);
+          if (fid) {
+            var content = await _readFile(fid, token);
+            if (content) {
+              console.log('[secureStore] loaded blob from Drive');
+              return content;
+            }
+          }
+          // Drive available but no file — check for migration candidate
+          var localBlob = localStorage.getItem(TOKEN_STORAGE_KEY);
+          if (localBlob) {
+            console.log('[secureStore] migrating localStorage blob to Drive');
+            var newFid = await _createFile(localBlob, token);
+            if (newFid) {
+              return localBlob;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[secureStore] Drive read failed, falling back:', e);
+      }
+    }
+    // Fallback: localStorage
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  }
+
+  // Write the encrypted blob. Writes to whichever backend(s) are available.
+  // Drive is authoritative when reachable; localStorage gets a synced copy
+  // for offline access.
+  async function putBlob(blob) {
+    var droveOk = false;
+    if (_driveAvailable()) {
+      try {
+        var token = await _getAccessToken();
+        if (token) {
+          var fid = await _findFileId(token);
+          if (fid) {
+            droveOk = await _updateFile(fid, blob, token);
+          } else {
+            var newFid = await _createFile(blob, token);
+            droveOk = !!newFid;
+          }
+        }
+      } catch (e) {
+        console.warn('[secureStore] Drive write failed:', e);
+      }
+    }
+    // Always write a local copy as a safety net
+    try {
+      localStorage.setItem(TOKEN_STORAGE_KEY, blob);
+    } catch (e) {
+      console.warn('[secureStore] localStorage write failed:', e);
+    }
+    return droveOk || true; // localStorage write succeeded
+  }
+
+  // Wipe the blob from both backends. Used by "lock + clear" or PIN reset.
+  async function clearBlob() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    if (_driveAvailable()) {
+      try {
+        var token = await _getAccessToken();
+        if (token) {
+          var fid = await _findFileId(token);
+          if (fid) {
+            await fetch('https://www.googleapis.com/drive/v3/files/' + fid, {
+              method: 'DELETE',
+              headers: { Authorization: 'Bearer ' + token }
+            });
+            _cachedFileId = null;
+          }
+        }
+      } catch (e) {
+        console.warn('[secureStore] Drive clear failed:', e);
+      }
+    }
+  }
+
+  return {
+    getBlob: getBlob,
+    putBlob: putBlob,
+    clearBlob: clearBlob,
+    _isDriveAvailable: _driveAvailable
+  };
+})();
