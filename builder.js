@@ -275,6 +275,8 @@ function renderProblems() {
     stemArea.placeholder = 'Type the problem text. Insert {{blank:N}} where students should answer.';
     stemArea.oninput = () => {
       updateProblem(p.id, 'stem', stemArea.value);
+    };
+    stemArea.onblur = () => {
       _syncBlanksToStem(p.id);
     };
     card.appendChild(stemArea);
