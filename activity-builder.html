@@ -52,6 +52,13 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);font-size:
 .auth-panel.locked .auth-btn{border:1px solid #d4b800;color:var(--amber)}
 .auth-panel.unlocked .auth-btn{border:1px solid var(--green-rule);color:var(--green)}
 
+/* ---------- GSI PANEL ---------- */
+.gsi-panel{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:4px;font-size:12px;flex-shrink:0;margin-top:10px;background:var(--cream);border:1px solid var(--rule);color:var(--ink-mid)}
+.gsi-panel.signed-in{background:var(--accent-lt);border-color:#8aaad4;color:var(--accent)}
+.gsi-panel .gsi-icon{font-size:14px}
+.gsi-panel .gsi-text{flex:1}
+.gsi-panel .auth-btn{border:1px solid #8aaad4;color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:500;padding:4px 9px;border-radius:3px;cursor:pointer;background:white;text-transform:uppercase;letter-spacing:.05em}
+
 /* ---------- EDITOR BODY ---------- */
 .editor-body{flex:1;overflow-y:auto;padding:16px 18px 80px 18px}
 .editor-section{margin-bottom:20px}
@@ -186,6 +193,18 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         <a class="back-link" href="index.html">&larr; Index</a>
       </div>
 
+      <!-- Google sign-in: optional but enables cross-device token sync via Drive -->
+      <div class="gsi-panel" id="gsiSignedOut">
+        <span class="gsi-icon">☁</span>
+        <span class="gsi-text">Sign in with Google to sync your token across devices.</span>
+        <div id="gsiButtonHolder" style="margin-left:auto"></div>
+      </div>
+      <div class="gsi-panel signed-in" id="gsiSignedIn" style="display:none">
+        <span class="gsi-icon">☁</span>
+        <span class="gsi-text">Signed in as <strong id="gsiUserNameLabel">—</strong></span>
+        <button class="auth-btn" onclick="signOutTeacher()">Sign out</button>
+      </div>
+
       <div class="auth-panel locked" id="authLocked">
         <span class="auth-dot"></span>
         <span>Locked &middot; PIN required to publish</span>
@@ -193,7 +212,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       </div>
       <div class="auth-panel unlocked" id="authUnlocked" style="display:none">
         <span class="auth-dot"></span>
-        <span>Unlocked &middot; ready to publish</span>
+        <span>Unlocked &middot; <span id="unlockSource">ready to publish</span></span>
         <button class="auth-btn" onclick="lockBuilder()">Lock</button>
       </div>
     </div>
@@ -360,6 +379,100 @@ function addToolFromSelect() {
   addSidebarTool(s.value);
   s.value = '';
 }
+
+// =============================================================================
+// Google Sign-In machinery — mirrors index.html's pattern.
+// secureStore (in auth.js) detects _tokenClient + reqToken and uses Drive when
+// available. Without sign-in, secureStore falls back to localStorage.
+// =============================================================================
+var _teacherGoogleUser = null;
+var _gsiLoaded = false;
+// _tokenClient and _tokenResolve are declared in auth.js (var, global)
+
+function loadGSI() {
+  return new Promise(function(r){
+    if (_gsiLoaded || (window.google && window.google.accounts)) {
+      _gsiLoaded = true; r(); return;
+    }
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function(){ _gsiLoaded = true; r(); };
+    document.head.appendChild(s);
+  });
+}
+
+function initTClient() {
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+    callback: function(r){
+      if (_teacherGoogleUser) _teacherGoogleUser.accessToken = r.error ? null : r.access_token;
+      if (_tokenResolve) { _tokenResolve(r.error ? null : r.access_token); _tokenResolve = null; }
+    }
+  });
+}
+
+function reqToken() {
+  return new Promise(function(r){ _tokenResolve = r; _tokenClient.requestAccessToken({ prompt: '' }); });
+}
+
+function parseJwt(t) {
+  return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+}
+
+function signOutTeacher() {
+  if (_teacherGoogleUser && window.google && google.accounts && google.accounts.id) {
+    try { google.accounts.id.revoke(_teacherGoogleUser.email, function(){}); } catch (e) {}
+  }
+  _teacherGoogleUser = null;
+  sessionStorage.removeItem('teacherGoogleUser');
+  _updateGsiUI(null);
+}
+
+function _updateGsiUI(user) {
+  var signedOut = document.getElementById('gsiSignedOut');
+  var signedIn  = document.getElementById('gsiSignedIn');
+  var nameLabel = document.getElementById('gsiUserNameLabel');
+  if (user) {
+    if (signedOut) signedOut.style.display = 'none';
+    if (signedIn)  signedIn.style.display  = 'flex';
+    if (nameLabel) nameLabel.textContent   = user.name || user.email || 'signed in';
+  } else {
+    if (signedOut) signedOut.style.display = 'flex';
+    if (signedIn)  signedIn.style.display  = 'none';
+  }
+}
+
+// On page load: restore session if cached, otherwise render sign-in button
+document.addEventListener('DOMContentLoaded', function(){
+  var stored = sessionStorage.getItem('teacherGoogleUser');
+  if (stored) {
+    try {
+      _teacherGoogleUser = JSON.parse(stored);
+      loadGSI().then(function(){
+        initTClient();
+        _updateGsiUI(_teacherGoogleUser);
+      });
+      return;
+    } catch (e) { sessionStorage.removeItem('teacherGoogleUser'); }
+  }
+  loadGSI().then(function(){
+    var holder = document.getElementById('gsiButtonHolder');
+    if (!holder) return;
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: function(resp){
+        var p = parseJwt(resp.credential);
+        _teacherGoogleUser = { name: p.name, email: p.email, picture: p.picture, sub: p.sub, accessToken: null };
+        sessionStorage.setItem('teacherGoogleUser', JSON.stringify(_teacherGoogleUser));
+        initTClient();
+        _updateGsiUI(_teacherGoogleUser);
+      },
+      auto_select: false
+    });
+    google.accounts.id.renderButton(holder, { theme: 'outline', size: 'medium', text: 'sign_in_with', width: 200 });
+  });
+});
 </script>
 
 </body>

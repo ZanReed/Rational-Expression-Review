@@ -275,8 +275,6 @@ function renderProblems() {
     stemArea.placeholder = 'Type the problem text. Insert {{blank:N}} where students should answer.';
     stemArea.oninput = () => {
       updateProblem(p.id, 'stem', stemArea.value);
-    };
-    stemArea.onblur = () => {
       _syncBlanksToStem(p.id);
     };
     card.appendChild(stemArea);
@@ -1019,7 +1017,7 @@ async function checkPin() {
   }
   const tok = await getDecryptedToken(pin);
   if (!tok) {
-    document.getElementById('pinError').textContent = 'PIN correct, but no token blob in localStorage. Set up your token in index.html first.';
+    document.getElementById('pinError').textContent = 'PIN correct, but no token found. Set one up in index.html first; if you\'ve already done that on another device, sign in with Google to sync.';
     document.getElementById('pinError').style.display = 'block';
     return;
   }
@@ -1035,6 +1033,13 @@ function _updateAuthUI(unlocked) {
   document.getElementById('authLocked').style.display   = unlocked ? 'none' : 'flex';
   document.getElementById('authUnlocked').style.display = unlocked ? 'flex' : 'none';
   document.getElementById('publishBtn').disabled = !unlocked;
+  if (unlocked) {
+    const src = document.getElementById('unlockSource');
+    if (src) {
+      const driveOn = (typeof secureStore !== 'undefined' && secureStore._isDriveAvailable && secureStore._isDriveAvailable());
+      src.textContent = driveOn ? 'synced via Drive · ready to publish' : 'local only · ready to publish';
+    }
+  }
 }
 
 // =============================================================================
