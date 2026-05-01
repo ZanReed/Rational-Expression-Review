@@ -165,7 +165,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .mb:hover{border-color:var(--accent);color:var(--accent)}
 .mb.save{background:var(--accent);border-color:var(--accent);color:white}
 .mb.save:hover{background:#143a6a}
-.pin-input{width:100%;padding:14px;font-size:22px;font-family:var(--mono);text-align:center;letter-spacing:.4em;border:1px solid var(--rule);border-radius:4px;outline:none}
+.pin-input{width:100%;padding:14px;font-size:22px;font-family:var(--mono);text-align:center;letter-spacing:.15em;border:1px solid var(--rule);border-radius:4px;outline:none}
 .pin-input:focus{border-color:var(--accent)}
 .pin-error{display:none;font-size:12px;color:var(--red);margin-top:8px;text-align:center}
 .publish-meta{background:var(--cream);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin-bottom:14px;font-size:12px}
@@ -300,7 +300,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
     <h3>Teacher access</h3>
     <div class="modal-sub" style="text-align:center">Enter your PIN to unlock the GitHub token.</div>
     <div class="modal-field">
-      <input class="pin-input" id="pinInput" type="password" maxlength="8" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()" autocomplete="off">
+      <input class="pin-input" id="pinInput" type="password" maxlength="64" placeholder="PIN" onkeydown="if(event.key==='Enter')checkPin()" autocomplete="off">
       <div class="pin-error" id="pinError">Incorrect PIN. Please try again.</div>
     </div>
     <div class="modal-actions" style="justify-content:center">
