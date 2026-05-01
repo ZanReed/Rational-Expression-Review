@@ -275,8 +275,6 @@ function renderProblems() {
     stemArea.placeholder = 'Type the problem text. Insert {{blank:N}} where students should answer.';
     stemArea.oninput = () => {
       updateProblem(p.id, 'stem', stemArea.value);
-    };
-    stemArea.onblur = () => {
       _syncBlanksToStem(p.id);
     };
     card.appendChild(stemArea);
@@ -511,6 +509,16 @@ function _renderDropdownBlank(card, p, blank, bIdx) {
 
   const choices = _normalizeChoices(blank.choices || []);
 
+  // Helper: read fresh choices from the live blank, mutate the i-th, write back.
+  // Avoids the stale-closure bug where multiple choice edits stomp on each other
+  // because each handler captured the render-time `choices` snapshot.
+  function patchChoice(i, patch) {
+    const liveBlank = (builderState.problems.find(x => x.id === p.id) || {}).blanks[bIdx];
+    const fresh = _normalizeChoices(liveBlank.choices || []);
+    fresh[i] = Object.assign({}, fresh[i], patch);
+    _updateBlank(p.id, bIdx, { choices: fresh });
+  }
+
   choices.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'choice-row';
@@ -528,8 +536,10 @@ function _renderDropdownBlank(card, p, blank, bIdx) {
     modePill.textContent = c.mode;
     modePill.title = 'Click to toggle math/text';
     modePill.onclick = () => {
-      const newChoices = choices.map((cc, j) => j === i ? { mode: cc.mode === 'math' ? 'text' : 'math', value: cc.value } : cc);
-      _updateBlank(p.id, bIdx, { choices: newChoices });
+      const liveBlank = builderState.problems.find(x => x.id === p.id).blanks[bIdx];
+      const fresh = _normalizeChoices(liveBlank.choices || []);
+      fresh[i] = { mode: fresh[i].mode === 'math' ? 'text' : 'math', value: fresh[i].value };
+      _updateBlank(p.id, bIdx, { choices: fresh });
       renderProblems();
     };
     row.appendChild(modePill);
@@ -540,20 +550,14 @@ function _renderDropdownBlank(card, p, blank, bIdx) {
       inp.className = 'mf-choice';
       inp.setAttribute('virtual-keyboard-mode', 'manual');
       inp.value = c.value || '';
-      inp.addEventListener('input', () => {
-        const newChoices = choices.map((cc, j) => j === i ? { mode: 'math', value: inp.getValue('latex-expanded') } : cc);
-        _updateBlank(p.id, bIdx, { choices: newChoices });
-      });
+      inp.addEventListener('input', () => patchChoice(i, { mode: 'math', value: inp.getValue('latex-expanded') }));
     } else {
       inp = document.createElement('input');
       inp.type = 'text';
       inp.className = 'text-input';
       inp.value = c.value || '';
       inp.placeholder = 'Choice ' + String.fromCharCode(65 + i);
-      inp.oninput = () => {
-        const newChoices = choices.map((cc, j) => j === i ? { mode: 'text', value: inp.value } : cc);
-        _updateBlank(p.id, bIdx, { choices: newChoices });
-      };
+      inp.oninput = () => patchChoice(i, { mode: 'text', value: inp.value });
     }
     row.appendChild(inp);
 
