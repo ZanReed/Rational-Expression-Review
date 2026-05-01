@@ -375,21 +375,39 @@ var WindowManager = (function(){
 // ---------- Tool registry --------------------------------------------------
 var ToolRegistry = {
   video: function(cfg){
-    return {
-      label: cfg.label || 'Video',
-      icon: '\u25B6',
-      render: function(body){
-        var iframe = document.createElement('iframe');
-        iframe.src = cfg.embedUrl;
-        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-        iframe.allowFullscreen = true;
-        body.appendChild(iframe);
-        return { iframe: iframe };
-      },
-      destroy: function(state){ if (state && state.iframe) state.iframe.src = 'about:blank'; }
-    };
-  },
+  return {
+    label: cfg.label || 'Video',
+    icon: '\u25B6',
+    render: function(body){
+      var src = cfg.embedUrl || '';
 
+      // Normalize common YouTube URL formats to embed format
+      var watchMatch = src.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+      var shortMatch = src.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+      var id = (watchMatch && watchMatch[1]) || (shortMatch && shortMatch[1]);
+      if (id && src.indexOf('/embed/') === -1) {
+        src = 'https://www.youtube.com/embed/' + id;
+      }
+
+      if (!src) {
+        body.innerHTML = '<div style="padding:18px;font-family:var(--sans);color:var(--ink-light);font-size:13px">No video URL configured.</div>';
+        return null;
+      }
+
+      var iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      iframe.style.display = 'block';
+      body.appendChild(iframe);
+      return { iframe: iframe };
+    },
+    destroy: function(state){ if (state && state.iframe) state.iframe.src = 'about:blank'; }
+  };
+},
   desmos_graphing: function(cfg){
     return _desmosTool(cfg, 'GraphingCalculator');
   },
