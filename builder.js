@@ -922,10 +922,12 @@ function _compileProblem(p, idx) {
   ].join('\n');
 }
 
-// Compile a text segment of the stem. Wraps it in a span so KaTeX auto-render
-// can find any \( \) or $$ $$ math delimiters inside.
+// Compile a text segment of the stem. HTML-escape first so that < > & in the
+// teacher's text cannot inject script tags or break HTML structure.
+// KaTeX auto-render reads the DOM .textContent, which decodes HTML entities,
+// so \( \) delimiters and any LaTeX inside them are unaffected by the escaping.
 function _compileStemText(s) {
-  return '<span class="stem-text">' + s + '</span>';
+  return '<span class="stem-text">' + _esc(s) + '</span>';
 }
 
 // Compile a blank config into the appropriate inline input HTML.

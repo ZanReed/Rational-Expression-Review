@@ -383,7 +383,7 @@ var ToolRegistry = {
 
       // Normalize common YouTube URL formats to embed format
       var watchMatch = src.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-      var shortMatch = src.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+      var shortMatch = src.match(/youtu\\.be\\/([a-zA-Z0-9_-]{11})/);
       var id = (watchMatch && watchMatch[1]) || (shortMatch && shortMatch[1]);
       if (id && src.indexOf('/embed/') === -1) {
         src = 'https://www.youtube.com/embed/' + id;
