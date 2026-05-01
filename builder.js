@@ -17,20 +17,9 @@ const DRAFT_STORAGE_KEY = 'builder_draft_v1';
 // =============================================================================
 // BUILDER STATE
 // =============================================================================
-let builderState = {
-  version: 1,
-  title: 'New Activity',
-  slug: 'new_activity',
-  webhook: localStorage.getItem('appsScriptURL') || '',
-  problems: [],
-  sidebarTools: [
-    { id: 'save', type: 'save' },
-    { id: 'load', type: 'load' }
-  ],
-  filename: 'activities/new_activity.html',
-  createdAt: null,
-  updatedAt: null
-};
+// Placeholder; replaced at init by either _freshState() or loadDraft().
+// Declared as `let` so loadDraft and clearDraft can reassign.
+let builderState = null;
 
 function slugify(s) {
   return String(s).toLowerCase()
@@ -43,6 +32,28 @@ function slugify(s) {
 
 function _newId() { return 'x' + Math.random().toString(36).slice(2, 9); }
 
+// State schema version — bump when the shape changes incompatibly
+const STATE_VERSION = 2;
+
+function _freshState() {
+  return {
+    version: STATE_VERSION,
+    title: 'New Activity',
+    slug: 'new_activity',
+    webhook: localStorage.getItem('appsScriptURL') || '',
+    // Global defaults that new problems inherit
+    defaults: {
+      liveFeedback: true,
+      scoreOnly: false
+    },
+    problems: [],
+    sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
+    filename: 'activities/new_activity.html',
+    createdAt: null,
+    updatedAt: null
+  };
+}
+
 function saveDraft() {
   builderState.updatedAt = new Date().toISOString();
   try { localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(builderState)); }
@@ -51,45 +62,128 @@ function saveDraft() {
 function loadDraft() {
   try {
     const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (raw) builderState = JSON.parse(raw);
-  } catch (e) { console.warn('Draft load failed:', e); }
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    builderState = _migrateState(parsed);
+  } catch (e) {
+    console.warn('Draft load failed:', e);
+  }
 }
 function clearDraft() {
   localStorage.removeItem(DRAFT_STORAGE_KEY);
-  builderState = {
-    version: 1,
-    title: 'New Activity',
-    slug: 'new_activity',
-    webhook: localStorage.getItem('appsScriptURL') || '',
-    problems: [],
-    sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
-    filename: 'activities/new_activity.html',
-    createdAt: null,
-    updatedAt: null
-  };
+  builderState = _freshState();
   renderAll();
+}
+
+// =============================================================================
+// MIGRATION — silently upgrades v1 drafts to v2 (unified problem model)
+// =============================================================================
+function _migrateState(s) {
+  if (!s || typeof s !== 'object') return _freshState();
+  // Ensure top-level fields exist
+  if (!s.defaults) s.defaults = { liveFeedback: true, scoreOnly: false };
+  if (typeof s.defaults.liveFeedback !== 'boolean') s.defaults.liveFeedback = true;
+  if (typeof s.defaults.scoreOnly !== 'boolean')    s.defaults.scoreOnly = false;
+  if (!Array.isArray(s.problems))     s.problems = [];
+  if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
+
+  // Migrate each problem: old types fill_in/dropdown become unified problem
+  // with one trailing blank carrying the prior config
+  s.problems = s.problems.map(_migrateProblem);
+
+  s.version = STATE_VERSION;
+  return s;
+}
+
+function _migrateProblem(p) {
+  if (!p || typeof p !== 'object') {
+    return _newProblem();
+  }
+
+  // Already migrated (has blanks array and no legacy fields)
+  if (Array.isArray(p.blanks) && (!p.type || p.type === 'problem')) {
+    // Touch up missing flags
+    if (typeof p.liveFeedback !== 'boolean') p.liveFeedback = true;
+    if (typeof p.scoreOnly !== 'boolean')    p.scoreOnly = false;
+    if (!p.id) p.id = _newId();
+    if (typeof p.stem !== 'string') p.stem = '';
+    return p;
+  }
+
+  // Legacy: build a unified problem with a trailing {{blank:1}}
+  const stem = (p.stem || '') + ' {{blank:1}}';
+  const blank = (p.type === 'dropdown')
+    ? {
+        id: _newId(),
+        kind: 'dropdown',
+        choices: _normalizeChoices(p.choices || []),
+        correctChoice: typeof p.correctChoice === 'number' ? p.correctChoice : 0,
+        randomize: p.randomize !== false
+      }
+    : {
+        id: _newId(),
+        kind: 'fill_in',
+        answer: p.answer || '',
+        tol: parseFloat(p.tol) || 0
+      };
+
+  return {
+    id: p.id || _newId(),
+    type: 'problem',
+    stem: stem,
+    blanks: [blank],
+    liveFeedback: true,
+    scoreOnly: false
+  };
+}
+
+function _normalizeChoices(arr) {
+  return (arr || []).map(c => {
+    if (typeof c === 'string') return { mode: 'text', value: c };
+    if (!c || typeof c !== 'object') return { mode: 'text', value: '' };
+    return { mode: c.mode === 'math' ? 'math' : 'text', value: c.value || '' };
+  });
 }
 
 // =============================================================================
 // PROBLEM MANAGEMENT
 // =============================================================================
-function addProblem(type) {
-  const isDropdown = (type === 'dropdown');
-  const p = {
+function _newProblem() {
+  return {
     id: _newId(),
-    type: type || 'fill_in',
+    type: 'problem',
     stem: '',
-    answer: '',
-    tol: 0,
-    choices: isDropdown ? [
-      { mode: 'text', value: '' },
-      { mode: 'text', value: '' },
-      { mode: 'text', value: '' },
-      { mode: 'text', value: '' }
-    ] : null,
-    correctChoice: isDropdown ? 0 : null,
-    randomize: isDropdown ? true : null
+    blanks: [],
+    // Inherit current global defaults at creation time
+    liveFeedback: builderState && builderState.defaults ? builderState.defaults.liveFeedback : true,
+    scoreOnly:    builderState && builderState.defaults ? builderState.defaults.scoreOnly    : false
   };
+}
+
+function _newBlank(kind) {
+  if (kind === 'dropdown') {
+    return {
+      id: _newId(),
+      kind: 'dropdown',
+      choices: [
+        { mode: 'text', value: '' },
+        { mode: 'text', value: '' },
+        { mode: 'text', value: '' },
+        { mode: 'text', value: '' }
+      ],
+      correctChoice: 0,
+      randomize: true
+    };
+  }
+  return { id: _newId(), kind: 'fill_in', answer: '', tol: 0 };
+}
+
+function addProblem() {
+  const p = _newProblem();
+  // Seed with one fill-in blank so a new problem has one blank by default
+  p.blanks.push(_newBlank('fill_in'));
+  // Seed stem with the first blank token
+  p.stem = '{{blank:1}}';
   builderState.problems.push(p);
   saveDraft();
   renderProblems();
@@ -124,12 +218,15 @@ function moveProblem(id, dir) {
   refreshPreview();
 }
 
+// =============================================================================
+// PROBLEM RENDERING — unified model with inline blanks
+// =============================================================================
 function renderProblems() {
   const container = document.getElementById('problemsContainer');
   if (!container) return;
   container.innerHTML = '';
   if (builderState.problems.length === 0) {
-    container.innerHTML = '<div class="empty-hint">No problems yet. Click an "Add problem" button below.</div>';
+    container.innerHTML = '<div class="empty-hint">No problems yet. Click "Add problem" below.</div>';
     return;
   }
   builderState.problems.forEach((p, idx) => {
@@ -137,10 +234,11 @@ function renderProblems() {
     card.className = 'block-card';
     card.setAttribute('data-id', p.id);
 
+    // ----- Header: number, feedback toggles, action buttons
     const header = document.createElement('div');
     header.className = 'block-header';
     header.innerHTML =
-      '<span class="block-num">Problem ' + (idx + 1) + ' &middot; <em>' + _problemTypeLabel(p.type) + '</em></span>' +
+      '<span class="block-num">Problem ' + (idx + 1) + '</span>' +
       '<div class="block-actions">' +
         '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + p.id + '\', -1)">↑</button>' +
         '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + p.id + '\', 1)">↓</button>' +
@@ -148,38 +246,224 @@ function renderProblems() {
       '</div>';
     card.appendChild(header);
 
-    // Stem (MathLive)
+    // ----- Per-problem feedback toggles
+    const fbRow = document.createElement('div');
+    fbRow.className = 'feedback-toggles';
+    fbRow.innerHTML =
+      '<label><input type="checkbox" ' + (p.liveFeedback ? 'checked' : '') + ' data-flag="liveFeedback"> Live feedback</label>' +
+      '<label><input type="checkbox" ' + (p.scoreOnly ? 'checked' : '') + ' data-flag="scoreOnly"> Score-only (lockdown)</label>';
+    fbRow.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.onchange = (e) => updateProblem(p.id, e.target.getAttribute('data-flag'), e.target.checked);
+    });
+    card.appendChild(fbRow);
+
+    // ----- Stem editor (plain textarea — supports {{blank:N}} tokens)
     const stemLabel = document.createElement('label');
     stemLabel.className = 'field-label';
-    stemLabel.textContent = 'Problem stem (math input)';
+    stemLabel.innerHTML = 'Problem stem';
     card.appendChild(stemLabel);
 
-    const mf = document.createElement('math-field');
-    mf.className = 'mf-input';
-    mf.setAttribute('virtual-keyboard-mode', 'manual');
-    mf.id = 'mf_' + p.id;
-    mf.value = p.stem || '';
-    mf.addEventListener('input', () => updateProblem(p.id, 'stem', mf.getValue('latex-expanded')));
-    card.appendChild(mf);
+    const help = document.createElement('div');
+    help.className = 'field-hint stem-help';
+    help.innerHTML = 'Use <code>{{blank:1}}</code>, <code>{{blank:2}}</code>, etc. to place input fields inline. Wrap math in <code>\\(...\\)</code>. Example: <code>Vertical shift {{blank:1}}, horizontal shift {{blank:2}}.</code>';
+    card.appendChild(help);
 
-    // Type-specific fields
-    if (p.type === 'fill_in') {
-      _renderFillInFields(card, p);
-    } else if (p.type === 'dropdown') {
-      _renderDropdownFields(card, p);
+    const stemArea = document.createElement('textarea');
+    stemArea.className = 'text-input stem-area';
+    stemArea.rows = 3;
+    stemArea.value = p.stem || '';
+    stemArea.placeholder = 'Type the problem text. Insert {{blank:N}} where students should answer.';
+    stemArea.oninput = () => {
+      updateProblem(p.id, 'stem', stemArea.value);
+      _syncBlanksToStem(p.id);
+    };
+    card.appendChild(stemArea);
+
+    // ----- Insert-blank shortcut buttons
+    const insertRow = document.createElement('div');
+    insertRow.className = 'insert-blank-row';
+    const fillBtn = document.createElement('button');
+    fillBtn.className = 'add-btn';
+    fillBtn.innerHTML = '<span class="plus">+</span> Insert fill-in blank';
+    fillBtn.onclick = () => _insertBlankAtCursor(p.id, stemArea, 'fill_in');
+    const dropBtn = document.createElement('button');
+    dropBtn.className = 'add-btn';
+    dropBtn.innerHTML = '<span class="plus">+</span> Insert dropdown blank';
+    dropBtn.onclick = () => _insertBlankAtCursor(p.id, stemArea, 'dropdown');
+    insertRow.appendChild(fillBtn);
+    insertRow.appendChild(dropBtn);
+    card.appendChild(insertRow);
+
+    // ----- Stem analysis: warn about duplicate / orphan blanks
+    const analysis = _analyzeStem(p.stem || '', p.blanks || []);
+    if (analysis.duplicates.length || analysis.orphans.length) {
+      const warn = document.createElement('div');
+      warn.className = 'stem-warn';
+      const parts = [];
+      if (analysis.duplicates.length) {
+        parts.push('Blank ' + analysis.duplicates.join(', ') + ' appears multiple times — all instances share one input.');
+      }
+      if (analysis.orphans.length) {
+        parts.push('Blank ' + analysis.orphans.join(', ') + ' has config but is not in the stem.');
+      }
+      warn.textContent = '⚠ ' + parts.join(' ');
+      card.appendChild(warn);
+    }
+
+    // ----- Blank configuration cards
+    const blanksLabel = document.createElement('div');
+    blanksLabel.className = 'field-label';
+    blanksLabel.style.marginTop = '12px';
+    blanksLabel.textContent = 'Blanks';
+    card.appendChild(blanksLabel);
+
+    if (!p.blanks || p.blanks.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-hint';
+      empty.style.padding = '10px';
+      empty.style.fontSize = '11px';
+      empty.textContent = 'No blanks yet — insert one above.';
+      card.appendChild(empty);
+    } else {
+      p.blanks.forEach((blank, bIdx) => {
+        card.appendChild(_renderBlankCard(p, blank, bIdx));
+      });
     }
 
     container.appendChild(card);
   });
 }
 
-function _problemTypeLabel(t) {
-  if (t === 'fill_in') return 'Fill in';
-  if (t === 'dropdown') return 'Dropdown';
-  return t;
+// Analyze a stem string, returning issues for the editor warning banner.
+function _analyzeStem(stem, blanks) {
+  const re = /\{\{blank:(\d+)\}\}/g;
+  const counts = {};
+  let m;
+  while ((m = re.exec(stem)) !== null) {
+    const n = parseInt(m[1], 10);
+    counts[n] = (counts[n] || 0) + 1;
+  }
+  const duplicates = Object.keys(counts).filter(n => counts[n] > 1).map(n => parseInt(n, 10)).sort((a, b) => a - b);
+  const inStem = new Set(Object.keys(counts).map(n => parseInt(n, 10)));
+  const orphans = [];
+  for (let i = 1; i <= blanks.length; i++) {
+    if (!inStem.has(i)) orphans.push(i);
+  }
+  return { duplicates: duplicates, orphans: orphans, inStem: inStem };
 }
 
-function _renderFillInFields(card, p) {
+// Insert a {{blank:N}} token at the textarea's cursor position, then add a
+// matching blank config to the problem and re-render.
+function _insertBlankAtCursor(problemId, textarea, kind) {
+  const p = builderState.problems.find(x => x.id === problemId);
+  if (!p) return;
+  // Find the next available blank number based on stem (not config length —
+  // teacher might have deleted a token mid-stem; we use the smallest unused).
+  const used = new Set();
+  const re = /\{\{blank:(\d+)\}\}/g;
+  let m;
+  while ((m = re.exec(p.stem || '')) !== null) used.add(parseInt(m[1], 10));
+  let nextN = 1;
+  while (used.has(nextN)) nextN += 1;
+
+  const token = '{{blank:' + nextN + '}}';
+  const start = textarea.selectionStart || 0;
+  const end   = textarea.selectionEnd || 0;
+  const newStem = (p.stem || '').slice(0, start) + token + (p.stem || '').slice(end);
+  p.stem = newStem;
+
+  // Add a blank config; renumber later in _syncBlanksToStem
+  if (!p.blanks) p.blanks = [];
+  p.blanks.push(_newBlank(kind));
+
+  saveDraft();
+  _syncBlanksToStem(problemId);
+}
+
+// Reconcile p.blanks with the {{blank:N}} tokens in p.stem:
+//   1. Auto-renumber tokens to be 1..K in order of first appearance
+//   2. Trim p.blanks to match the count of distinct tokens
+//   3. Re-render and refresh preview
+function _syncBlanksToStem(problemId) {
+  const p = builderState.problems.find(x => x.id === problemId);
+  if (!p) return;
+
+  // Find all tokens with their positions, in order
+  const re = /\{\{blank:(\d+)\}\}/g;
+  const matches = [];
+  let m;
+  while ((m = re.exec(p.stem || '')) !== null) {
+    matches.push({ raw: m[0], n: parseInt(m[1], 10), index: m.index });
+  }
+
+  // Build mapping: original N -> new N (in order of first appearance)
+  const seen = new Map();
+  let newCounter = 0;
+  matches.forEach(match => {
+    if (!seen.has(match.n)) {
+      newCounter += 1;
+      seen.set(match.n, newCounter);
+    }
+  });
+
+  // Apply renumbering to the stem
+  p.stem = (p.stem || '').replace(/\{\{blank:(\d+)\}\}/g, (full, n) => {
+    const newN = seen.get(parseInt(n, 10));
+    return newN ? '{{blank:' + newN + '}}' : full;
+  });
+
+  // Distinct count of unique blanks now in stem
+  const distinct = newCounter;
+
+  // Adjust p.blanks to match distinct count
+  if (!p.blanks) p.blanks = [];
+  if (p.blanks.length > distinct) p.blanks = p.blanks.slice(0, distinct);
+  while (p.blanks.length < distinct) p.blanks.push(_newBlank('fill_in'));
+
+  saveDraft();
+  renderProblems();
+  refreshPreview();
+}
+
+// Render the configuration card for a single blank (fill-in or dropdown).
+function _renderBlankCard(p, blank, bIdx) {
+  const card = document.createElement('div');
+  card.className = 'blank-card kind-' + blank.kind;
+
+  const head = document.createElement('div');
+  head.className = 'blank-head';
+  head.innerHTML =
+    '<span class="blank-num">{{blank:' + (bIdx + 1) + '}}</span>' +
+    '<div class="blank-kind-toggle">' +
+      '<button class="kind-pill ' + (blank.kind === 'fill_in' ? 'active' : '') + '" data-kind="fill_in">Fill-in</button>' +
+      '<button class="kind-pill ' + (blank.kind === 'dropdown' ? 'active' : '') + '" data-kind="dropdown">Dropdown</button>' +
+    '</div>';
+  card.appendChild(head);
+
+  head.querySelectorAll('.kind-pill').forEach(btn => {
+    btn.onclick = () => {
+      const newKind = btn.getAttribute('data-kind');
+      if (newKind === blank.kind) return;
+      const fresh = _newBlank(newKind);
+      // Preserve id so the input keeps its DOM position
+      fresh.id = blank.id;
+      const updated = (p.blanks || []).slice();
+      updated[bIdx] = fresh;
+      updateProblem(p.id, 'blanks', updated);
+      renderProblems();
+    };
+  });
+
+  if (blank.kind === 'fill_in') {
+    _renderFillInBlank(card, p, blank, bIdx);
+  } else {
+    _renderDropdownBlank(card, p, blank, bIdx);
+  }
+
+  return card;
+}
+
+function _renderFillInBlank(card, p, blank, bIdx) {
   const ansLabel = document.createElement('label');
   ansLabel.className = 'field-label';
   ansLabel.textContent = 'Correct answer';
@@ -188,64 +472,54 @@ function _renderFillInFields(card, p) {
   const ans = document.createElement('input');
   ans.type = 'text';
   ans.className = 'text-input';
-  ans.value = p.answer || '';
+  ans.value = blank.answer || '';
   ans.placeholder = 'e.g. 12 or x+3';
-  ans.oninput = () => updateProblem(p.id, 'answer', ans.value);
+  ans.oninput = () => _updateBlank(p.id, bIdx, { answer: ans.value });
   card.appendChild(ans);
 
-  const adv = document.createElement('details');
-  adv.className = 'advanced';
-  adv.innerHTML = '<summary>Advanced</summary>';
+  const tolWrap = document.createElement('div');
+  tolWrap.style.marginTop = '6px';
   const tolLabel = document.createElement('label');
   tolLabel.className = 'field-label';
-  tolLabel.style.marginTop = '8px';
   tolLabel.textContent = 'Numeric tolerance (± value, leave 0 for exact match)';
-  adv.appendChild(tolLabel);
+  tolWrap.appendChild(tolLabel);
   const tol = document.createElement('input');
   tol.type = 'number';
   tol.step = '0.01';
   tol.className = 'text-input';
-  tol.value = p.tol || 0;
-  tol.oninput = () => updateProblem(p.id, 'tol', parseFloat(tol.value) || 0);
-  adv.appendChild(tol);
-  card.appendChild(adv);
+  tol.value = blank.tol || 0;
+  tol.oninput = () => _updateBlank(p.id, bIdx, { tol: parseFloat(tol.value) || 0 });
+  tolWrap.appendChild(tol);
+  card.appendChild(tolWrap);
 }
 
-function _renderDropdownFields(card, p) {
-  // --- Randomize toggle (above choices) ---
+function _renderDropdownBlank(card, p, blank, bIdx) {
+  // Randomize toggle
   const randRow = document.createElement('div');
   randRow.className = 'check-row';
-  randRow.style.marginBottom = '10px';
-  randRow.innerHTML = '<label><input type="checkbox" ' + (p.randomize !== false ? 'checked' : '') + '> Randomize choice order at runtime</label>';
-  randRow.querySelector('input').onchange = (e) => updateProblem(p.id, 'randomize', e.target.checked);
+  randRow.style.marginBottom = '8px';
+  randRow.innerHTML = '<label><input type="checkbox" ' + (blank.randomize !== false ? 'checked' : '') + '> Randomize choice order at runtime</label>';
+  randRow.querySelector('input').onchange = (e) => _updateBlank(p.id, bIdx, { randomize: e.target.checked });
   card.appendChild(randRow);
 
-  // --- Choices label ---
   const choicesLabel = document.createElement('label');
   choicesLabel.className = 'field-label';
   choicesLabel.textContent = 'Choices (select the correct one)';
   card.appendChild(choicesLabel);
 
-  // --- Normalize choices: tolerate old string-array format from prior drafts ---
-  const choices = (p.choices || []).map(c => {
-    if (typeof c === 'string') return { mode: 'text', value: c };
-    return c || { mode: 'text', value: '' };
-  });
+  const choices = _normalizeChoices(blank.choices || []);
 
-  // --- Render each choice row ---
   choices.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'choice-row';
 
-    // Correct-answer radio
     const radio = document.createElement('input');
     radio.type = 'radio';
-    radio.name = 'correct_' + p.id;
-    radio.checked = (p.correctChoice === i);
-    radio.onchange = () => updateProblem(p.id, 'correctChoice', i);
+    radio.name = 'correct_' + p.id + '_' + blank.id;
+    radio.checked = (blank.correctChoice === i);
+    radio.onchange = () => _updateBlank(p.id, bIdx, { correctChoice: i });
     row.appendChild(radio);
 
-    // Mode toggle pill (math|text)
     const modePill = document.createElement('button');
     modePill.type = 'button';
     modePill.className = 'mode-pill mode-' + c.mode;
@@ -253,12 +527,11 @@ function _renderDropdownFields(card, p) {
     modePill.title = 'Click to toggle math/text';
     modePill.onclick = () => {
       const newChoices = choices.map((cc, j) => j === i ? { mode: cc.mode === 'math' ? 'text' : 'math', value: cc.value } : cc);
-      updateProblem(p.id, 'choices', newChoices);
-      renderProblems(); // re-render to swap input type
+      _updateBlank(p.id, bIdx, { choices: newChoices });
+      renderProblems();
     };
     row.appendChild(modePill);
 
-    // Choice input — math-field for math mode, text input for text mode
     let inp;
     if (c.mode === 'math') {
       inp = document.createElement('math-field');
@@ -267,7 +540,7 @@ function _renderDropdownFields(card, p) {
       inp.value = c.value || '';
       inp.addEventListener('input', () => {
         const newChoices = choices.map((cc, j) => j === i ? { mode: 'math', value: inp.getValue('latex-expanded') } : cc);
-        updateProblem(p.id, 'choices', newChoices);
+        _updateBlank(p.id, bIdx, { choices: newChoices });
       });
     } else {
       inp = document.createElement('input');
@@ -277,13 +550,21 @@ function _renderDropdownFields(card, p) {
       inp.placeholder = 'Choice ' + String.fromCharCode(65 + i);
       inp.oninput = () => {
         const newChoices = choices.map((cc, j) => j === i ? { mode: 'text', value: inp.value } : cc);
-        updateProblem(p.id, 'choices', newChoices);
+        _updateBlank(p.id, bIdx, { choices: newChoices });
       };
     }
     row.appendChild(inp);
 
     card.appendChild(row);
   });
+}
+
+function _updateBlank(problemId, bIdx, patch) {
+  const p = builderState.problems.find(x => x.id === problemId);
+  if (!p || !p.blanks || !p.blanks[bIdx]) return;
+  Object.assign(p.blanks[bIdx], patch);
+  saveDraft();
+  refreshPreview();
 }
 
 // =============================================================================
@@ -540,21 +821,33 @@ function compileActivity() {
     ? '<script src="https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0faa6"><\/script>'
     : '';
 
+  // Webhook: bake in builder value if set, otherwise fall back to the
+  // appsScriptURL stored by index.html's settings panel
+  const webhookForBake = (builderState.webhook && builderState.webhook.trim())
+    ? builderState.webhook
+    : (localStorage.getItem('appsScriptURL') || '');
+
   // Sidebar tools JSON (runtime config — strip nothing, all fields used downstream)
   const sidebarToolsJSON = JSON.stringify(builderState.sidebarTools);
 
   // Full builder state JSON (round-trip seed)
   const stateJSON = JSON.stringify({ ...builderState, savedAt: new Date().toISOString() });
 
+  // Activity-wide settings JSON (read at runtime by the worksheet)
+  const settingsJSON = JSON.stringify({
+    defaults: builderState.defaults || { liveFeedback: true, scoreOnly: false }
+  });
+
   // Slot replacement
   let html = window.WORKSHEET_TEMPLATE;
-  html = html.replace(/\{\{TITLE\}\}/g,            _esc(builderState.title));
-  html = html.replace(/\{\{ACTIVITY_SLUG\}\}/g,    builderState.slug);
-  html = html.replace(/\{\{WEBHOOK_URL\}\}/g,      _esc(builderState.webhook));
-  html = html.replace(/\{\{GOOGLE_CLIENT_ID\}\}/g, GOOGLE_CLIENT_ID);
+  html = html.replace(/\{\{TITLE\}\}/g,             _esc(builderState.title));
+  html = html.replace(/\{\{ACTIVITY_SLUG\}\}/g,     builderState.slug);
+  html = html.replace(/\{\{WEBHOOK_URL\}\}/g,       _esc(webhookForBake));
+  html = html.replace(/\{\{GOOGLE_CLIENT_ID\}\}/g,  GOOGLE_CLIENT_ID);
   html = html.replace(/\{\{DESMOS_API_SCRIPT\}\}/g, desmosScript);
-  html = html.replace(/\{\{PROBLEMS_HTML\}\}/g,    problemsHTML);
+  html = html.replace(/\{\{PROBLEMS_HTML\}\}/g,     problemsHTML);
   html = html.replace(/\{\{SIDEBAR_TOOLS_JSON\}\}/g, sidebarToolsJSON);
+  html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g, settingsJSON);
   html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g, stateJSON);
 
   return html;
@@ -562,58 +855,97 @@ function compileActivity() {
 
 function _compileProblem(p, idx) {
   const num = idx + 1;
-  const stemLatex = p.stem ? '\\(' + p.stem + '\\)' : '<em>(empty)</em>';
-  const inputId = 'p' + num;
 
-  if (p.type === 'fill_in') {
-    return [
-      '<div class="problem-cell">',
-      '  <div class="prob-num">PROBLEM ' + num + '</div>',
-      '  <div class="prob-stem">' + stemLatex + '</div>',
-      '  <input type="text" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(p.answer || '') + '" data-tol="' + (p.tol || 0) + '" autocomplete="off">',
-      '  <span class="feedback" id="fb_' + inputId + '"></span>',
-      '</div>'
-    ].join('\n');
+  // Per-problem feedback flags become data-attrs on the cell
+  const liveAttr  = (p.liveFeedback === false) ? ' data-live="0"' : ' data-live="1"';
+  const scoreAttr = (p.scoreOnly === true)     ? ' data-score-only="1"' : '';
+
+  // Build map of blank index (1-based as appears in stem) -> blank config
+  const blanks = p.blanks || [];
+
+  // Walk the stem, splitting on {{blank:N}} tokens. Render the prose around
+  // them as KaTeX-aware text. Each token becomes the appropriate input.
+  const stem = p.stem || '';
+  const re = /\{\{blank:(\d+)\}\}/g;
+  let lastIndex = 0;
+  let parts = [];
+  let m;
+  while ((m = re.exec(stem)) !== null) {
+    if (m.index > lastIndex) {
+      parts.push({ kind: 'text', value: stem.slice(lastIndex, m.index) });
+    }
+    parts.push({ kind: 'blank', n: parseInt(m[1], 10) });
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < stem.length) {
+    parts.push({ kind: 'text', value: stem.slice(lastIndex) });
   }
 
-  if (p.type === 'dropdown') {
-    // Normalize choices for tolerance with old drafts
-    const norm = (p.choices || []).map(c => typeof c === 'string' ? { mode: 'text', value: c } : (c || { mode: 'text', value: '' }));
-
-    // Determine the correct choice's value (used for data-correct on hidden input)
-    const correctChoice = norm[p.correctChoice];
-    const correctValue = correctChoice ? correctChoice.value : '';
-
-    // Build options HTML — math wrapped in \( \) for KaTeX, text rendered as-is
-    const options = norm
-      .filter(c => c.value && String(c.value).trim())
-      .map(c => {
-        const display = (c.mode === 'math')
-          ? '\\(' + c.value + '\\)'
-          : _esc(c.value);
-        return '<div class="md-option" data-value="' + _escAttr(c.value) + '" tabindex="0">' + display + '</div>';
-      })
-      .join('\n      ');
-
-    const randomizeAttr = (p.randomize === false) ? '' : ' data-randomize="1"';
-
-    return [
-      '<div class="problem-cell">',
-      '  <div class="prob-num">PROBLEM ' + num + '</div>',
-      '  <div class="prob-stem">' + stemLatex + '</div>',
-      '  <details class="md-dropdown"' + randomizeAttr + '>',
-      '    <summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary>',
-      '    <div class="md-options">',
-      '      ' + options,
-      '    </div>',
-      '  </details>',
-      '  <input type="hidden" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctValue) + '">',
-      '  <span class="feedback" id="fb_' + inputId + '"></span>',
-      '</div>'
-    ].join('\n');
+  // If there were no tokens at all, still render the stem prose
+  if (parts.length === 0 && stem) {
+    parts.push({ kind: 'text', value: stem });
   }
 
-  return '<div class="problem-cell"><div class="prob-stem">Unknown problem type</div></div>';
+  // Compile each part. Text parts pass through (KaTeX delimiters are honored
+  // by the renderer at runtime). Blank parts emit the matching input.
+  const stemHTML = parts.map((part, i) => {
+    if (part.kind === 'text') {
+      return _compileStemText(part.value);
+    }
+    // Blank part — find the matching blank config (1-based index from token)
+    const blank = blanks[part.n - 1];
+    if (!blank) {
+      return '<span class="missing-blank">[unconfigured blank ' + part.n + ']</span>';
+    }
+    const inputId = 'p' + num + '_b' + part.n;
+    return _compileBlankInput(blank, inputId);
+  }).join('');
+
+  return [
+    '<div class="problem-cell"' + liveAttr + scoreAttr + ' data-problem-num="' + num + '">',
+    '  <div class="prob-num">PROBLEM ' + num + '</div>',
+    '  <div class="prob-stem">' + stemHTML + '</div>',
+    '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>',
+    '</div>'
+  ].join('\n');
+}
+
+// Compile a text segment of the stem. Wraps it in a span so KaTeX auto-render
+// can find any \( \) or $$ $$ math delimiters inside.
+function _compileStemText(s) {
+  return '<span class="stem-text">' + s + '</span>';
+}
+
+// Compile a blank config into the appropriate inline input HTML.
+function _compileBlankInput(blank, inputId) {
+  if (blank.kind === 'fill_in') {
+    return '<input type="text" class="ans-num inline-blank" id="' + inputId + '" data-correct="' + _escAttr(blank.answer || '') + '" data-tol="' + (blank.tol || 0) + '" autocomplete="off">';
+  }
+
+  // Dropdown blank
+  const norm = _normalizeChoices(blank.choices || []);
+  const correctChoice = norm[blank.correctChoice];
+  const correctValue = correctChoice ? correctChoice.value : '';
+
+  const options = norm
+    .filter(c => c.value && String(c.value).trim())
+    .map(c => {
+      const display = (c.mode === 'math') ? '\\(' + c.value + '\\)' : _esc(c.value);
+      return '<div class="md-option" data-value="' + _escAttr(c.value) + '" tabindex="0">' + display + '</div>';
+    })
+    .join('');
+
+  const randomizeAttr = (blank.randomize === false) ? '' : ' data-randomize="1"';
+
+  return [
+    '<span class="inline-blank-wrap">',
+      '<details class="md-dropdown"' + randomizeAttr + '>',
+        '<summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary>',
+        '<div class="md-options">' + options + '</div>',
+      '</details>',
+      '<input type="hidden" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctValue) + '">',
+    '</span>'
+  ].join('');
 }
 
 function _esc(s) {
@@ -654,6 +986,13 @@ function setWebhook(value) {
   builderState.webhook = value;
   saveDraft();
   refreshPreview();
+}
+function setDefault(flag, value) {
+  if (!builderState.defaults) builderState.defaults = { liveFeedback: true, scoreOnly: false };
+  builderState.defaults[flag] = !!value;
+  saveDraft();
+  // Note: changing the global default does NOT retroactively update existing
+  // problems. New problems created after this point will inherit the new default.
 }
 
 // =============================================================================
@@ -812,6 +1151,12 @@ function renderAll() {
   document.getElementById('titleInput').value = builderState.title;
   document.getElementById('webhookInput').value = builderState.webhook;
   document.getElementById('filenamePreview').textContent = builderState.filename;
+  // Global defaults
+  const d = builderState.defaults || { liveFeedback: true, scoreOnly: false };
+  const liveCB  = document.getElementById('defaultLiveFeedback');
+  const scoreCB = document.getElementById('defaultScoreOnly');
+  if (liveCB)  liveCB.checked  = !!d.liveFeedback;
+  if (scoreCB) scoreCB.checked = !!d.scoreOnly;
   renderProblems();
   renderSidebarTools();
   refreshPreview();
@@ -822,8 +1167,7 @@ function renderAll() {
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   loadDraft();
+  if (!builderState) builderState = _freshState();
   renderAll();
-
-  // Handlers wired via builder.html onclick — no global setup needed beyond render
   console.log('[builder] ready. Draft loaded:', !!localStorage.getItem(DRAFT_STORAGE_KEY));
 });

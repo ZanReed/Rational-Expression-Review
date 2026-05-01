@@ -89,18 +89,42 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .main-content{margin-top:12px}
 .problem-cell{background:var(--page);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;margin-bottom:14px}
 .prob-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:8px}
-.prob-stem{font-family:var(--serif);font-size:17px;line-height:1.45;margin-bottom:14px;color:var(--ink)}
-.ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s}
+.prob-stem{font-family:var(--serif);font-size:17px;line-height:1.7;color:var(--ink)}
+.stem-text{display:inline}
+.ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s,background .15s}
 .ans-num:focus{border-color:var(--accent)}
 .ans-num.correct{border-color:var(--green-rule);background:var(--green-bg)}
 .ans-num.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
 .feedback{display:inline-block;margin-left:10px;font-size:13px;font-weight:500}
 .feedback.correct{color:var(--green)}
 .feedback.incorrect{color:var(--red)}
+.prob-feedback{margin-left:0;display:block;margin-top:8px;min-height:1em}
+
+/* Inline blanks (placed mid-sentence in stem) */
+.inline-blank{min-width:80px;width:auto;padding:3px 8px;font-size:14px;vertical-align:baseline;margin:0 4px}
+.inline-blank-wrap{display:inline-block;margin:0 4px;vertical-align:baseline}
+.inline-blank-wrap .md-dropdown{min-width:140px}
+.inline-blank-wrap .md-trigger{padding:4px 9px;font-size:13px}
+
+/* Suppress per-problem feedback when score-only mode is on */
+.problem-cell[data-score-only="1"] .ans-num.correct,
+.problem-cell[data-score-only="1"] .ans-num.incorrect{border-color:var(--rule);background:white}
+.problem-cell[data-score-only="1"] .md-trigger.correct,
+.problem-cell[data-score-only="1"] .md-trigger.incorrect{border-color:var(--rule);background:white}
+.problem-cell[data-score-only="1"] .feedback{display:none}
+
+/* Suppress live feedback (only show on Submit) — JS adds .live-suppressed when feedback should hide */
+.live-suppressed .ans-num.correct,
+.live-suppressed .ans-num.incorrect{border-color:var(--rule);background:white}
+.live-suppressed .md-trigger.correct,
+.live-suppressed .md-trigger.incorrect{border-color:var(--rule);background:white}
+.live-suppressed .feedback{display:none}
+
+.missing-blank{display:inline-block;padding:2px 8px;background:var(--red-bg);border:1px solid var(--red-rule);border-radius:3px;color:var(--red);font-family:var(--mono);font-size:11px;margin:0 4px}
 
 /* ---------- CUSTOM DROPDOWN (math + text choices) ---------- */
-.md-dropdown{position:relative;display:inline-block;min-width:240px;vertical-align:middle}
-.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s}
+.md-dropdown{position:relative;display:inline-block;min-width:240px;vertical-align:baseline}
+.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;list-style:none;display:inline-flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s}
 .md-trigger::-webkit-details-marker{display:none}
 .md-trigger::marker{display:none;content:''}
 .md-trigger::after{content:'\\25BE';color:var(--ink-light);font-size:11px;flex-shrink:0}
@@ -110,9 +134,14 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .md-trigger.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
 .md-trigger-label{display:inline-block;flex:1}
 .md-placeholder{color:var(--ink-light);font-style:italic}
-.md-options{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px}
+.md-options{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px;min-width:160px}
 .md-option{padding:8px 11px;cursor:pointer;border-radius:2px;font-family:var(--mono);font-size:14px;color:var(--ink);transition:background .1s}
 .md-option:hover,.md-option:focus{background:var(--accent-lt);color:var(--accent);outline:none}
+
+/* ---------- SCORE BADGE ---------- */
+.score-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:white;border:1px solid var(--rule);border-radius:20px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);margin-left:12px}
+.score-badge .score-val{color:var(--accent);font-size:14px}
+.score-badge .score-pct{color:var(--ink-light);font-size:10px;font-weight:500}
 
 /* ---------- SUBMIT ---------- */
 .submit-wrap{margin-top:24px;padding:18px 22px;background:var(--accent-lt);border:1px solid #8aaad4;border-radius:5px;display:flex;align-items:center;gap:14px}
@@ -174,6 +203,10 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 
     <div class="submit-wrap">
       <button id="submitBtn" data-webhook="{{WEBHOOK_URL}}" onclick="submitActivity()">Submit work</button>
+      <span class="score-badge" id="scoreBadge">
+        Score: <span class="score-val" id="scoreVal">0 / 0</span>
+        <span class="score-pct" id="scorePct"></span>
+      </span>
       <span id="submitMsg"></span>
     </div>
   </main>
@@ -185,6 +218,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 
 <script id="builder-state" type="application/json">{{BUILDER_STATE_JSON}}<\/script>
 <script id="sidebar-tools-config" type="application/json">{{SIDEBAR_TOOLS_JSON}}<\/script>
+<script id="activity-settings" type="application/json">{{ACTIVITY_SETTINGS_JSON}}<\/script>
 
 <script>
 // =============================================================================
@@ -587,15 +621,26 @@ function _initDropdowns(){
     });
   });
 }
+// ---------- Validation ----------------------------------------------------
+// Per-problem feedback flags:
+//   data-live="0"        — suppress live feedback until submit
+//   data-score-only="1"  — never show per-problem feedback (only score)
+// We always compute correctness and stash it on the input as data-is-correct,
+// because the score badge needs to know — but visual feedback is gated by
+// the problem cell's classes (CSS handles the suppression).
 function validateInput(el){
   var correct = el.getAttribute('data-correct');
   if (correct === null) return;
   var tol = parseFloat(el.getAttribute('data-tol') || '0');
   var fb = document.getElementById('fb_' + el.id);
-  if (!el.value.trim()) {
+  var hasValue = !!el.value.trim();
+
+  if (!hasValue) {
     el.classList.remove('correct', 'incorrect');
+    el.removeAttribute('data-is-correct');
     _mirrorDropdownState(el, null);
     if (fb) fb.textContent = '';
+    _updateScoreBadge();
     return;
   }
   var ok = false;
@@ -608,11 +653,13 @@ function validateInput(el){
   }
   el.classList.toggle('correct', ok);
   el.classList.toggle('incorrect', !ok);
+  el.setAttribute('data-is-correct', ok ? '1' : '0');
   _mirrorDropdownState(el, ok);
   if (fb) {
     fb.className = 'feedback ' + (ok ? 'correct' : 'incorrect');
     fb.textContent = ok ? '\u2713' : '\u2717';
   }
+  _updateScoreBadge();
 }
 
 // If the input is the hidden value-holder of a custom dropdown, mirror the
@@ -633,6 +680,26 @@ function _wireValidation(){
     el.addEventListener('input', function(){ validateInput(el); });
     el.addEventListener('blur', function(){ validateInput(el); });
   });
+
+  // Apply initial live-suppressed class to cells that have live feedback off
+  document.querySelectorAll('.problem-cell[data-live="0"]').forEach(function(cell){
+    cell.classList.add('live-suppressed');
+  });
+}
+
+// ---------- Score badge --------------------------------------------------
+function _updateScoreBadge(){
+  // Count correct vs total inputs that have data-correct (i.e., gradable)
+  var inputs = document.querySelectorAll('.ans-num[data-correct]');
+  var total = inputs.length;
+  var correct = 0;
+  inputs.forEach(function(el){
+    if (el.getAttribute('data-is-correct') === '1') correct += 1;
+  });
+  var valEl = document.getElementById('scoreVal');
+  var pctEl = document.getElementById('scorePct');
+  if (valEl) valEl.textContent = correct + ' / ' + total;
+  if (pctEl) pctEl.textContent = total > 0 ? '(' + Math.round(100 * correct / total) + '%)' : '';
 }
 
 // ---------- Submit (Apps Script) ------------------------------------------
@@ -644,7 +711,23 @@ function submitActivity(){
   var sid  = document.getElementById('studentId').value.trim();
   if (!name || !sid) { _flashSubmitMsg('Name and ID required.', 'error'); return; }
 
+  // Reveal correctness on submit: any cell that had live feedback suppressed
+  // gets it shown now. Cells with score-only stay suppressed (CSS rule on
+  // [data-score-only="1"] takes over).
+  document.querySelectorAll('.problem-cell.live-suppressed').forEach(function(cell){
+    cell.classList.remove('live-suppressed');
+  });
+  // Re-run validation so the visible state matches data-is-correct
+  document.querySelectorAll('.ans-num').forEach(function(el){ validateInput(el); });
+  _updateScoreBadge();
+
   var payload = Object.assign({ activity: ACTIVITY_SLUG }, _collectState());
+  // Include score in submission so the spreadsheet captures it
+  var inputs = document.querySelectorAll('.ans-num[data-correct]');
+  var correctCount = 0;
+  inputs.forEach(function(el){ if (el.getAttribute('data-is-correct') === '1') correctCount += 1; });
+  payload.score = { correct: correctCount, total: inputs.length };
+
   btn.disabled = true;
   _flashSubmitMsg('Submitting...', null);
 

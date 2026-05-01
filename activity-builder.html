@@ -101,6 +101,24 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .mode-pill.mode-math{background:var(--accent-lt);border-color:#8aaad4;color:var(--accent)}
 .mf-choice{flex:1;display:block;padding:5px 8px;margin:0;border:1px solid var(--rule);border-radius:3px;font-size:13px;background:white;min-height:30px}
 .mf-choice:focus,.mf-choice:focus-within{border-color:var(--accent);outline:none}
+
+/* ---------- BLANK CARDS (inline blanks editor) ---------- */
+.feedback-toggles{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding:6px 10px;background:var(--cream);border-radius:3px;font-size:11px}
+.feedback-toggles label{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-mid)}
+.feedback-toggles input[type=checkbox]{margin:0}
+.stem-help{margin-bottom:6px}
+.stem-help code{font-family:var(--mono);font-size:11px;background:white;padding:1px 4px;border-radius:2px;border:1px solid var(--rule);color:var(--accent)}
+.stem-area{font-family:var(--serif);font-size:14px;line-height:1.5;min-height:54px}
+.insert-blank-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.stem-warn{margin-top:8px;padding:6px 10px;background:var(--amber-bg);border:1px solid #d4b800;color:var(--amber);border-radius:3px;font-size:11px}
+.blank-card{background:var(--cream);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin:8px 0}
+.blank-card.kind-dropdown{background:#f0f4fa;border-color:#b0bfd4}
+.blank-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.blank-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--ink-light)}
+.blank-kind-toggle{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:white}
+.kind-pill{font-family:var(--mono);font-size:10px;font-weight:500;padding:4px 10px;border:none;background:white;color:var(--ink-light);cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+.kind-pill.active{background:var(--accent);color:white}
+.kind-pill:not(.active):hover{background:var(--accent-lt);color:var(--accent)}
 .vp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
 .vp-grid input{padding:5px 7px;font-size:12px}
 .vp-grid .field-label{margin-bottom:2px;text-transform:lowercase;font-family:var(--mono);font-size:10px}
@@ -195,7 +213,18 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         <div class="modal-field">
           <label class="field-label">Apps Script Webhook URL</label>
           <input type="text" class="text-input" id="webhookInput" oninput="setWebhook(this.value)" placeholder="https://script.google.com/macros/s/.../exec">
-          <div class="field-hint">Where student submissions are posted.</div>
+          <div class="field-hint">Where student submissions are posted. If left blank, the URL stored in your index.html settings will be used at publish.</div>
+        </div>
+
+        <div class="modal-field">
+          <label class="field-label">Default feedback behavior (applies to new problems)</label>
+          <div class="check-row">
+            <label><input type="checkbox" id="defaultLiveFeedback" onchange="setDefault('liveFeedback', this.checked)"> Live feedback as students type</label>
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="defaultScoreOnly" onchange="setDefault('scoreOnly', this.checked)"> Score-only mode (lockdown — no per-problem reveal)</label>
+          </div>
+          <div class="field-hint">Each problem has its own toggles that override these. Changing defaults only affects problems added afterward.</div>
         </div>
       </div>
 
@@ -204,8 +233,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         <div class="section-label">Problems</div>
         <div id="problemsContainer"></div>
         <div class="add-btn-row">
-          <button class="add-btn" onclick="addProblem('fill_in')"><span class="plus">+</span> Fill-in problem</button>
-          <button class="add-btn" onclick="addProblem('dropdown')"><span class="plus">+</span> Dropdown</button>
+          <button class="add-btn" onclick="addProblem()"><span class="plus">+</span> Add problem</button>
         </div>
       </div>
 
