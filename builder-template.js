@@ -778,7 +778,27 @@ function _applyState(s){
   if (s.answers) {
     Object.keys(s.answers).forEach(function(k){
       var el = document.getElementById(k);
-      if (el) { el.value = s.answers[k]; validateInput(el); }
+      if (!el) return;
+      el.value = s.answers[k];
+      // If this input is the hidden value-holder of a custom dropdown,
+      // also restore the visible trigger label so the student can see
+      // which option was previously selected.
+      var parent = el.parentNode;
+      var dropdown = parent ? parent.querySelector('.md-dropdown') : null;
+      if (dropdown) {
+        var label = dropdown.querySelector('.md-trigger-label');
+        var opts = dropdown.querySelectorAll('.md-option');
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].getAttribute('data-value') === s.answers[k]) {
+            if (label) {
+              label.classList.remove('md-placeholder');
+              label.innerHTML = opts[i].innerHTML;
+            }
+            break;
+          }
+        }
+      }
+      validateInput(el);
     });
   }
 }
