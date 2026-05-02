@@ -585,7 +585,7 @@ function _updateBlank(problemId, bIdx, patch) {
 // =============================================================================
 const TOOL_DEFAULTS = {
   video:             { label: 'Video',      embedUrl: '' },
-  desmos_graphing:   { label: 'Graphing',   expressions: [], advanced: false, viewport: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, locked: false }, hideExpressionList: false, hideSettings: false, polar: false, projectorMode: false },
+  desmos_graphing:   { label: 'Graphing',   expressions: [], advanced: false, viewport: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, locked: false }, hideExpressionList: false, hideSettings: false, polar: false, projectorMode: false, allowImages: false, allowFolders: false, allowNotes: false, allowSliders: false, allowInequalities: false, allowImplicits: false, allowSingleVarImplicits: false },
   desmos_scientific: { label: 'Scientific Calc' },
   desmos_geometry:   { label: 'Geometry',   advanced: false },
   reference_sheet:   { label: 'Formulas',   title: '', content: '' }
@@ -782,7 +782,7 @@ function _renderDesmosGraphingFields(card, t) {
     });
     adv.appendChild(vpGrid);
 
-    // Toggles
+    // Toggles — chrome / mode
     const toggles = [
       { key: 'viewport.locked', label: 'Lock viewport (students can\u2019t pan/zoom)' },
       { key: 'hideExpressionList', label: 'Hide expression list' },
@@ -794,6 +794,32 @@ function _renderDesmosGraphingFields(card, t) {
       const row = document.createElement('div');
       row.className = 'check-row';
       const cur = tog.key.includes('.') ? (t.viewport && t.viewport.locked) : t[tog.key.split('.').pop()];
+      row.innerHTML = '<label><input type="checkbox" ' + (cur ? 'checked' : '') + '> ' + tog.label + '</label>';
+      row.querySelector('input').onchange = (e) => updateSidebarTool(t.id, tog.key, e.target.checked);
+      adv.appendChild(row);
+    });
+
+    // Heading: feature permissions
+    const permLabel = document.createElement('div');
+    permLabel.className = 'field-label';
+    permLabel.style.marginTop = '12px';
+    permLabel.textContent = 'Calculator features (off by default)';
+    adv.appendChild(permLabel);
+
+    // Toggles — feature permissions (default off = STAAR-aligned restrictions)
+    const permToggles = [
+      { key: 'allowImages', label: 'Allow image uploads' },
+      { key: 'allowFolders', label: 'Allow folders' },
+      { key: 'allowNotes', label: 'Allow notes' },
+      { key: 'allowSliders', label: 'Allow sliders' },
+      { key: 'allowInequalities', label: 'Allow inequalities (y > x)' },
+      { key: 'allowImplicits', label: 'Allow implicit equations (x\u00B2 + y\u00B2 = 25)' },
+      { key: 'allowSingleVarImplicits', label: 'Allow single-variable implicits (x = 3)' }
+    ];
+    permToggles.forEach(tog => {
+      const row = document.createElement('div');
+      row.className = 'check-row';
+      const cur = t[tog.key];
       row.innerHTML = '<label><input type="checkbox" ' + (cur ? 'checked' : '') + '> ' + tog.label + '</label>';
       row.querySelector('input').onchange = (e) => updateSidebarTool(t.id, tog.key, e.target.checked);
       adv.appendChild(row);
@@ -1086,7 +1112,7 @@ function compileActivity() {
     t.type === 'desmos_graphing' || t.type === 'desmos_scientific' || t.type === 'desmos_geometry'
   );
   const desmosScript = needsDesmos
-    ? '<script src="https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0faa6"><\/script>'
+    ? '<script src="https://www.desmos.com/api/v1.10/calculator.js?apiKey=661a84788761487abdb6ddff0878ce17"><\/script>'
     : '';
 
   // Inline the markdown parser source so reference sheets can render at

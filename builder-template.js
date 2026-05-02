@@ -690,6 +690,15 @@ function _setDesmosSize(inner, body){
 
 function _buildDesmosOpts(cfg){
   var o = { expressions: true, settingsMenu: true, zoomButtons: true };
+  // Feature permissions are applied unconditionally (off by default).
+  // Teachers opt features back on via the Advanced settings panel.
+  if (!cfg.allowImages) o.images = false;
+  if (!cfg.allowFolders) o.folders = false;
+  if (!cfg.allowNotes) o.notes = false;
+  if (!cfg.allowSliders) o.sliders = false;
+  if (!cfg.allowInequalities) o.plotInequalities = false;
+  if (!cfg.allowImplicits) o.plotImplicits = false;
+  if (!cfg.allowSingleVarImplicits) o.plotSingleVariableImplicitEquations = false;
   if (!cfg.advanced) return o;
   if (cfg.hideExpressionList) o.expressions = false;
   if (cfg.hideSettings) o.settingsMenu = false;
