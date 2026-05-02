@@ -11,6 +11,493 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+<script>(function(root){
+"use strict";
+var SENT_OPEN = "\u0001\u0002";
+var SENT_CLOSE = "\u0002\u0001";
+var SENT_RE = /\u0001\u0002(\d+)\u0002\u0001/g;
+var BLOCK_OPENERS = /^(#{1,6}\s|>\s*\[!|::: |[-*]\s|\d+\.\s|---+\s*$|\|)/;
+var CALLOUT_ICONS = {"note":"ℹ","tip":"✨","warning":"⚠","example":"▶","definition":"§","theorem":"∴"};
+function escapeHTML(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+function protectVerbatim(text, opts, verbatim) {
+    function stash(content) {
+      var idx = verbatim.length;
+      verbatim.push(content);
+      return SENT_OPEN + idx + SENT_CLOSE;
+    }
+
+    // 1. Escaped dollar signs first — let teachers write "$5" by typing "\$5"
+    text = text.replace(/\\\$/g, function () {
+      return stash('$');
+    });
+
+    // 2. Code spans — `code` (single-line). HTML-escape contents now.
+    text = text.replace(/`([^`\n]+)`/g, function (m, code) {
+      return stash('<code class="md-code">' + escapeHTML(code) + '</code>');
+    });
+
+    // 3. Display math: $$...$$ (multi-line OK)
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, function (m, math) {
+      return stash('\\[' + escapeHTML(math) + '\\]');
+    });
+
+    // 4. Inline math: $...$ — heuristic check to avoid matching prose dollars
+    text = text.replace(/\$([^\$\n]+?)\$/g, function (m, math) {
+      // Reject if surrounded by whitespace internally (probably "cost is $5")
+      if (/^\s|\s$/.test(math)) return m;
+      // Reject if the candidate is just digits/punctuation (probably money)
+      if (/^[\d.,]+$/.test(math)) return m;
+      return stash('\\(' + escapeHTML(math) + '\\)');
+    });
+
+    // 5. Back-compat \(...\) and \[...\] — escape math contents the same way
+    text = text.replace(/\\\(([\s\S]+?)\\\)/g, function (m, math) {
+      return stash('\\(' + escapeHTML(math) + '\\)');
+    });
+    text = text.replace(/\\\[([\s\S]+?)\\\]/g, function (m, math) {
+      return stash('\\[' + escapeHTML(math) + '\\]');
+    });
+
+    // 6. Blank tokens (stem mode only) — preserve literal {{blank:N}} text
+    if (opts.stemMode) {
+      text = text.replace(/\{\{blank:\d+\}\}/g, function (m) {
+        return stash(m);
+      });
+    }
+
+    return text;
+  }
+
+function restoreVerbatim(text, verbatim) {
+    return text.replace(SENT_RE, function (_, n) {
+      return verbatim[parseInt(n, 10)];
+    });
+  }
+
+function processInline(text) {
+    text = escapeHTML(text);
+
+    // Highlights: ==text==
+    text = text.replace(/==([^=\n]+)==/g, '<mark class="md-highlight">$1</mark>');
+
+    // Bold: **text**
+    text = text.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: _text_ (word-boundary aware so snake_case isn't italicized)
+    // Match only when preceded and followed by non-word characters or string ends.
+    text = text.replace(
+      /(^|[^\w])_([^_\n]+?)_(?=[^\w]|$)/g,
+      '$1<em>$2</em>'
+    );
+
+    return text;
+  }
+
+function parseTableRow(line) {
+    // Strip surrounding pipes, split on pipes (but not escaped \|).
+    var s = line.replace(/^\s*\|/, '').replace(/\|\s*$/, '');
+    // Simple split — escaped pipes inside cells aren't supported in v1.
+    return s.split('|').map(function (cell) {
+      return cell.replace(/^\s+|\s+$/g, '');
+    });
+  }
+
+function parseTableAlignment(sepLine) {
+    var cells = parseTableRow(sepLine);
+    return cells.map(function (cell) {
+      var left = cell.charAt(0) === ':';
+      var right = cell.charAt(cell.length - 1) === ':';
+      if (left && right) return 'center';
+      if (right) return 'right';
+      if (left) return 'left';
+      return null;
+    });
+  }
+
+function isTableSeparator(line) {
+    var t = line.replace(/^\s+|\s+$/g, '');
+    if (t.indexOf('|') < 0 && t.indexOf('-') < 0) return false;
+    // Each cell must be of the form :?-+:?
+    var cells = parseTableRow(t);
+    if (cells.length === 0) return false;
+    for (var i = 0; i < cells.length; i++) {
+      if (!/^:?-{2,}:?$/.test(cells[i])) return false;
+    }
+    return true;
+  }
+
+function tokenizeBlocks(lines) {
+    var blocks = [];
+    var i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+      var trimmed = line.replace(/^\s+|\s+$/g, '');
+
+      if (!trimmed) {
+        i++;
+        continue;
+      }
+
+      // Heading (with optional attribute block)
+      var headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        var level = headingMatch[1].length;
+        var headingText = headingMatch[2];
+        var attrs = {};
+        var attrMatch = headingText.match(/^(.+?)\s+\{([^}]+)\}\s*$/);
+        if (attrMatch) {
+          headingText = attrMatch[1];
+          var pairs = attrMatch[2].split(/\s+/);
+          for (var ap = 0; ap < pairs.length; ap++) {
+            var kv = pairs[ap].split('=');
+            if (kv.length === 2) attrs[kv[0]] = kv[1];
+          }
+        }
+        blocks.push({
+          type: 'heading',
+          level: level,
+          text: headingText,
+          attrs: attrs
+        });
+        i++;
+        continue;
+      }
+
+      // Horizontal rule
+      if (/^-{3,}\s*$/.test(trimmed)) {
+        blocks.push({ type: 'hr' });
+        i++;
+        continue;
+      }
+
+      // Callout
+      var calloutMatch = trimmed.match(
+        /^>\s*\[!(NOTE|TIP|WARNING|EXAMPLE|DEFINITION|THEOREM)\]\s*(.*)$/i
+      );
+      if (calloutMatch) {
+        var kind = calloutMatch[1].toLowerCase();
+        var bodyLines = [];
+        if (calloutMatch[2]) bodyLines.push(calloutMatch[2]);
+        i++;
+        while (i < lines.length) {
+          var ln = lines[i];
+          var lt = ln.replace(/^\s+/, '');
+          // New callout? Stop and let the outer loop pick it up.
+          if (/^>\s*\[!(NOTE|TIP|WARNING|EXAMPLE|DEFINITION|THEOREM)\]/i.test(lt)) {
+            break;
+          }
+          if (lt.charAt(0) !== '>') {
+            // Allow blank line within callout if the line after still has '>'
+            // AND isn't the start of a new callout.
+            if (lt === '' && i + 1 < lines.length) {
+              var nxt = lines[i + 1].replace(/^\s+/, '');
+              if (nxt.charAt(0) === '>' &&
+                  !/^>\s*\[!(NOTE|TIP|WARNING|EXAMPLE|DEFINITION|THEOREM)\]/i.test(nxt)) {
+                bodyLines.push('');
+                i++;
+                continue;
+              }
+            }
+            break;
+          }
+          bodyLines.push(lt.replace(/^>\s?/, ''));
+          i++;
+        }
+        blocks.push({
+          type: 'callout',
+          kind: kind,
+          content: bodyLines.join('\n')
+        });
+        continue;
+      }
+
+      // Columns — fenced div, nesting aware. Treat every line of the form
+      // "::: name" as opening a fence (depth++) and every standalone ":::"
+      // as closing one (depth--). The outer "::: columns" is depth 1; we
+      // collect lines until depth returns to 0.
+      if (trimmed === '::: columns') {
+        i++;
+        var depth = 1;
+        var inner = [];
+        while (i < lines.length && depth > 0) {
+          var l = lines[i].replace(/^\s+|\s+$/g, '');
+          if (l === ':::') {
+            depth--;
+            if (depth === 0) { i++; break; }
+            inner.push(lines[i]);
+            i++;
+            continue;
+          }
+          if (/^:::\s+\S/.test(l)) {
+            depth++;
+          }
+          inner.push(lines[i]);
+          i++;
+        }
+
+        // Split inner lines by "::: column" markers at depth 0. As we walk,
+        // we track depth the same way: "::: column" (and any other named
+        // fence) opens, plain ":::" closes.
+        var cols = [];
+        var current = null;
+        var d = 0;
+        for (var ix = 0; ix < inner.length; ix++) {
+          var il = inner[ix].replace(/^\s+|\s+$/g, '');
+          if (d === 0 && il === '::: column') {
+            if (current !== null) cols.push(current.join('\n'));
+            current = [];
+            d = 1;
+            continue;
+          }
+          if (/^:::\s+\S/.test(il)) {
+            d++;
+            if (current !== null) current.push(inner[ix]);
+            continue;
+          }
+          if (il === ':::') {
+            d--;
+            // The closer of an outer "::: column" finishes that column.
+            if (d === 0 && current !== null) {
+              cols.push(current.join('\n'));
+              current = null;
+              continue;
+            }
+            if (current !== null) current.push(inner[ix]);
+            continue;
+          }
+          if (current !== null) current.push(inner[ix]);
+        }
+        if (current !== null) cols.push(current.join('\n'));
+        blocks.push({ type: 'columns', columns: cols });
+        continue;
+      }
+
+      // Table
+      if (line.indexOf('|') >= 0 && i + 1 < lines.length) {
+        if (isTableSeparator(lines[i + 1])) {
+          var headerCells = parseTableRow(line);
+          var alignSpec = parseTableAlignment(lines[i + 1]);
+          i += 2;
+          var rows = [];
+          while (i < lines.length) {
+            var rowLine = lines[i];
+            var rowTrim = rowLine.replace(/^\s+|\s+$/g, '');
+            if (!rowTrim || rowLine.indexOf('|') < 0) break;
+            rows.push(parseTableRow(rowLine));
+            i++;
+          }
+          blocks.push({
+            type: 'table',
+            header: headerCells,
+            align: alignSpec,
+            rows: rows
+          });
+          continue;
+        }
+      }
+
+      // List (unordered or ordered)
+      var ulMatch = trimmed.match(/^[-*]\s+(.+)$/);
+      var olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+      if (ulMatch || olMatch) {
+        var ordered = !!olMatch;
+        var items = [];
+        while (i < lines.length) {
+          var t = lines[i].replace(/^\s+|\s+$/g, '');
+          var lm = ordered
+            ? t.match(/^\d+\.\s+(.+)$/)
+            : t.match(/^[-*]\s+(.+)$/);
+          if (!lm) break;
+          items.push(ordered ? lm[2] : lm[1]);
+          i++;
+        }
+        blocks.push({ type: 'list', ordered: ordered, items: items });
+        continue;
+      }
+
+      // Label :: content row
+      var labelSep = trimmed.indexOf(' :: ');
+      if (labelSep > 0) {
+        blocks.push({
+          type: 'labelrow',
+          label: trimmed.slice(0, labelSep),
+          content: trimmed.slice(labelSep + 4)
+        });
+        i++;
+        continue;
+      }
+
+      // Paragraph: gather consecutive non-block lines.
+      var paraLines = [trimmed];
+      i++;
+      while (i < lines.length) {
+        var pt = lines[i].replace(/^\s+|\s+$/g, '');
+        if (!pt) break;
+        if (BLOCK_OPENERS.test(pt)) break;
+        if (pt.indexOf(' :: ') > 0) break;
+        paraLines.push(pt);
+        i++;
+      }
+      blocks.push({ type: 'paragraph', text: paraLines.join(' ') });
+    }
+
+    return blocks;
+  }
+
+function groupColoredSections(blocks) {
+    var output = [];
+    var i = 0;
+    while (i < blocks.length) {
+      var b = blocks[i];
+      if (b.type === 'heading' && b.attrs && b.attrs.color) {
+        var color = b.attrs.color;
+        var level = b.level;
+        var inner = [b];
+        i++;
+        while (i < blocks.length) {
+          var n = blocks[i];
+          if (n.type === 'heading' && n.level <= level) break;
+          inner.push(n);
+          i++;
+        }
+        output.push({ type: 'section', color: color, blocks: inner });
+        continue;
+      }
+      output.push(b);
+      i++;
+    }
+    return output;
+  }
+
+function renderBlocks(blocks, opts, verbatim) {
+    var out = '';
+    for (var i = 0; i < blocks.length; i++) {
+      out += renderBlock(blocks[i], opts, verbatim);
+    }
+    return out;
+  }
+
+function renderBlock(block, opts, verbatim) {
+    switch (block.type) {
+      case 'heading': {
+        var hLevel = Math.min(Math.max(block.level + 1, 2), 6);
+        // # → h2 (top), ## → h3 (matches existing ref-section), etc.
+        var classes = ['md-heading', 'md-heading-' + block.level];
+        if (block.level === 2) classes.push('ref-section');
+        if (block.level === 3) classes.push('ref-subsection');
+        if (block.attrs && block.attrs.color) {
+          classes.push('md-color-' + block.attrs.color);
+        }
+        return '<h' + hLevel + ' class="' + classes.join(' ') + '">' +
+               processInline(block.text) +
+               '</h' + hLevel + '>';
+      }
+      case 'hr':
+        return '<hr class="md-hr">';
+      case 'paragraph':
+        return '<p class="md-para">' + processInline(block.text) + '</p>';
+      case 'labelrow':
+        return '<div class="ref-row">' +
+                 '<div class="ref-label">' + processInline(block.label) + '</div>' +
+                 '<div class="ref-body">' + processInline(block.content) + '</div>' +
+               '</div>';
+      case 'list': {
+        var tag = block.ordered ? 'ol' : 'ul';
+        var items = '';
+        for (var li = 0; li < block.items.length; li++) {
+          items += '<li>' + processInline(block.items[li]) + '</li>';
+        }
+        return '<' + tag + ' class="md-list">' + items + '</' + tag + '>';
+      }
+      case 'table': {
+        var alignAttr = function (idx) {
+          var a = block.align[idx];
+          return a ? ' style="text-align:' + a + '"' : '';
+        };
+        var thead = '<thead><tr>';
+        for (var hh = 0; hh < block.header.length; hh++) {
+          thead += '<th' + alignAttr(hh) + '>' + processInline(block.header[hh]) + '</th>';
+        }
+        thead += '</tr></thead>';
+        var tbody = '<tbody>';
+        for (var ri = 0; ri < block.rows.length; ri++) {
+          tbody += '<tr>';
+          var row = block.rows[ri];
+          for (var ci = 0; ci < row.length; ci++) {
+            tbody += '<td' + alignAttr(ci) + '>' + processInline(row[ci]) + '</td>';
+          }
+          tbody += '</tr>';
+        }
+        tbody += '</tbody>';
+        return '<div class="md-table-wrap"><table class="md-table">' +
+               thead + tbody + '</table></div>';
+      }
+      case 'callout': {
+        var icon = CALLOUT_ICONS[block.kind] || '\u2139';
+        var inner = parseInternal(block.content, opts, verbatim);
+        return '<div class="md-callout md-callout-' + block.kind + '">' +
+                 '<div class="md-callout-icon">' + icon + '</div>' +
+                 '<div class="md-callout-body">' + inner + '</div>' +
+               '</div>';
+      }
+      case 'columns': {
+        var cols = '';
+        for (var co = 0; co < block.columns.length; co++) {
+          cols += '<div class="md-column">' +
+                  parseInternal(block.columns[co], opts, verbatim) +
+                  '</div>';
+        }
+        var n = block.columns.length;
+        return '<div class="md-columns md-columns-' + n + '">' + cols + '</div>';
+      }
+      case 'section': {
+        var sInner = renderBlocks(block.blocks, opts, verbatim);
+        return '<section class="md-section md-section-' + block.color + '">' +
+               sInner + '</section>';
+      }
+    }
+    return '';
+  }
+
+function parseInternal(text, opts, verbatim) {
+    // Recursive callers pass already-protected text. But block content
+    // extracted from the *original* protected text doesn't need re-protection
+    // (the sentinels survive line splits since they're single-line tokens).
+    // However, if the recursive content was sliced from raw user input
+    // (which it isn't in our flow), we'd need to re-protect. We don't.
+    var lines = text.split(/\r?\n/);
+    var blocks = tokenizeBlocks(lines);
+    blocks = groupColoredSections(blocks);
+    return renderBlocks(blocks, opts, verbatim);
+  }
+
+function parseMarkdown(text, options) {
+    options = options || {};
+    var verbatim = options._verbatim || [];
+    var isOuter = !options._verbatim;
+
+    // Protect verbatim regions. Recursive calls inherit the already-protected
+    // text and the shared verbatim array, so this only fires on the outer call.
+    if (isOuter) {
+      text = protectVerbatim(text || '', options, verbatim);
+    }
+
+    var html = parseInternal(text, options, verbatim);
+
+    if (isOuter) {
+      html = restoreVerbatim(html, verbatim);
+    }
+    return html;
+  }
+root.parseMarkdown = parseMarkdown;
+})(typeof window !== "undefined" ? window : this);</script>
 <style>
 :root{
   --ink:#1a1814;--ink-mid:#4a4540;--ink-light:#8a857e;
@@ -62,6 +549,89 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .float-win-body{flex:1;position:relative;overflow:hidden;background:white}
 .float-win-body iframe{width:100%;height:100%;border:0;display:block}
 .float-win-resize{position:absolute;bottom:0;right:0;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:5;background:linear-gradient(135deg,transparent 0 55%,var(--ink-light) 55% 62%,transparent 62% 72%,var(--ink-light) 72% 79%,transparent 79%)}
+
+/* ---------- REFERENCE SHEET (rendered inside a float window) ---------- */
+.ref-sheet{padding:18px 22px 24px;font-family:var(--serif);color:var(--ink);overflow-y:auto;height:100%;font-size:14px;line-height:1.55}
+.ref-sheet-title{font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.ref-sheet h3.ref-section{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.ref-sheet h3.ref-section:first-child,.ref-sheet-title + h3.ref-section{margin-top:0}
+.ref-sheet h4.ref-subsection{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--ink-mid);margin:12px 0 6px;text-transform:none}
+.ref-sheet .ref-row{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:14px;align-items:baseline;padding:6px 0;border-bottom:1px dotted var(--rule)}
+.ref-sheet .ref-row:last-child{border-bottom:none}
+.ref-sheet .ref-label{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--ink-mid);letter-spacing:.01em}
+.ref-sheet .ref-body{font-family:var(--serif);font-size:15px;color:var(--ink);overflow-x:auto}
+.ref-sheet .ref-para{margin:6px 0;font-size:14px;line-height:1.6}
+.ref-sheet ul.ref-list{margin:6px 0 6px 22px;padding:0;font-size:14px}
+.ref-sheet ul.ref-list li{margin:3px 0}
+.ref-sheet hr.ref-hr{border:none;border-top:1px solid var(--rule);margin:14px 0}
+.ref-sheet-empty{padding:24px;color:var(--ink-light);font-size:13px;text-align:center;font-family:var(--sans)}
+
+/* ---------- EXTENDED MARKDOWN COMPONENTS ---------- */
+/* Used inside .ref-sheet (reference sheets) and .prob-stem (problem stems). */
+.md-heading{font-family:var(--sans)}
+.md-heading-1{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+/* h2 (.md-heading-2) and h3 (.md-heading-3) reuse .ref-section / .ref-subsection styling above */
+
+.md-para{margin:8px 0;line-height:1.6}
+.md-list{margin:8px 0 8px 22px;padding:0;font-size:14px}
+.md-list li{margin:3px 0}
+.md-hr{border:none;border-top:1px solid var(--rule);margin:14px 0}
+
+.md-code{font-family:var(--mono);font-size:13px;padding:1px 5px;background:var(--cream);border:1px solid var(--rule);border-radius:3px;color:var(--ink)}
+.md-highlight{background:linear-gradient(transparent 55%,#fff09a 55%);padding:0 2px;color:var(--ink)}
+
+/* Tables */
+.md-table-wrap{overflow-x:auto;margin:10px 0}
+.md-table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans)}
+.md-table th,.md-table td{border:1px solid var(--rule);padding:7px 11px;text-align:left;vertical-align:top}
+.md-table th{background:var(--page);font-size:11px;font-weight:600;color:var(--ink-mid);letter-spacing:.06em;text-transform:uppercase}
+.md-table tbody tr:nth-child(even){background:rgba(240,236,228,.4)}
+.md-table td{font-family:var(--serif);font-size:14px;line-height:1.5}
+
+/* Callouts */
+.md-callout{display:flex;gap:10px;padding:10px 14px;border-left:3px solid;border-radius:4px;margin:10px 0;font-size:14px}
+.md-callout-icon{flex-shrink:0;font-size:16px;line-height:1.55;color:inherit;opacity:.85}
+.md-callout-body{flex:1;min-width:0}
+.md-callout-body > :first-child{margin-top:0}
+.md-callout-body > :last-child{margin-bottom:0}
+.md-callout-note{background:var(--accent-lt);border-left-color:var(--accent);color:var(--ink)}
+.md-callout-tip{background:var(--green-bg);border-left-color:var(--green-rule);color:var(--ink)}
+.md-callout-warning{background:#fff8e8;border-left-color:#d4b76a;color:var(--ink)}
+.md-callout-example{background:var(--cream);border-left-color:var(--ink-light);color:var(--ink)}
+.md-callout-definition{background:#f3edf7;border-left-color:#a78bbf;color:var(--ink)}
+.md-callout-theorem{background:#eef0f2;border-left-color:#90979f;color:var(--ink)}
+
+/* Multi-column layouts */
+.md-columns{display:grid;gap:14px;margin:12px 0;align-items:start}
+.md-columns-2{grid-template-columns:1fr 1fr}
+.md-columns-3{grid-template-columns:1fr 1fr 1fr}
+.md-columns-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.md-column > :first-child{margin-top:0}
+.md-column > :last-child{margin-bottom:0}
+@media (max-width:560px){
+  .md-columns-2,.md-columns-3,.md-columns-4{grid-template-columns:1fr}
+}
+
+/* Section color tinting */
+.md-section{padding:8px 14px 12px;border-left:3px solid;border-radius:4px;margin:14px 0;background:transparent}
+.md-section > :first-child{margin-top:6px}
+.md-section > :last-child{margin-bottom:0}
+.md-section-blue{background:rgba(26,74,138,.04);border-left-color:var(--accent)}
+.md-section-green{background:rgba(26,102,64,.04);border-left-color:var(--green)}
+.md-section-amber{background:rgba(107,85,0,.05);border-left-color:#d4b76a}
+.md-section-red{background:rgba(138,26,26,.04);border-left-color:var(--red)}
+.md-section-purple{background:rgba(125,79,170,.04);border-left-color:#a78bbf}
+.md-section-gray{background:rgba(74,69,64,.04);border-left-color:var(--ink-light)}
+.md-section-teal{background:rgba(26,102,102,.04);border-left-color:#3a8a8a}
+
+/* Heading text color (when {color=X} used without section grouping) */
+.md-color-blue{color:var(--accent)}
+.md-color-green{color:var(--green)}
+.md-color-amber{color:#8a7000}
+.md-color-red{color:var(--red)}
+.md-color-purple{color:#7d4faa}
+.md-color-gray{color:var(--ink-mid)}
+.md-color-teal{color:#3a8a8a}
 
 /* ---------- PROBLEM CELLS ---------- */
 .main-content{margin-top:12px}
@@ -179,143 +749,117 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
   <main class="main-content">
     <div class="problem-cell" data-live="1" data-problem-num="1">
   <div class="prob-num">PROBLEM 1</div>
-  <div class="prob-stem"><span class="stem-text">If \(f(x) = 2^x\) is changed to \(g(x) = \frac{1}{2}f(x+3) - 6\), how is the graph transformed?
-Vertical </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="compression" tabindex="0">compression</div><div class="md-option" data-value="stretch" tabindex="0">stretch</div></div></details><input type="hidden" class="ans-num" id="p1_b1" data-correct="compression"></span><span class="stem-text"> by a factor of </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\frac12\)" tabindex="0">\(\frac12\)</div><div class="md-option" data-value="2" tabindex="0">2</div><div class="md-option" data-value="3" tabindex="0">3</div><div class="md-option" data-value="6" tabindex="0">6</div></div></details><input type="hidden" class="ans-num" id="p1_b2" data-correct="\(\frac12\)"></span><span class="stem-text">, shifted </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="vertically down" tabindex="0">vertically down</div><div class="md-option" data-value="horizontally up" tabindex="0">horizontally up</div><div class="md-option" data-value="vertically up" tabindex="0">vertically up</div><div class="md-option" data-value="horizontally down" tabindex="0">horizontally down</div></div></details><input type="hidden" class="ans-num" id="p1_b3" data-correct="vertically down"></span><span class="stem-text"> by </span><input type="text" class="ans-num inline-blank" id="p1_b4" data-correct="6" data-tol="0" autocomplete="off"><span class="stem-text"> units, and shifted </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Horizontally left" tabindex="0">Horizontally left</div><div class="md-option" data-value="Horizontally right" tabindex="0">Horizontally right</div><div class="md-option" data-value="Vertically left" tabindex="0">Vertically left</div><div class="md-option" data-value="Vertically right" tabindex="0">Vertically right</div></div></details><input type="hidden" class="ans-num" id="p1_b5" data-correct="Horizontally left"></span><span class="stem-text"> by </span><input type="text" class="ans-num inline-blank" id="p1_b6" data-correct="3" data-tol="0" autocomplete="off"><span class="stem-text"> units.</span></div>
+  <div class="prob-stem"><p class="md-para">If \(f(x) = 2^x\) is changed to \(g(x) = \frac{1}{2}f(x+3) - 6\), how is the graph transformed? Vertical <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="compression" tabindex="0">compression</div><div class="md-option" data-value="stretch" tabindex="0">stretch</div></div></details><input type="hidden" class="ans-num" id="p1_b1" data-correct="compression"></span> by a factor of <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\frac12\)" tabindex="0">\(\frac12\)</div><div class="md-option" data-value="2" tabindex="0">2</div><div class="md-option" data-value="3" tabindex="0">3</div><div class="md-option" data-value="6" tabindex="0">6</div></div></details><input type="hidden" class="ans-num" id="p1_b2" data-correct="\(\frac12\)"></span>, shifted <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="vertically down" tabindex="0">vertically down</div><div class="md-option" data-value="horizontally up" tabindex="0">horizontally up</div><div class="md-option" data-value="vertically up" tabindex="0">vertically up</div><div class="md-option" data-value="horizontally down" tabindex="0">horizontally down</div></div></details><input type="hidden" class="ans-num" id="p1_b3" data-correct="vertically down"></span> by <input type="text" class="ans-num inline-blank" id="p1_b4" data-correct="6" data-tol="0" autocomplete="off"> units, and shifted <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Horizontally left" tabindex="0">Horizontally left</div><div class="md-option" data-value="Horizontally right" tabindex="0">Horizontally right</div><div class="md-option" data-value="Vertically left" tabindex="0">Vertically left</div><div class="md-option" data-value="Vertically right" tabindex="0">Vertically right</div></div></details><input type="hidden" class="ans-num" id="p1_b5" data-correct="Horizontally left"></span> by <input type="text" class="ans-num inline-blank" id="p1_b6" data-correct="3" data-tol="0" autocomplete="off"> units.</p></div>
   <span class="feedback prob-feedback" id="fb_p1"></span>
 </div>
 <div class="problem-cell" data-live="1" data-problem-num="2">
   <div class="prob-num">PROBLEM 2</div>
-  <div class="prob-stem"><span class="stem-text">If \(f(x) = \ln(x)\) is changed to \(g(x) = 2f(x) - 2\), how is the graph transformed?
-Vertical </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Stretch" tabindex="0">Stretch</div><div class="md-option" data-value="Compress" tabindex="0">Compress</div></div></details><input type="hidden" class="ans-num" id="p2_b1" data-correct="Stretch"></span><span class="stem-text"> by a factor of </span><input type="text" class="ans-num inline-blank" id="p2_b2" data-correct="2" data-tol="0" autocomplete="off"><span class="stem-text"> and shifted </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Vertical shift down" tabindex="0">Vertical shift down</div><div class="md-option" data-value="Vertical shift up" tabindex="0">Vertical shift up</div><div class="md-option" data-value="Horizontal shift left" tabindex="0">Horizontal shift left</div><div class="md-option" data-value="Horizontal shift right" tabindex="0">Horizontal shift right</div></div></details><input type="hidden" class="ans-num" id="p2_b3" data-correct="Vertical shift down"></span><span class="stem-text"> by </span><input type="text" class="ans-num inline-blank" id="p2_b4" data-correct="2" data-tol="0" autocomplete="off"><span class="stem-text"> units.</span></div>
+  <div class="prob-stem"><p class="md-para">If \(f(x) = \ln(x)\) is changed to \(g(x) = 2f(x) - 2\), how is the graph transformed? Vertical <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Stretch" tabindex="0">Stretch</div><div class="md-option" data-value="Compress" tabindex="0">Compress</div></div></details><input type="hidden" class="ans-num" id="p2_b1" data-correct="Stretch"></span> by a factor of <input type="text" class="ans-num inline-blank" id="p2_b2" data-correct="2" data-tol="0" autocomplete="off"> and shifted <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Vertical shift down" tabindex="0">Vertical shift down</div><div class="md-option" data-value="Vertical shift up" tabindex="0">Vertical shift up</div><div class="md-option" data-value="Horizontal shift left" tabindex="0">Horizontal shift left</div><div class="md-option" data-value="Horizontal shift right" tabindex="0">Horizontal shift right</div></div></details><input type="hidden" class="ans-num" id="p2_b3" data-correct="Vertical shift down"></span> by <input type="text" class="ans-num inline-blank" id="p2_b4" data-correct="2" data-tol="0" autocomplete="off"> units.</p></div>
   <span class="feedback prob-feedback" id="fb_p2"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="3">
   <div class="prob-num">PROBLEM 3</div>
-  <div class="prob-stem"><span class="stem-text">Simplify using properties of logarithms (all answers in log form): \(\\\)
-\(\log 72 - \log 2 =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log70\)" tabindex="0">\(log70\)</div><div class="md-option" data-value="\(log144\)" tabindex="0">\(log144\)</div><div class="md-option" data-value="\(log74\)" tabindex="0">\(log74\)</div></div></details><input type="hidden" class="ans-num" id="p3_b1" data-correct="\(log36\)"></span><span class="stem-text"> \(\\\)
-\(\log 12 + \log 6 =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log72\)" tabindex="0">\(log72\)</div><div class="md-option" data-value="\(log18\)" tabindex="0">\(log18\)</div><div class="md-option" data-value="\(log2\)" tabindex="0">\(log2\)</div><div class="md-option" data-value="\(log6\)" tabindex="0">\(log6\)</div></div></details><input type="hidden" class="ans-num" id="p3_b2" data-correct="\(log72\)"></span><span class="stem-text"> \(\\\)
-\(\log 9 + \log 4 =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log13\)" tabindex="0">\(log13\)</div><div class="md-option" data-value="\(log\frac94\)" tabindex="0">\(log\frac94\)</div><div class="md-option" data-value="\(log5\)" tabindex="0">\(log5\)</div></div></details><input type="hidden" class="ans-num" id="p3_b3" data-correct="\(log36\)"></span><span class="stem-text"> \(\\\)
-\(2 \cdot \log 6 =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log12\)" tabindex="0">\(log12\)</div><div class="md-option" data-value="\(log8\)" tabindex="0">\(log8\)</div><div class="md-option" data-value="\(log3\)" tabindex="0">\(log3\)</div></div></details><input type="hidden" class="ans-num" id="p3_b4" data-correct="\(log36\)"></span></div>
+  <div class="prob-stem"><p class="md-para">Simplify using properties of logarithms (all answers in log form): \(\\\) \(\log 72 - \log 2 =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log70\)" tabindex="0">\(log70\)</div><div class="md-option" data-value="\(log144\)" tabindex="0">\(log144\)</div><div class="md-option" data-value="\(log74\)" tabindex="0">\(log74\)</div></div></details><input type="hidden" class="ans-num" id="p3_b1" data-correct="\(log36\)"></span> \(\\\) \(\log 12 + \log 6 =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log72\)" tabindex="0">\(log72\)</div><div class="md-option" data-value="\(log18\)" tabindex="0">\(log18\)</div><div class="md-option" data-value="\(log2\)" tabindex="0">\(log2\)</div><div class="md-option" data-value="\(log6\)" tabindex="0">\(log6\)</div></div></details><input type="hidden" class="ans-num" id="p3_b2" data-correct="\(log72\)"></span> \(\\\) \(\log 9 + \log 4 =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log13\)" tabindex="0">\(log13\)</div><div class="md-option" data-value="\(log\frac94\)" tabindex="0">\(log\frac94\)</div><div class="md-option" data-value="\(log5\)" tabindex="0">\(log5\)</div></div></details><input type="hidden" class="ans-num" id="p3_b3" data-correct="\(log36\)"></span> \(\\\) \(2 \cdot \log 6 =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(log36\)" tabindex="0">\(log36\)</div><div class="md-option" data-value="\(log12\)" tabindex="0">\(log12\)</div><div class="md-option" data-value="\(log8\)" tabindex="0">\(log8\)</div><div class="md-option" data-value="\(log3\)" tabindex="0">\(log3\)</div></div></details><input type="hidden" class="ans-num" id="p3_b4" data-correct="\(log36\)"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p3"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="4">
   <div class="prob-num">PROBLEM 4</div>
-  <div class="prob-stem"><span class="stem-text">The property \(\log_b m^n = n \cdot \log_b m\) is called the </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="power property" tabindex="0">power property</div><div class="md-option" data-value="quotient property" tabindex="0">quotient property</div><div class="md-option" data-value="product property" tabindex="0">product property</div><div class="md-option" data-value="change of base property" tabindex="0">change of base property</div></div></details><input type="hidden" class="ans-num" id="p4_b1" data-correct="power property"></span><span class="stem-text"> Property of Logarithms.</span></div>
+  <div class="prob-stem"><p class="md-para">The property \(\log_b m^n = n \cdot \log_b m\) is called the <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="power property" tabindex="0">power property</div><div class="md-option" data-value="quotient property" tabindex="0">quotient property</div><div class="md-option" data-value="product property" tabindex="0">product property</div><div class="md-option" data-value="change of base property" tabindex="0">change of base property</div></div></details><input type="hidden" class="ans-num" id="p4_b1" data-correct="power property"></span> Property of Logarithms.</p></div>
   <span class="feedback prob-feedback" id="fb_p4"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="5">
   <div class="prob-num">PROBLEM 5</div>
-  <div class="prob-stem"><span class="stem-text">What value of (x) makes \(5^{x+1} = 125\) true?
-\(x =\) </span><input type="text" class="ans-num inline-blank" id="p5_b1" data-correct="2" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What value of (x) makes \(5^{x+1} = 125\) true? \(x =\) <input type="text" class="ans-num inline-blank" id="p5_b1" data-correct="2" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p5"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="6">
   <div class="prob-num">PROBLEM 6</div>
-  <div class="prob-stem"><span class="stem-text">Lailah invested $1,600 in an account that pays 5% annual interest compounded monthly. What will be her balance after 2 years? Use \(A = P\left(1 + \frac{r}{n}\right)^{nt}\).
-\(A =\) </span><input type="text" class="ans-num inline-blank" id="p6_b1" data-correct="1767.91" data-tol="0.1" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">Lailah invested $1,600 in an account that pays 5% annual interest compounded monthly. What will be her balance after 2 years? Use \(A = P\left(1 + \frac{r}{n}\right)^{nt}\). \(A =\) <input type="text" class="ans-num inline-blank" id="p6_b1" data-correct="1767.91" data-tol="0.1" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p6"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="7">
   <div class="prob-num">PROBLEM 7</div>
-  <div class="prob-stem"><span class="stem-text">The parent function with the given key attributes \(\\\) Domain: \((0, \infty)\), \(\\\)Range: (\(-\infty, \infty)\), \(\\\)X-intercept: 1, \(\\\)no Y-intercept, \(\\\)vertical asymptote at \(x = 0\), \(\\\)no symmetry, \(\\\)no max or min) \(\\\)is \(y =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(logx\)" tabindex="0">\(logx\)</div><div class="md-option" data-value="\(2^x\)" tabindex="0">\(2^x\)</div><div class="md-option" data-value="\(x^2\)" tabindex="0">\(x^2\)</div><div class="md-option" data-value="x" tabindex="0">x</div></div></details><input type="hidden" class="ans-num" id="p7_b1" data-correct="\(logx\)"></span><span class="stem-text">.</span></div>
+  <div class="prob-stem"><p class="md-para">The parent function with the given key attributes \(\\\) Domain: \((0, \infty)\), \(\\\)Range: (\(-\infty, \infty)\), \(\\\)X-intercept: 1, \(\\\)no Y-intercept, \(\\\)vertical asymptote at \(x = 0\), \(\\\)no symmetry, \(\\\)no max or min) \(\\\)is \(y =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(logx\)" tabindex="0">\(logx\)</div><div class="md-option" data-value="\(2^x\)" tabindex="0">\(2^x\)</div><div class="md-option" data-value="\(x^2\)" tabindex="0">\(x^2\)</div><div class="md-option" data-value="x" tabindex="0">x</div></div></details><input type="hidden" class="ans-num" id="p7_b1" data-correct="\(logx\)"></span>.</p></div>
   <span class="feedback prob-feedback" id="fb_p7"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="8">
   <div class="prob-num">PROBLEM 8</div>
-  <div class="prob-stem"><span class="stem-text">What value of \(x\) makes \(9^x = 27^{x-1}\) true?
-\(x =\) </span><input type="text" class="ans-num inline-blank" id="p8_b1" data-correct="3" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What value of \(x\) makes \(9^x = 27^{x-1}\) true? \(x =\) <input type="text" class="ans-num inline-blank" id="p8_b1" data-correct="3" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p8"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="9">
   <div class="prob-num">PROBLEM 9</div>
-  <div class="prob-stem"><span class="stem-text">What is the equation of the asymptote for \(f(x) = \left(\frac{1}{2}\right)^{x-1} + 3\)? \(\\\)
-</span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="y" tabindex="0">y</div><div class="md-option" data-value="x" tabindex="0">x</div><div class="md-option" data-value="b" tabindex="0">b</div><div class="md-option" data-value="a" tabindex="0">a</div></div></details><input type="hidden" class="ans-num" id="p9_b1" data-correct="y"></span><input type="text" class="ans-num inline-blank" id="p9_b2" data-correct="3" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What is the equation of the asymptote for \(f(x) = \left(\frac{1}{2}\right)^{x-1} + 3\)? \(\\\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="y" tabindex="0">y</div><div class="md-option" data-value="x" tabindex="0">x</div><div class="md-option" data-value="b" tabindex="0">b</div><div class="md-option" data-value="a" tabindex="0">a</div></div></details><input type="hidden" class="ans-num" id="p9_b1" data-correct="y"></span><input type="text" class="ans-num inline-blank" id="p9_b2" data-correct="3" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p9"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="10">
   <div class="prob-num">PROBLEM 10</div>
-  <div class="prob-stem"><span class="stem-text">What is the logarithmic form of (e^x = 3185)? \(\\\)
-</span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(ln3185=x\)" tabindex="0">\(ln3185=x\)</div><div class="md-option" data-value="\(lnx=3185\)" tabindex="0">\(lnx=3185\)</div><div class="md-option" data-value="\(log3185=x\)" tabindex="0">\(log3185=x\)</div><div class="md-option" data-value="\(logx=3185\)" tabindex="0">\(logx=3185\)</div></div></details><input type="hidden" class="ans-num" id="p10_b1" data-correct="\(ln3185=x\)"></span></div>
+  <div class="prob-stem"><p class="md-para">What is the logarithmic form of (e^x = 3185)? \(\\\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(ln3185=x\)" tabindex="0">\(ln3185=x\)</div><div class="md-option" data-value="\(lnx=3185\)" tabindex="0">\(lnx=3185\)</div><div class="md-option" data-value="\(log3185=x\)" tabindex="0">\(log3185=x\)</div><div class="md-option" data-value="\(logx=3185\)" tabindex="0">\(logx=3185\)</div></div></details><input type="hidden" class="ans-num" id="p10_b1" data-correct="\(ln3185=x\)"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p10"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="11">
   <div class="prob-num">PROBLEM 11</div>
-  <div class="prob-stem"><span class="stem-text">What is the exponential form of \(\ln x = 3\)?
-</span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(e^3=x\)" tabindex="0">\(e^3=x\)</div><div class="md-option" data-value="\(x^3=e\)" tabindex="0">\(x^3=e\)</div><div class="md-option" data-value="\(x^e=3\)" tabindex="0">\(x^e=3\)</div><div class="md-option" data-value="\(3^e=x\)" tabindex="0">\(3^e=x\)</div></div></details><input type="hidden" class="ans-num" id="p11_b1" data-correct="\(e^3=x\)"></span></div>
+  <div class="prob-stem"><p class="md-para">What is the exponential form of \(\ln x = 3\)? <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(e^3=x\)" tabindex="0">\(e^3=x\)</div><div class="md-option" data-value="\(x^3=e\)" tabindex="0">\(x^3=e\)</div><div class="md-option" data-value="\(x^e=3\)" tabindex="0">\(x^e=3\)</div><div class="md-option" data-value="\(3^e=x\)" tabindex="0">\(3^e=x\)</div></div></details><input type="hidden" class="ans-num" id="p11_b1" data-correct="\(e^3=x\)"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p11"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="12">
   <div class="prob-num">PROBLEM 12</div>
-  <div class="prob-stem"><span class="stem-text">What value of (x) makes \(\log_7(3x + 1) = \log_7(2x + 9)\) true? \(\\\)
-\(x =\) </span><input type="text" class="ans-num inline-blank" id="p12_b1" data-correct="8" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What value of (x) makes \(\log_7(3x + 1) = \log_7(2x + 9)\) true? \(\\\) \(x =\) <input type="text" class="ans-num inline-blank" id="p12_b1" data-correct="8" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p12"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="13">
   <div class="prob-num">PROBLEM 13</div>
-  <div class="prob-stem"><span class="stem-text">What is the exponential form of \(\log_2(16) = 3x + 1\)? \(\\\)
-</span><input type="text" class="ans-num inline-blank" id="p13_b1" data-correct="1" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What is the exponential form of \(\log_2(16) = 3x + 1\)? \(\\\) <input type="text" class="ans-num inline-blank" id="p13_b1" data-correct="1" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p13"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="14">
   <div class="prob-num">PROBLEM 14</div>
-  <div class="prob-stem"><span class="stem-text">What is the exponential form of \(\log_5(x) = 4\)? \(\\\)
-</span><input type="text" class="ans-num inline-blank" id="p14_b1" data-correct="625" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What is the exponential form of \(\log_5(x) = 4\)? \(\\\) <input type="text" class="ans-num inline-blank" id="p14_b1" data-correct="625" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p14"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="15">
   <div class="prob-num">PROBLEM 15</div>
-  <div class="prob-stem"><span class="stem-text">Marcus bought a bike for $1,000. The value of the bike depreciates at a rate of 50% per year. What will be the value of the bike after 3 years? Use \(y = ae^{-kt}\).
-\(y =\) </span><input type="text" class="ans-num inline-blank" id="p15_b1" data-correct="223" data-tol="1" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">Marcus bought a bike for $1,000. The value of the bike depreciates at a rate of 50% per year. What will be the value of the bike after 3 years? Use \(y = ae^{-kt}\). \(y =\) <input type="text" class="ans-num inline-blank" id="p15_b1" data-correct="223" data-tol="1" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p15"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="16">
   <div class="prob-num">PROBLEM 16</div>
-  <div class="prob-stem"><span class="stem-text">What value of (x) makes \(9^{x+1} = 81\) true? \(\\\)
-\(x =\) </span><input type="text" class="ans-num inline-blank" id="p16_b1" data-correct="1" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What value of (x) makes \(9^{x+1} = 81\) true? \(\\\) \(x =\) <input type="text" class="ans-num inline-blank" id="p16_b1" data-correct="1" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p16"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="17">
   <div class="prob-num">PROBLEM 17</div>
-  <div class="prob-stem"><span class="stem-text">Carmen invested money in an account that paid 5% interest compounded continuously. After 20 years, the investment grew to $2,718.28. What was Carmen's original investment? Use \(A = Pe^{rt}\). Round to the nearest dollar. \(\\\)
-(P =) </span><input type="text" class="ans-num inline-blank" id="p17_b1" data-correct="7389.05" data-tol="1" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">Carmen invested money in an account that paid 5% interest compounded continuously. After 20 years, the investment grew to $2,718.28. What was Carmen's original investment? Use \(A = Pe^{rt}\). Round to the nearest dollar. \(\\\) (P =) <input type="text" class="ans-num inline-blank" id="p17_b1" data-correct="7389.05" data-tol="1" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p17"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="18">
   <div class="prob-num">PROBLEM 18</div>
-  <div class="prob-stem"><span class="stem-text">If \(f(x) = 2^{x+4}\), what is \(f^{-1}(x)\)? (Hint: \(f^{-1}(x)\) means inverse. This will be a logarithmic function.) \(\\\)
-\(f^{-1}(x) =\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\log_2x-4\)" tabindex="0">\(\log_2x-4\)</div><div class="md-option" data-value="\(\log_x-4\)" tabindex="0">\(\log_x-4\)</div><div class="md-option" data-value="\(\log_2{(x-2)}\)" tabindex="0">\(\log_2{(x-2)}\)</div><div class="md-option" data-value="\(\log_2x+4\)" tabindex="0">\(\log_2x+4\)</div></div></details><input type="hidden" class="ans-num" id="p18_b1" data-correct="\(\log_2x-4\)"></span></div>
+  <div class="prob-stem"><p class="md-para">If \(f(x) = 2^{x+4}\), what is \(f^{-1}(x)\)? (Hint: \(f^{-1}(x)\) means inverse. This will be a logarithmic function.) \(\\\) \(f^{-1}(x) =\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\log_2x-4\)" tabindex="0">\(\log_2x-4\)</div><div class="md-option" data-value="\(\log_x-4\)" tabindex="0">\(\log_x-4\)</div><div class="md-option" data-value="\(\log_2{(x-2)}\)" tabindex="0">\(\log_2{(x-2)}\)</div><div class="md-option" data-value="\(\log_2x+4\)" tabindex="0">\(\log_2x+4\)</div></div></details><input type="hidden" class="ans-num" id="p18_b1" data-correct="\(\log_2x-4\)"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p18"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="19">
   <div class="prob-num">PROBLEM 19</div>
-  <div class="prob-stem"><span class="stem-text">If \(f(x) = 2^x\) is changed to \(g(x) = f(x - 5) - 4\), how is the graph transformed?
-Shifted </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Horizontally right" tabindex="0">Horizontally right</div><div class="md-option" data-value="Horizontally left" tabindex="0">Horizontally left</div><div class="md-option" data-value="Vertically right" tabindex="0">Vertically right</div><div class="md-option" data-value="Vertically left" tabindex="0">Vertically left</div></div></details><input type="hidden" class="ans-num" id="p19_b1" data-correct="Horizontally right"></span><span class="stem-text"> by </span><input type="text" class="ans-num inline-blank" id="p19_b2" data-correct="5" data-tol="0" autocomplete="off"><span class="stem-text"> units and shifted </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Vertically down" tabindex="0">Vertically down</div><div class="md-option" data-value="Vertically up" tabindex="0">Vertically up</div><div class="md-option" data-value="Horizontally down" tabindex="0">Horizontally down</div><div class="md-option" data-value="Horizontally up" tabindex="0">Horizontally up</div></div></details><input type="hidden" class="ans-num" id="p19_b3" data-correct="Vertically down"></span><span class="stem-text"> by </span><input type="text" class="ans-num inline-blank" id="p19_b4" data-correct="4" data-tol="0" autocomplete="off"><span class="stem-text"> units.</span></div>
+  <div class="prob-stem"><p class="md-para">If \(f(x) = 2^x\) is changed to \(g(x) = f(x - 5) - 4\), how is the graph transformed? Shifted <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Horizontally right" tabindex="0">Horizontally right</div><div class="md-option" data-value="Horizontally left" tabindex="0">Horizontally left</div><div class="md-option" data-value="Vertically right" tabindex="0">Vertically right</div><div class="md-option" data-value="Vertically left" tabindex="0">Vertically left</div></div></details><input type="hidden" class="ans-num" id="p19_b1" data-correct="Horizontally right"></span> by <input type="text" class="ans-num inline-blank" id="p19_b2" data-correct="5" data-tol="0" autocomplete="off"> units and shifted <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="Vertically down" tabindex="0">Vertically down</div><div class="md-option" data-value="Vertically up" tabindex="0">Vertically up</div><div class="md-option" data-value="Horizontally down" tabindex="0">Horizontally down</div><div class="md-option" data-value="Horizontally up" tabindex="0">Horizontally up</div></div></details><input type="hidden" class="ans-num" id="p19_b3" data-correct="Vertically down"></span> by <input type="text" class="ans-num inline-blank" id="p19_b4" data-correct="4" data-tol="0" autocomplete="off"> units.</p></div>
   <span class="feedback prob-feedback" id="fb_p19"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="20">
   <div class="prob-num">PROBLEM 20</div>
-  <div class="prob-stem"><span class="stem-text">What value of \(x\) makes \(8^{2x} = 134{,}217{,}728\) true? \(\\\)
-\(x =\) </span><input type="text" class="ans-num inline-blank" id="p20_b1" data-correct="4.5" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">What value of \(x\) makes \(8^{2x} = 134{,}217{,}728\) true? \(\\\) \(x =\) <input type="text" class="ans-num inline-blank" id="p20_b1" data-correct="4.5" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p20"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="21">
   <div class="prob-num">PROBLEM 21</div>
-  <div class="prob-stem"><span class="stem-text">State the degree and leading coefficient of \(2x^2 - 5x^3 + 7x^4 - 9\).\(\\\)
-Degree: </span><input type="text" class="ans-num inline-blank" id="p21_b1" data-correct="4" data-tol="0" autocomplete="off"><span class="stem-text"> \(\\\)Leading Coefficient: </span><input type="text" class="ans-num inline-blank" id="p21_b2" data-correct="7" data-tol="0" autocomplete="off"></div>
+  <div class="prob-stem"><p class="md-para">State the degree and leading coefficient of \(2x^2 - 5x^3 + 7x^4 - 9\).\(\\\) Degree: <input type="text" class="ans-num inline-blank" id="p21_b1" data-correct="4" data-tol="0" autocomplete="off"> \(\\\)Leading Coefficient: <input type="text" class="ans-num inline-blank" id="p21_b2" data-correct="7" data-tol="0" autocomplete="off"></p></div>
   <span class="feedback prob-feedback" id="fb_p21"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="22">
   <div class="prob-num">PROBLEM 22</div>
-  <div class="prob-stem"><span class="stem-text">What is the complete factorization of \(x^3 + 5x^2 - 4x - 20\)?\(\\\)
-</span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\((x+2)(x-2)(x+5)\)" tabindex="0">\((x+2)(x-2)(x+5)\)</div><div class="md-option" data-value="\((x^2 - 4)(x + 5)\)" tabindex="0">\((x^2 - 4)(x + 5)\)</div><div class="md-option" data-value="\((x -2)(x - 2)(x - 5)\) " tabindex="0">\((x -2)(x - 2)(x - 5)\) </div><div class="md-option" data-value="\((x + 2)^2(x + 5)\)" tabindex="0">\((x + 2)^2(x + 5)\)</div></div></details><input type="hidden" class="ans-num" id="p22_b1" data-correct="\((x+2)(x-2)(x+5)\)"></span></div>
+  <div class="prob-stem"><p class="md-para">What is the complete factorization of \(x^3 + 5x^2 - 4x - 20\)?\(\\\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\((x+2)(x-2)(x+5)\)" tabindex="0">\((x+2)(x-2)(x+5)\)</div><div class="md-option" data-value="\((x^2 - 4)(x + 5)\)" tabindex="0">\((x^2 - 4)(x + 5)\)</div><div class="md-option" data-value="\((x -2)(x - 2)(x - 5)\) " tabindex="0">\((x -2)(x - 2)(x - 5)\) </div><div class="md-option" data-value="\((x + 2)^2(x + 5)\)" tabindex="0">\((x + 2)^2(x + 5)\)</div></div></details><input type="hidden" class="ans-num" id="p22_b1" data-correct="\((x+2)(x-2)(x+5)\)"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p22"></span>
 </div>
 <div class="problem-cell" data-live="0" data-score-only="1" data-problem-num="23">
   <div class="prob-num">PROBLEM 23</div>
-  <div class="prob-stem"><span class="stem-text">Use the graph to answer the following:\(\\\)
-As \(x \to -\infty\), \(f(x) \to\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\infty\)" tabindex="0">\(\infty\)</div><div class="md-option" data-value="\(-\infty\)" tabindex="0">\(-\infty\)</div><div class="md-option" data-value="1" tabindex="0">1</div><div class="md-option" data-value="-1" tabindex="0">-1</div></div></details><input type="hidden" class="ans-num" id="p23_b1" data-correct="\(\infty\)"></span><span class="stem-text">    As \(x \to +\infty\), \(f(x) \to\) </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(-\infty\)" tabindex="0">\(-\infty\)</div><div class="md-option" data-value="\(\infty\)" tabindex="0">\(\infty\)</div><div class="md-option" data-value="\(1\)" tabindex="0">\(1\)</div><div class="md-option" data-value="\(-1\)" tabindex="0">\(-1\)</div></div></details><input type="hidden" class="ans-num" id="p23_b2" data-correct="\(-\infty\)"></span><span class="stem-text">
-\(\\\)The function is </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="odd" tabindex="0">odd</div><div class="md-option" data-value="even" tabindex="0">even</div><div class="md-option" data-value="neither" tabindex="0">neither</div></div></details><input type="hidden" class="ans-num" id="p23_b3" data-correct="odd"></span><span class="stem-text"> (even or odd).\(\\\)
-Number of zeros: </span><span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="3" tabindex="0">3</div><div class="md-option" data-value="1" tabindex="0">1</div><div class="md-option" data-value="2" tabindex="0">2</div><div class="md-option" data-value="4" tabindex="0">4</div></div></details><input type="hidden" class="ans-num" id="p23_b4" data-correct="3"></span></div>
+  <div class="prob-stem"><p class="md-para">Use the graph to answer the following:\(\\\) As \(x \to -\infty\), \(f(x) \to\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(\infty\)" tabindex="0">\(\infty\)</div><div class="md-option" data-value="\(-\infty\)" tabindex="0">\(-\infty\)</div><div class="md-option" data-value="1" tabindex="0">1</div><div class="md-option" data-value="-1" tabindex="0">-1</div></div></details><input type="hidden" class="ans-num" id="p23_b1" data-correct="\(\infty\)"></span>    As \(x \to +\infty\), \(f(x) \to\) <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="\(-\infty\)" tabindex="0">\(-\infty\)</div><div class="md-option" data-value="\(\infty\)" tabindex="0">\(\infty\)</div><div class="md-option" data-value="\(1\)" tabindex="0">\(1\)</div><div class="md-option" data-value="\(-1\)" tabindex="0">\(-1\)</div></div></details><input type="hidden" class="ans-num" id="p23_b2" data-correct="\(-\infty\)"></span> \(\\\)The function is <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="odd" tabindex="0">odd</div><div class="md-option" data-value="even" tabindex="0">even</div><div class="md-option" data-value="neither" tabindex="0">neither</div></div></details><input type="hidden" class="ans-num" id="p23_b3" data-correct="odd"></span> (even or odd).\(\\\) Number of zeros: <span class="inline-blank-wrap"><details class="md-dropdown" data-randomize="1"><summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary><div class="md-options"><div class="md-option" data-value="3" tabindex="0">3</div><div class="md-option" data-value="1" tabindex="0">1</div><div class="md-option" data-value="2" tabindex="0">2</div><div class="md-option" data-value="4" tabindex="0">4</div></div></details><input type="hidden" class="ans-num" id="p23_b4" data-correct="3"></span></p></div>
   <span class="feedback prob-feedback" id="fb_p23"></span>
 </div>
 
@@ -334,8 +878,8 @@ Number of zeros: </span><span class="inline-blank-wrap"><details class="md-dropd
 <aside class="sticky-panel" id="sidebarRibbon"></aside>
 <div id="floatingWindowContainer"></div>
 
-<script id="builder-state" type="application/json">{"version":2,"title":"Logarithmic and Exponentials Review","slug":"logarithmic_and_exponentials_review","webhook":"","problems":[{"id":"xaz621hb","type":"problem","stem":"If \\(f(x) = 2^x\\) is changed to \\(g(x) = \\frac{1}{2}f(x+3) - 6\\), how is the graph transformed?\nVertical {{blank:1}} by a factor of {{blank:2}}, shifted {{blank:3}} by {{blank:4}} units, and shifted {{blank:5}} by {{blank:6}} units.","blanks":[{"id":"xfjcgavd","kind":"dropdown","choices":[{"mode":"text","value":"compression"},{"mode":"text","value":"stretch"},{"mode":"text","value":""},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xoiydgn7","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\frac12\\)"},{"mode":"text","value":"2"},{"mode":"text","value":"3"},{"mode":"text","value":"6"}],"correctChoice":0,"randomize":true},{"id":"xm3bxma8","kind":"dropdown","choices":[{"mode":"text","value":"vertically down"},{"mode":"text","value":"horizontally up"},{"mode":"text","value":"vertically up"},{"mode":"text","value":"horizontally down"}],"correctChoice":0,"randomize":true},{"id":"xswh40ur","kind":"fill_in","answer":"6","tol":0},{"id":"x95css2e","kind":"dropdown","choices":[{"mode":"text","value":"Horizontally left"},{"mode":"text","value":"Horizontally right"},{"mode":"text","value":"Vertically left"},{"mode":"text","value":"Vertically right"}],"correctChoice":0,"randomize":true},{"id":"xsr002ct","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":true,"scoreOnly":false},{"id":"xw78qy2d","type":"problem","stem":"If \\(f(x) = \\ln(x)\\) is changed to \\(g(x) = 2f(x) - 2\\), how is the graph transformed?\nVertical {{blank:1}} by a factor of {{blank:2}} and shifted {{blank:3}} by {{blank:4}} units.","blanks":[{"id":"x73y2tlx","kind":"dropdown","choices":[{"mode":"text","value":"Stretch"},{"mode":"text","value":"Compress"},{"mode":"text","value":""},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xwrmbemt","kind":"fill_in","answer":"2","tol":0},{"id":"x7fs8l79","kind":"dropdown","choices":[{"mode":"text","value":"Vertical shift down"},{"mode":"text","value":"Vertical shift up"},{"mode":"text","value":"Horizontal shift left"},{"mode":"text","value":"Horizontal shift right"}],"correctChoice":0,"randomize":true},{"id":"xx1183kn","kind":"fill_in","answer":"2","tol":0}],"liveFeedback":true,"scoreOnly":false},{"id":"xn4sftvc","type":"problem","stem":"Simplify using properties of logarithms (all answers in log form): \\(\\\\\\)\n\\(\\log 72 - \\log 2 =\\) {{blank:1}} \\(\\\\\\)\n\\(\\log 12 + \\log 6 =\\) {{blank:2}} \\(\\\\\\)\n\\(\\log 9 + \\log 4 =\\) {{blank:3}} \\(\\\\\\)\n\\(2 \\cdot \\log 6 =\\) {{blank:4}}","blanks":[{"id":"xze4b886","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log70\\)"},{"mode":"text","value":"\\(log144\\)"},{"mode":"text","value":"\\(log74\\)"}],"correctChoice":0,"randomize":true},{"id":"xsob2gjs","kind":"dropdown","choices":[{"mode":"text","value":"\\(log72\\)"},{"mode":"text","value":"\\(log18\\)"},{"mode":"text","value":"\\(log2\\)"},{"mode":"text","value":"\\(log6\\)"}],"correctChoice":0,"randomize":true},{"id":"xveaqmce","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log13\\)"},{"mode":"text","value":"\\(log\\frac94\\)"},{"mode":"text","value":"\\(log5\\)"}],"correctChoice":0,"randomize":true},{"id":"xjeaq7gp","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log12\\)"},{"mode":"text","value":"\\(log8\\)"},{"mode":"text","value":"\\(log3\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xyc9eb2q","type":"problem","stem":"The property \\(\\log_b m^n = n \\cdot \\log_b m\\) is called the {{blank:1}} Property of Logarithms.","blanks":[{"id":"xvbwozxq","kind":"dropdown","choices":[{"mode":"text","value":"power property"},{"mode":"text","value":"quotient property"},{"mode":"text","value":"product property"},{"mode":"text","value":"change of base property"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"x0s2xnxy","type":"problem","stem":"What value of (x) makes \\(5^{x+1} = 125\\) true?\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xmydnm8y","kind":"fill_in","answer":"2","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xv5idewj","type":"problem","stem":"Lailah invested $1,600 in an account that pays 5% annual interest compounded monthly. What will be her balance after 2 years? Use \\(A = P\\left(1 + \\frac{r}{n}\\right)^{nt}\\).\n\\(A =\\) {{blank:1}}","blanks":[{"id":"xmxoxm46","kind":"fill_in","answer":"1767.91","tol":0.1}],"liveFeedback":false,"scoreOnly":true},{"id":"xl7yv89p","type":"problem","stem":"The parent function with the given key attributes \\(\\\\\\) Domain: \\((0, \\infty)\\), \\(\\\\\\)Range: (\\(-\\infty, \\infty)\\), \\(\\\\\\)X-intercept: 1, \\(\\\\\\)no Y-intercept, \\(\\\\\\)vertical asymptote at \\(x = 0\\), \\(\\\\\\)no symmetry, \\(\\\\\\)no max or min) \\(\\\\\\)is \\(y =\\) {{blank:1}}.","blanks":[{"id":"xjlylp98","kind":"dropdown","choices":[{"mode":"text","value":"\\(logx\\)"},{"mode":"text","value":"\\(2^x\\)"},{"mode":"text","value":"\\(x^2\\)"},{"mode":"text","value":"x"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xeivpbvd","type":"problem","stem":"What value of \\(x\\) makes \\(9^x = 27^{x-1}\\) true?\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xryq48vg","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xrgq47cn","type":"problem","stem":"What is the equation of the asymptote for \\(f(x) = \\left(\\frac{1}{2}\\right)^{x-1} + 3\\)? \\(\\\\\\)\n{{blank:1}}{{blank:2}}","blanks":[{"id":"xjk25593","kind":"dropdown","choices":[{"mode":"text","value":"y"},{"mode":"text","value":"x"},{"mode":"text","value":"b"},{"mode":"text","value":"a"}],"correctChoice":0,"randomize":true},{"id":"xzuiaibf","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"x24l1uxh","type":"problem","stem":"What is the logarithmic form of (e^x = 3185)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xhxklqjn","kind":"dropdown","choices":[{"mode":"text","value":"\\(ln3185=x\\)"},{"mode":"text","value":"\\(lnx=3185\\)"},{"mode":"text","value":"\\(log3185=x\\)"},{"mode":"text","value":"\\(logx=3185\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xv7n8eh9","type":"problem","stem":"What is the exponential form of \\(\\ln x = 3\\)?\n{{blank:1}}","blanks":[{"id":"xxuc7h3d","kind":"dropdown","choices":[{"mode":"text","value":"\\(e^3=x\\)"},{"mode":"text","value":"\\(x^3=e\\)"},{"mode":"text","value":"\\(x^e=3\\)"},{"mode":"text","value":"\\(3^e=x\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"x9ewfh4v","type":"problem","stem":"What value of (x) makes \\(\\log_7(3x + 1) = \\log_7(2x + 9)\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xeimsupz","kind":"fill_in","answer":"8","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xpyo90u0","type":"problem","stem":"What is the exponential form of \\(\\log_2(16) = 3x + 1\\)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xuoqd5ia","kind":"fill_in","answer":"1","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xajsogv1","type":"problem","stem":"What is the exponential form of \\(\\log_5(x) = 4\\)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xckuiyp0","kind":"fill_in","answer":"625","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xlj5bp28","type":"problem","stem":"Marcus bought a bike for $1,000. The value of the bike depreciates at a rate of 50% per year. What will be the value of the bike after 3 years? Use \\(y = ae^{-kt}\\).\n\\(y =\\) {{blank:1}}","blanks":[{"id":"xcikmdq3","kind":"fill_in","answer":"223","tol":1}],"liveFeedback":false,"scoreOnly":true},{"id":"xxt9sijt","type":"problem","stem":"What value of (x) makes \\(9^{x+1} = 81\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xo3qsdzy","kind":"fill_in","answer":"1","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xp4wyelf","type":"problem","stem":"Carmen invested money in an account that paid 5% interest compounded continuously. After 20 years, the investment grew to $2,718.28. What was Carmen's original investment? Use \\(A = Pe^{rt}\\). Round to the nearest dollar. \\(\\\\\\)\n(P =) {{blank:1}}","blanks":[{"id":"xyvfqxay","kind":"fill_in","answer":"7389.05","tol":1}],"liveFeedback":false,"scoreOnly":true},{"id":"xw0x8o83","type":"problem","stem":"If \\(f(x) = 2^{x+4}\\), what is \\(f^{-1}(x)\\)? (Hint: \\(f^{-1}(x)\\) means inverse. This will be a logarithmic function.) \\(\\\\\\)\n\\(f^{-1}(x) =\\) {{blank:1}}","blanks":[{"id":"x28j4swt","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\log_2x-4\\)"},{"mode":"text","value":"\\(\\log_x-4\\)"},{"mode":"text","value":"\\(\\log_2{(x-2)}\\)"},{"mode":"text","value":"\\(\\log_2x+4\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xzgxmck4","type":"problem","stem":"If \\(f(x) = 2^x\\) is changed to \\(g(x) = f(x - 5) - 4\\), how is the graph transformed?\nShifted {{blank:1}} by {{blank:2}} units and shifted {{blank:3}} by {{blank:4}} units.","blanks":[{"id":"xhxct691","kind":"dropdown","choices":[{"mode":"text","value":"Horizontally right"},{"mode":"text","value":"Horizontally left"},{"mode":"text","value":"Vertically right"},{"mode":"text","value":"Vertically left"}],"correctChoice":0,"randomize":true},{"id":"xef5fwm2","kind":"fill_in","answer":"5","tol":0},{"id":"xz7g6cty","kind":"dropdown","choices":[{"mode":"text","value":"Vertically down"},{"mode":"text","value":"Vertically up"},{"mode":"text","value":"Horizontally down"},{"mode":"text","value":"Horizontally up"}],"correctChoice":0,"randomize":true},{"id":"xj4jjj72","kind":"fill_in","answer":"4","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"x482d67l","type":"problem","stem":"What value of \\(x\\) makes \\(8^{2x} = 134{,}217{,}728\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xzz4yvat","kind":"fill_in","answer":"4.5","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xeswbbx2","type":"problem","stem":"State the degree and leading coefficient of \\(2x^2 - 5x^3 + 7x^4 - 9\\).\\(\\\\\\)\nDegree: {{blank:1}} \\(\\\\\\)Leading Coefficient: {{blank:2}}","blanks":[{"id":"xy59dkwq","kind":"fill_in","answer":"4","tol":0},{"id":"xr4vq9rd","kind":"fill_in","answer":"7","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xmijc44e","type":"problem","stem":"What is the complete factorization of \\(x^3 + 5x^2 - 4x - 20\\)?\\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xy0trl41","kind":"dropdown","choices":[{"mode":"text","value":"\\((x+2)(x-2)(x+5)\\)"},{"mode":"text","value":"\\((x^2 - 4)(x + 5)\\)"},{"mode":"text","value":"\\((x -2)(x - 2)(x - 5)\\) "},{"mode":"text","value":"\\((x + 2)^2(x + 5)\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xsehjsvs","type":"problem","stem":"Use the graph to answer the following:\\(\\\\\\)\nAs \\(x \\to -\\infty\\), \\(f(x) \\to\\) {{blank:1}}    As \\(x \\to +\\infty\\), \\(f(x) \\to\\) {{blank:2}}\n\\(\\\\\\)The function is {{blank:3}} (even or odd).\\(\\\\\\)\nNumber of zeros: {{blank:4}}","blanks":[{"id":"x60lweuk","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\infty\\)"},{"mode":"text","value":"\\(-\\infty\\)"},{"mode":"text","value":"1"},{"mode":"text","value":"-1"}],"correctChoice":0,"randomize":true},{"id":"xe9b4ktf","kind":"dropdown","choices":[{"mode":"text","value":"\\(-\\infty\\)"},{"mode":"text","value":"\\(\\infty\\)"},{"mode":"text","value":"\\(1\\)"},{"mode":"text","value":"\\(-1\\)"}],"correctChoice":0,"randomize":true},{"id":"x5ap5cko","kind":"dropdown","choices":[{"mode":"text","value":"odd"},{"mode":"text","value":"even"},{"mode":"text","value":"neither"},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xi97alms","kind":"dropdown","choices":[{"mode":"text","value":"3"},{"mode":"text","value":"1"},{"mode":"text","value":"2"},{"mode":"text","value":"4"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true}],"sidebarTools":[{"id":"save","type":"save"},{"id":"load","type":"load"},{"id":"xkpji1am","type":"video","label":"Review Video","embedUrl":"https://www.youtube.com/watch?v=UFwXFvne1xE&feature=youtu.be"}],"filename":"activities/logarithmic_and_exponentials_review.html","createdAt":"2026-05-01T17:55:29.884Z","updatedAt":"2026-05-01T20:35:38.663Z","defaults":{"liveFeedback":true,"scoreOnly":false},"savedAt":"2026-05-01T20:35:38.664Z"}</script>
-<script id="sidebar-tools-config" type="application/json">[{"id":"save","type":"save"},{"id":"load","type":"load"},{"id":"xkpji1am","type":"video","label":"Review Video","embedUrl":"https://www.youtube.com/watch?v=UFwXFvne1xE&feature=youtu.be"}]</script>
+<script id="builder-state" type="application/json">{"version":2,"title":"Logarithmic and Exponentials Review","slug":"logarithmic_and_exponentials_review","webhook":"","problems":[{"id":"xaz621hb","type":"problem","stem":"If \\(f(x) = 2^x\\) is changed to \\(g(x) = \\frac{1}{2}f(x+3) - 6\\), how is the graph transformed?\nVertical {{blank:1}} by a factor of {{blank:2}}, shifted {{blank:3}} by {{blank:4}} units, and shifted {{blank:5}} by {{blank:6}} units.","blanks":[{"id":"xfjcgavd","kind":"dropdown","choices":[{"mode":"text","value":"compression"},{"mode":"text","value":"stretch"},{"mode":"text","value":""},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xoiydgn7","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\frac12\\)"},{"mode":"text","value":"2"},{"mode":"text","value":"3"},{"mode":"text","value":"6"}],"correctChoice":0,"randomize":true},{"id":"xm3bxma8","kind":"dropdown","choices":[{"mode":"text","value":"vertically down"},{"mode":"text","value":"horizontally up"},{"mode":"text","value":"vertically up"},{"mode":"text","value":"horizontally down"}],"correctChoice":0,"randomize":true},{"id":"xswh40ur","kind":"fill_in","answer":"6","tol":0},{"id":"x95css2e","kind":"dropdown","choices":[{"mode":"text","value":"Horizontally left"},{"mode":"text","value":"Horizontally right"},{"mode":"text","value":"Vertically left"},{"mode":"text","value":"Vertically right"}],"correctChoice":0,"randomize":true},{"id":"xsr002ct","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":true,"scoreOnly":false},{"id":"xw78qy2d","type":"problem","stem":"If \\(f(x) = \\ln(x)\\) is changed to \\(g(x) = 2f(x) - 2\\), how is the graph transformed?\nVertical {{blank:1}} by a factor of {{blank:2}} and shifted {{blank:3}} by {{blank:4}} units.","blanks":[{"id":"x73y2tlx","kind":"dropdown","choices":[{"mode":"text","value":"Stretch"},{"mode":"text","value":"Compress"},{"mode":"text","value":""},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xwrmbemt","kind":"fill_in","answer":"2","tol":0},{"id":"x7fs8l79","kind":"dropdown","choices":[{"mode":"text","value":"Vertical shift down"},{"mode":"text","value":"Vertical shift up"},{"mode":"text","value":"Horizontal shift left"},{"mode":"text","value":"Horizontal shift right"}],"correctChoice":0,"randomize":true},{"id":"xx1183kn","kind":"fill_in","answer":"2","tol":0}],"liveFeedback":true,"scoreOnly":false},{"id":"xn4sftvc","type":"problem","stem":"Simplify using properties of logarithms (all answers in log form): \\(\\\\\\)\n\\(\\log 72 - \\log 2 =\\) {{blank:1}} \\(\\\\\\)\n\\(\\log 12 + \\log 6 =\\) {{blank:2}} \\(\\\\\\)\n\\(\\log 9 + \\log 4 =\\) {{blank:3}} \\(\\\\\\)\n\\(2 \\cdot \\log 6 =\\) {{blank:4}}","blanks":[{"id":"xze4b886","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log70\\)"},{"mode":"text","value":"\\(log144\\)"},{"mode":"text","value":"\\(log74\\)"}],"correctChoice":0,"randomize":true},{"id":"xsob2gjs","kind":"dropdown","choices":[{"mode":"text","value":"\\(log72\\)"},{"mode":"text","value":"\\(log18\\)"},{"mode":"text","value":"\\(log2\\)"},{"mode":"text","value":"\\(log6\\)"}],"correctChoice":0,"randomize":true},{"id":"xveaqmce","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log13\\)"},{"mode":"text","value":"\\(log\\frac94\\)"},{"mode":"text","value":"\\(log5\\)"}],"correctChoice":0,"randomize":true},{"id":"xjeaq7gp","kind":"dropdown","choices":[{"mode":"text","value":"\\(log36\\)"},{"mode":"text","value":"\\(log12\\)"},{"mode":"text","value":"\\(log8\\)"},{"mode":"text","value":"\\(log3\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xyc9eb2q","type":"problem","stem":"The property \\(\\log_b m^n = n \\cdot \\log_b m\\) is called the {{blank:1}} Property of Logarithms.","blanks":[{"id":"xvbwozxq","kind":"dropdown","choices":[{"mode":"text","value":"power property"},{"mode":"text","value":"quotient property"},{"mode":"text","value":"product property"},{"mode":"text","value":"change of base property"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"x0s2xnxy","type":"problem","stem":"What value of (x) makes \\(5^{x+1} = 125\\) true?\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xmydnm8y","kind":"fill_in","answer":"2","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xv5idewj","type":"problem","stem":"Lailah invested $1,600 in an account that pays 5% annual interest compounded monthly. What will be her balance after 2 years? Use \\(A = P\\left(1 + \\frac{r}{n}\\right)^{nt}\\).\n\\(A =\\) {{blank:1}}","blanks":[{"id":"xmxoxm46","kind":"fill_in","answer":"1767.91","tol":0.1}],"liveFeedback":false,"scoreOnly":true},{"id":"xl7yv89p","type":"problem","stem":"The parent function with the given key attributes \\(\\\\\\) Domain: \\((0, \\infty)\\), \\(\\\\\\)Range: (\\(-\\infty, \\infty)\\), \\(\\\\\\)X-intercept: 1, \\(\\\\\\)no Y-intercept, \\(\\\\\\)vertical asymptote at \\(x = 0\\), \\(\\\\\\)no symmetry, \\(\\\\\\)no max or min) \\(\\\\\\)is \\(y =\\) {{blank:1}}.","blanks":[{"id":"xjlylp98","kind":"dropdown","choices":[{"mode":"text","value":"\\(logx\\)"},{"mode":"text","value":"\\(2^x\\)"},{"mode":"text","value":"\\(x^2\\)"},{"mode":"text","value":"x"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xeivpbvd","type":"problem","stem":"What value of \\(x\\) makes \\(9^x = 27^{x-1}\\) true?\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xryq48vg","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xrgq47cn","type":"problem","stem":"What is the equation of the asymptote for \\(f(x) = \\left(\\frac{1}{2}\\right)^{x-1} + 3\\)? \\(\\\\\\)\n{{blank:1}}{{blank:2}}","blanks":[{"id":"xjk25593","kind":"dropdown","choices":[{"mode":"text","value":"y"},{"mode":"text","value":"x"},{"mode":"text","value":"b"},{"mode":"text","value":"a"}],"correctChoice":0,"randomize":true},{"id":"xzuiaibf","kind":"fill_in","answer":"3","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"x24l1uxh","type":"problem","stem":"What is the logarithmic form of (e^x = 3185)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xhxklqjn","kind":"dropdown","choices":[{"mode":"text","value":"\\(ln3185=x\\)"},{"mode":"text","value":"\\(lnx=3185\\)"},{"mode":"text","value":"\\(log3185=x\\)"},{"mode":"text","value":"\\(logx=3185\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xv7n8eh9","type":"problem","stem":"What is the exponential form of \\(\\ln x = 3\\)?\n{{blank:1}}","blanks":[{"id":"xxuc7h3d","kind":"dropdown","choices":[{"mode":"text","value":"\\(e^3=x\\)"},{"mode":"text","value":"\\(x^3=e\\)"},{"mode":"text","value":"\\(x^e=3\\)"},{"mode":"text","value":"\\(3^e=x\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"x9ewfh4v","type":"problem","stem":"What value of (x) makes \\(\\log_7(3x + 1) = \\log_7(2x + 9)\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xeimsupz","kind":"fill_in","answer":"8","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xpyo90u0","type":"problem","stem":"What is the exponential form of \\(\\log_2(16) = 3x + 1\\)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xuoqd5ia","kind":"fill_in","answer":"1","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xajsogv1","type":"problem","stem":"What is the exponential form of \\(\\log_5(x) = 4\\)? \\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xckuiyp0","kind":"fill_in","answer":"625","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xlj5bp28","type":"problem","stem":"Marcus bought a bike for $1,000. The value of the bike depreciates at a rate of 50% per year. What will be the value of the bike after 3 years? Use \\(y = ae^{-kt}\\).\n\\(y =\\) {{blank:1}}","blanks":[{"id":"xcikmdq3","kind":"fill_in","answer":"223","tol":1}],"liveFeedback":false,"scoreOnly":true},{"id":"xxt9sijt","type":"problem","stem":"What value of (x) makes \\(9^{x+1} = 81\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xo3qsdzy","kind":"fill_in","answer":"1","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xp4wyelf","type":"problem","stem":"Carmen invested money in an account that paid 5% interest compounded continuously. After 20 years, the investment grew to $2,718.28. What was Carmen's original investment? Use \\(A = Pe^{rt}\\). Round to the nearest dollar. \\(\\\\\\)\n(P =) {{blank:1}}","blanks":[{"id":"xyvfqxay","kind":"fill_in","answer":"7389.05","tol":1}],"liveFeedback":false,"scoreOnly":true},{"id":"xw0x8o83","type":"problem","stem":"If \\(f(x) = 2^{x+4}\\), what is \\(f^{-1}(x)\\)? (Hint: \\(f^{-1}(x)\\) means inverse. This will be a logarithmic function.) \\(\\\\\\)\n\\(f^{-1}(x) =\\) {{blank:1}}","blanks":[{"id":"x28j4swt","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\log_2x-4\\)"},{"mode":"text","value":"\\(\\log_x-4\\)"},{"mode":"text","value":"\\(\\log_2{(x-2)}\\)"},{"mode":"text","value":"\\(\\log_2x+4\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xzgxmck4","type":"problem","stem":"If \\(f(x) = 2^x\\) is changed to \\(g(x) = f(x - 5) - 4\\), how is the graph transformed?\nShifted {{blank:1}} by {{blank:2}} units and shifted {{blank:3}} by {{blank:4}} units.","blanks":[{"id":"xhxct691","kind":"dropdown","choices":[{"mode":"text","value":"Horizontally right"},{"mode":"text","value":"Horizontally left"},{"mode":"text","value":"Vertically right"},{"mode":"text","value":"Vertically left"}],"correctChoice":0,"randomize":true},{"id":"xef5fwm2","kind":"fill_in","answer":"5","tol":0},{"id":"xz7g6cty","kind":"dropdown","choices":[{"mode":"text","value":"Vertically down"},{"mode":"text","value":"Vertically up"},{"mode":"text","value":"Horizontally down"},{"mode":"text","value":"Horizontally up"}],"correctChoice":0,"randomize":true},{"id":"xj4jjj72","kind":"fill_in","answer":"4","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"x482d67l","type":"problem","stem":"What value of \\(x\\) makes \\(8^{2x} = 134{,}217{,}728\\) true? \\(\\\\\\)\n\\(x =\\) {{blank:1}}","blanks":[{"id":"xzz4yvat","kind":"fill_in","answer":"4.5","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xeswbbx2","type":"problem","stem":"State the degree and leading coefficient of \\(2x^2 - 5x^3 + 7x^4 - 9\\).\\(\\\\\\)\nDegree: {{blank:1}} \\(\\\\\\)Leading Coefficient: {{blank:2}}","blanks":[{"id":"xy59dkwq","kind":"fill_in","answer":"4","tol":0},{"id":"xr4vq9rd","kind":"fill_in","answer":"7","tol":0}],"liveFeedback":false,"scoreOnly":true},{"id":"xmijc44e","type":"problem","stem":"What is the complete factorization of \\(x^3 + 5x^2 - 4x - 20\\)?\\(\\\\\\)\n{{blank:1}}","blanks":[{"id":"xy0trl41","kind":"dropdown","choices":[{"mode":"text","value":"\\((x+2)(x-2)(x+5)\\)"},{"mode":"text","value":"\\((x^2 - 4)(x + 5)\\)"},{"mode":"text","value":"\\((x -2)(x - 2)(x - 5)\\) "},{"mode":"text","value":"\\((x + 2)^2(x + 5)\\)"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true},{"id":"xsehjsvs","type":"problem","stem":"Use the graph to answer the following:\\(\\\\\\)\nAs \\(x \\to -\\infty\\), \\(f(x) \\to\\) {{blank:1}}    As \\(x \\to +\\infty\\), \\(f(x) \\to\\) {{blank:2}}\n\\(\\\\\\)The function is {{blank:3}} (even or odd).\\(\\\\\\)\nNumber of zeros: {{blank:4}}","blanks":[{"id":"x60lweuk","kind":"dropdown","choices":[{"mode":"text","value":"\\(\\infty\\)"},{"mode":"text","value":"\\(-\\infty\\)"},{"mode":"text","value":"1"},{"mode":"text","value":"-1"}],"correctChoice":0,"randomize":true},{"id":"xe9b4ktf","kind":"dropdown","choices":[{"mode":"text","value":"\\(-\\infty\\)"},{"mode":"text","value":"\\(\\infty\\)"},{"mode":"text","value":"\\(1\\)"},{"mode":"text","value":"\\(-1\\)"}],"correctChoice":0,"randomize":true},{"id":"x5ap5cko","kind":"dropdown","choices":[{"mode":"text","value":"odd"},{"mode":"text","value":"even"},{"mode":"text","value":"neither"},{"mode":"text","value":""}],"correctChoice":0,"randomize":true},{"id":"xi97alms","kind":"dropdown","choices":[{"mode":"text","value":"3"},{"mode":"text","value":"1"},{"mode":"text","value":"2"},{"mode":"text","value":"4"}],"correctChoice":0,"randomize":true}],"liveFeedback":false,"scoreOnly":true}],"sidebarTools":[{"id":"save","type":"save"},{"id":"load","type":"load"},{"id":"xkpji1am","type":"video","label":"Review Video","embedUrl":"https://www.youtube.com/watch?v=UFwXFvne1xE&feature=youtu.be"},{"id":"xuz1swvq","type":"reference_sheet","label":"Formulas","title":"ACP Formulas Algebra II","content":"## Coordinate Geometry {color=teal}\n\nMidpoint :: $M = \\left(\\dfrac{x_1 + x_2}{2}, \\dfrac{y_1 + y_2}{2}\\right)$\nSlope :: $m = \\dfrac{y_2 - y_1}{x_2 - x_1}$\nDistance :: $d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}$\n\n## Logarithms {color=blue}\n\nProduct Property :: $\\log_x(ab) = \\log_x a + \\log_x b$\nPower Property :: $\\log_b m^p = p \\log_b m$\nQuotient Property :: $\\log_x\\left(\\dfrac{a}{b}\\right) = \\log_x a - \\log_x b, b \\ne 0$\nChange of Base :: $\\log_a n = \\dfrac{\\log_b n}{\\log_b a}$\n\n## Properties of Exponents {color=purple}\n\nProduct of Powers :: $a^m a^n = a^{m+n}$\nPower of a Power :: $(a^m)^n = a^{mn}$\nQuotient of Powers :: $\\dfrac{a^m}{a^n} = a^{m-n}$\nRational Exponent :: $a^{\\frac{m}{n}} = \\sqrt[n]{a^m}$\nNegative Exponents :: $a^{-n} = \\dfrac{1}{a^n}$\n\n## Quadratic Equations {color=green}\n\nStandard Form :: $f(x) = ax^2 + bx + c$\nVertex Form :: $f(x) = a(x-h)^2 + k$\nQuadratic Formula :: $x = \\dfrac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\nAxis of Symmetry :: $x = \\dfrac{-b}{2a}$\nParabolas :: $(x-h)^2 = 4p(y-k)$ and $(y-k)^2 = 4p(x-h)$\n\n## Polynomials {color=amber}\n\nPerfect Square Trinomials :: $a^2 + 2ab + b^2 = (a+b)^2$\nPerfect Square Trinomials :: $a^2 - 2ab + b^2 = (a-b)^2$\nDifference of Squares :: $a^2 - b^2 = (a-b)(a+b)$\nSum of Cubes :: $a^3 + b^3 = (a+b)(a^2 - ab + b^2)$\nDifference of Cubes :: $a^3 - b^3 = (a-b)(a^2 + ab + b^2)$\nSquare of a Sum :: $(a+b)^2 = (a+b)(a+b) = a^2 + 2ab + b^2$\nSquare of a Difference :: $(a-b)^2 = (a-b)(a-b) = a^2 - 2ab + b^2$\nProduct of a Sum and a Difference :: $(a+b)(a-b) = a^2 - b^2$\n\n## Matrices {color=gray}\n\n::: columns\n::: column\n### Adding\nAdding :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} + \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} a+e & b+f \\\\ c+g & d+h \\end{bmatrix}$\n:::\n::: column\n### Subtracting\nSubtracting :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} - \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} a-e & b-f \\\\ c-g & d-h \\end{bmatrix}$\n:::\n:::\n\n::: columns\n::: column\n### Multiplying by a Scalar\nScalar :: $k \\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} = \\begin{bmatrix} ka & kb \\\\ kc & kd \\end{bmatrix}$\n:::\n::: column\n### Multiplying\nMultiplying :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} \\cdot \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} ae+bg & af+bh \\\\ ce+dg & cf+dh \\end{bmatrix}$\n:::\n:::"}],"filename":"activities/logarithmic_and_exponentials_review.html","createdAt":"2026-05-01T17:55:29.884Z","updatedAt":"2026-05-02T01:30:09.765Z","defaults":{"liveFeedback":true,"scoreOnly":false},"savedAt":"2026-05-02T01:30:09.768Z"}</script>
+<script id="sidebar-tools-config" type="application/json">[{"id":"save","type":"save"},{"id":"load","type":"load"},{"id":"xkpji1am","type":"video","label":"Review Video","embedUrl":"https://www.youtube.com/watch?v=UFwXFvne1xE&feature=youtu.be"},{"id":"xuz1swvq","type":"reference_sheet","label":"Formulas","title":"ACP Formulas Algebra II","content":"## Coordinate Geometry {color=teal}\n\nMidpoint :: $M = \\left(\\dfrac{x_1 + x_2}{2}, \\dfrac{y_1 + y_2}{2}\\right)$\nSlope :: $m = \\dfrac{y_2 - y_1}{x_2 - x_1}$\nDistance :: $d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}$\n\n## Logarithms {color=blue}\n\nProduct Property :: $\\log_x(ab) = \\log_x a + \\log_x b$\nPower Property :: $\\log_b m^p = p \\log_b m$\nQuotient Property :: $\\log_x\\left(\\dfrac{a}{b}\\right) = \\log_x a - \\log_x b, b \\ne 0$\nChange of Base :: $\\log_a n = \\dfrac{\\log_b n}{\\log_b a}$\n\n## Properties of Exponents {color=purple}\n\nProduct of Powers :: $a^m a^n = a^{m+n}$\nPower of a Power :: $(a^m)^n = a^{mn}$\nQuotient of Powers :: $\\dfrac{a^m}{a^n} = a^{m-n}$\nRational Exponent :: $a^{\\frac{m}{n}} = \\sqrt[n]{a^m}$\nNegative Exponents :: $a^{-n} = \\dfrac{1}{a^n}$\n\n## Quadratic Equations {color=green}\n\nStandard Form :: $f(x) = ax^2 + bx + c$\nVertex Form :: $f(x) = a(x-h)^2 + k$\nQuadratic Formula :: $x = \\dfrac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\nAxis of Symmetry :: $x = \\dfrac{-b}{2a}$\nParabolas :: $(x-h)^2 = 4p(y-k)$ and $(y-k)^2 = 4p(x-h)$\n\n## Polynomials {color=amber}\n\nPerfect Square Trinomials :: $a^2 + 2ab + b^2 = (a+b)^2$\nPerfect Square Trinomials :: $a^2 - 2ab + b^2 = (a-b)^2$\nDifference of Squares :: $a^2 - b^2 = (a-b)(a+b)$\nSum of Cubes :: $a^3 + b^3 = (a+b)(a^2 - ab + b^2)$\nDifference of Cubes :: $a^3 - b^3 = (a-b)(a^2 + ab + b^2)$\nSquare of a Sum :: $(a+b)^2 = (a+b)(a+b) = a^2 + 2ab + b^2$\nSquare of a Difference :: $(a-b)^2 = (a-b)(a-b) = a^2 - 2ab + b^2$\nProduct of a Sum and a Difference :: $(a+b)(a-b) = a^2 - b^2$\n\n## Matrices {color=gray}\n\n::: columns\n::: column\n### Adding\nAdding :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} + \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} a+e & b+f \\\\ c+g & d+h \\end{bmatrix}$\n:::\n::: column\n### Subtracting\nSubtracting :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} - \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} a-e & b-f \\\\ c-g & d-h \\end{bmatrix}$\n:::\n:::\n\n::: columns\n::: column\n### Multiplying by a Scalar\nScalar :: $k \\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} = \\begin{bmatrix} ka & kb \\\\ kc & kd \\end{bmatrix}$\n:::\n::: column\n### Multiplying\nMultiplying :: $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix} \\cdot \\begin{bmatrix} e & f \\\\ g & h \\end{bmatrix} = \\begin{bmatrix} ae+bg & af+bh \\\\ ce+dg & cf+dh \\end{bmatrix}$\n:::\n:::"}]</script>
 <script id="activity-settings" type="application/json">{"defaults":{"liveFeedback":true,"scoreOnly":false}}</script>
 
 <script>
@@ -534,8 +1078,134 @@ var ToolRegistry = {
   },
   desmos_geometry: function(cfg){
     return _desmosTool(cfg, 'Geometry');
+  },
+  reference_sheet: function(cfg){
+    return {
+      label: cfg.label || 'Reference',
+      icon: '📋', // clipboard
+      render: function(body){
+        var raw = (cfg.content || '').toString();
+        if (!raw.trim()) {
+          body.innerHTML = '<div class="ref-sheet-empty">No reference content configured.</div>';
+          return null;
+        }
+        var sheet = document.createElement('div');
+        sheet.className = 'ref-sheet';
+        var html = '';
+        if (cfg.title && cfg.title.trim()) {
+          html += '<div class="ref-sheet-title">' + _refEscape(cfg.title) + '</div>';
+        }
+        // Use the unified markdown parser if available, falling back to the
+        // legacy mini-parser if it isn't (defensive — parser is always
+        // inlined into compiled activities, but during local dev the
+        // ordering in the host page might not be guaranteed).
+        if (typeof window.parseMarkdown === 'function') {
+          html += window.parseMarkdown(raw);
+        } else {
+          html += _parseReferenceSheet(raw);
+        }
+        sheet.innerHTML = html;
+        body.appendChild(sheet);
+
+        // Trigger KaTeX render on this subtree once auto-render is available.
+        _renderRefMath(sheet);
+
+        return { sheet: sheet };
+      },
+      destroy: function(state){
+        if (state && state.sheet && state.sheet.parentNode) {
+          state.sheet.parentNode.removeChild(state.sheet);
+        }
+      }
+    };
   }
 };
+
+// ---------- Reference-sheet parser ----------------------------------------
+// Intentionally tiny markdown subset; math passes through verbatim and is
+// rendered by KaTeX after insertion. Only block-level structure is parsed.
+function _parseReferenceSheet(text){
+  var lines = text.split(/\r?\n/);
+  var out = '';
+  var listOpen = false;
+  function closeList(){ if (listOpen) { out += '</ul>'; listOpen = false; } }
+
+  for (var i = 0; i < lines.length; i++) {
+    var raw = lines[i];
+    var trimmed = raw.replace(/^\s+|\s+$/g, '');
+
+    if (!trimmed) { closeList(); continue; }
+
+    // ### subsection (check before ## so we don't match ## inside ###)
+    if (trimmed.indexOf('### ') === 0) {
+      closeList();
+      out += '<h4 class="ref-subsection">' + _refEscape(trimmed.slice(4)) + '</h4>';
+      continue;
+    }
+    // ## section
+    if (trimmed.indexOf('## ') === 0) {
+      closeList();
+      out += '<h3 class="ref-section">' + _refEscape(trimmed.slice(3)) + '</h3>';
+      continue;
+    }
+    // --- horizontal rule
+    if (/^-{3,}$/.test(trimmed)) {
+      closeList();
+      out += '<hr class="ref-hr">';
+      continue;
+    }
+    // - or * bullet
+    if (trimmed.indexOf('- ') === 0 || trimmed.indexOf('* ') === 0) {
+      if (!listOpen) { out += '<ul class="ref-list">'; listOpen = true; }
+      out += '<li>' + _refEscape(trimmed.slice(2)) + '</li>';
+      continue;
+    }
+    // Label :: body  -> two-column row
+    var sep = trimmed.indexOf(' :: ');
+    if (sep > 0) {
+      closeList();
+      var label = trimmed.slice(0, sep);
+      var bodyText = trimmed.slice(sep + 4);
+      out += '<div class="ref-row">' +
+               '<div class="ref-label">' + _refEscape(label) + '</div>' +
+               '<div class="ref-body">' + _refEscape(bodyText) + '</div>' +
+             '</div>';
+      continue;
+    }
+    // Plain paragraph
+    closeList();
+    out += '<p class="ref-para">' + _refEscape(trimmed) + '</p>';
+  }
+  closeList();
+  return out;
+}
+
+function _refEscape(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function _renderRefMath(el){
+  function attempt(retries){
+    if (typeof renderMathInElement === 'function') {
+      try {
+        renderMathInElement(el, {
+          delimiters: [
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '$$',    right: '$$',    display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (e) { console.warn('ref-sheet KaTeX render failed:', e); }
+      return;
+    }
+    if (retries > 0) setTimeout(function(){ attempt(retries - 1); }, 100);
+  }
+  attempt(50);
+}
 
 function _desmosTool(cfg, calcType){
   return {
