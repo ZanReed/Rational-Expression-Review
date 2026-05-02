@@ -265,7 +265,12 @@ function renderProblems() {
 
     const help = document.createElement('div');
     help.className = 'field-hint stem-help';
-    help.innerHTML = 'Use <code>{{blank:1}}</code>, <code>{{blank:2}}</code>, etc. to place input fields inline. Wrap math in <code>\\(...\\)</code>. Example: <code>Vertical shift {{blank:1}}, horizontal shift {{blank:2}}.</code>';
+    help.innerHTML =
+      'Insert <code>{{blank:1}}</code>, <code>{{blank:2}}</code>, etc. for input fields. ' +
+      'Wrap math in <code>$...$</code> (inline) or <code>$$...$$</code> (display). ' +
+      'You can also use <code>**bold**</code>, <code>_italic_</code>, ' +
+      '<code>==highlight==</code>, GFM tables, and callouts like <code>&gt; [!TIP]</code>. ' +
+      'Stems support full extended-markdown formatting.';
     card.appendChild(help);
 
     const stemArea = document.createElement('textarea');
@@ -849,9 +854,10 @@ function _renderReferenceSheetFields(card, t) {
   const contentHint = document.createElement('div');
   contentHint.className = 'field-hint';
   contentHint.innerHTML =
-    'Use <code>## Section</code>, <code>### Subsection</code>, and ' +
-    '<code>Label :: content</code> rows for two-column formula layouts. ' +
-    'Wrap math in <code>\\(...\\)</code> (inline) or <code>\\[...\\]</code> (display). ' +
+    'Extended markdown: <code>##</code> sections (with <code>{color=blue}</code> for tinting), ' +
+    '<code>###</code> subsections, <code>Label :: content</code> rows, ' +
+    'GFM tables, <code>&gt; [!NOTE]</code> callouts, <code>::: columns</code> blocks. ' +
+    'Math: <code>$...$</code> inline, <code>$$...$$</code> display. ' +
     'For bulk import from a PDF, expand the agent prompt below.';
   card.appendChild(contentHint);
 
@@ -862,10 +868,12 @@ function _renderReferenceSheetFields(card, t) {
   ta.style.fontSize = '12px';
   ta.value = t.content || '';
   ta.placeholder =
-    '## Coordinate Geometry\n' +
-    'Midpoint :: \\(M = \\left(\\dfrac{x_1+x_2}{2},\\ \\dfrac{y_1+y_2}{2}\\right)\\)\n' +
-    'Slope :: \\(m = \\dfrac{y_2 - y_1}{x_2 - x_1}\\)\n' +
-    'Distance :: \\(d = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}\\)\n';
+    '## Coordinate Geometry {color=blue}\n' +
+    'Midpoint :: $M = \\left(\\dfrac{x_1+x_2}{2},\\ \\dfrac{y_1+y_2}{2}\\right)$\n' +
+    'Slope :: $m = \\dfrac{y_2 - y_1}{x_2 - x_1}$\n' +
+    '\n' +
+    '> [!TIP]\n' +
+    '> When the slope is undefined, the line is vertical.\n';
   ta.oninput = () => updateSidebarTool(t.id, 'content', ta.value);
   card.appendChild(ta);
 
@@ -924,51 +932,132 @@ function _renderReferenceSheetFields(card, t) {
 // constant so the same text powers the in-builder copy button AND can be
 // exported (e.g. printed from the console) if needed.
 const REFERENCE_SHEET_AGENT_PROMPT =
-'You are converting reference material (a formula sheet, study guide, or exemplar\n' +
-'document) into the format used by an Algebra II activity builder\u2019s "Reference\n' +
-'Sheet" sidebar tool. Read the source document I provide and output ONLY the\n' +
+'You are converting reference material (a formula sheet, study guide, worked\n' +
+'examples, or other exemplar document) into the format used by an Algebra II\n' +
+'activity builder. Read the source document I provide and output ONLY the\n' +
 'formatted content \u2014 no preamble, no commentary, no code fences.\n' +
 '\n' +
-'FORMAT\n' +
-'  ## Section Heading\n' +
-'  ### Subsection Heading\n' +
-'  Label :: content              \u2190 two-column row; separator is " :: " (space-colon-colon-space)\n' +
-'  - bullet item\n' +
-'  ---                            \u2190 horizontal rule\n' +
-'  Plain paragraph                \u2190 any line that doesn\u2019t match the above\n' +
+'================================================================\n' +
+'CORE FORMAT (extended markdown)\n' +
+'================================================================\n' +
 '\n' +
-'  Math: wrap inline math in \\( ... \\) and display math in \\[ ... \\]. Use\n' +
-'  standard LaTeX inside. Blank lines separate blocks.\n' +
+'  # / ## / ### / ####     Headings (use ## for major sections, ### for nested)\n' +
+'  ## Title {color=blue}    Optional color tinting on a heading; everything\n' +
+'                           under it (until the next ## or higher) is wrapped\n' +
+'                           in a tinted section background. Allowed colors:\n' +
+'                           blue, green, amber, red, purple, gray, teal.\n' +
 '\n' +
-'EXAMPLE\n' +
-'  ## Coordinate Geometry\n' +
-'  Midpoint :: \\(M = \\left(\\dfrac{x_1+x_2}{2},\\ \\dfrac{y_1+y_2}{2}\\right)\\)\n' +
-'  Slope :: \\(m = \\dfrac{y_2 - y_1}{x_2 - x_1}\\)\n' +
-'  Distance :: \\(d = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}\\)\n' +
+'  Label :: content         Two-column row. The separator is exactly " :: "\n' +
+'                           (space, colon, colon, space). Ideal for named\n' +
+'                           formulas (Midpoint, Slope, Quadratic Formula).\n' +
 '\n' +
-'  ## Properties of Exponents\n' +
-'  Product of Powers :: \\(a^m \\cdot a^n = a^{m+n}\\)\n' +
-'  Power of a Power :: \\((a^m)^n = a^{mn}\\)\n' +
-'  Quotient of Powers :: \\(\\dfrac{a^m}{a^n} = a^{m-n}\\)\n' +
-'  Negative Exponent :: \\(a^{-n} = \\dfrac{1}{a^n}\\)\n' +
-'  Rational Exponent :: \\(a^{m/n} = \\sqrt[n]{a^m}\\)\n' +
+'  Plain paragraph          Any line that doesn\u2019t match a block syntax.\n' +
+'  - bullet item            Unordered list (also `*` works).\n' +
+'  1. numbered item         Ordered list.\n' +
+'  ---                      Horizontal rule.\n' +
 '\n' +
+'  $...$                    Inline math (LaTeX inside).\n' +
+'  $$...$$                  Display math.\n' +
+'  Use \\$ for a literal dollar sign in prose (e.g. "\\$5 each").\n' +
+'\n' +
+'  **bold**     _italic_     ==highlight==     `inline code`\n' +
+'\n' +
+'================================================================\n' +
+'TABLES (GFM pipe syntax)\n' +
+'================================================================\n' +
+'\n' +
+'  | Form     | Equation                | Vertex      |\n' +
+'  |----------|-------------------------|-------------|\n' +
+'  | Standard | $f(x) = ax^2 + bx + c$  | calculate   |\n' +
+'  | Vertex   | $f(x) = a(x-h)^2 + k$   | $(h, k)$    |\n' +
+'\n' +
+'  Optional alignment via the separator row:\n' +
+'    |:---|     left\n' +
+'    |:--:|    center\n' +
+'    |---:|    right\n' +
+'\n' +
+'================================================================\n' +
+'CALLOUTS (boxed annotations) \u2014 fixed set, do not invent new types\n' +
+'================================================================\n' +
+'\n' +
+'  > [!NOTE]         General information\n' +
+'  > [!TIP]          Strategy or hint\n' +
+'  > [!WARNING]      Common mistake; watch out for X\n' +
+'  > [!EXAMPLE]      Worked example\n' +
+'  > [!DEFINITION]   Vocabulary / formal definition\n' +
+'  > [!THEOREM]      Formal statement of a result\n' +
+'\n' +
+'  Multi-line callouts continue with `>` on each line:\n' +
+'    > [!TIP]\n' +
+'    > When the discriminant $b^2 - 4ac < 0$, there are no real roots.\n' +
+'    > Use the quadratic formula and watch for the negative under the radical.\n' +
+'\n' +
+'================================================================\n' +
+'MULTI-COLUMN LAYOUTS (for side-by-side content)\n' +
+'================================================================\n' +
+'\n' +
+'  ::: columns\n' +
+'  ::: column\n' +
+'  ### Adding\n' +
+'  Rule :: $A + B$ adds element-wise.\n' +
+'  :::\n' +
+'  ::: column\n' +
+'  ### Subtracting\n' +
+'  Rule :: $A - B$ subtracts element-wise.\n' +
+'  :::\n' +
+'  :::\n' +
+'\n' +
+'  Use 2 or 3 columns. The outer ::: closer must match.\n' +
+'\n' +
+'================================================================\n' +
+'COMPLETE EXAMPLE (mimicking a typical formula sheet section)\n' +
+'================================================================\n' +
+'\n' +
+'  ## Quadratic Equations {color=green}\n' +
+'\n' +
+'  ### Forms\n' +
+'  Standard :: $f(x) = ax^2 + bx + c$\n' +
+'  Vertex :: $f(x) = a(x-h)^2 + k$\n' +
+'\n' +
+'  ### Solving\n' +
+'  Quadratic Formula :: $x = \\dfrac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$\n' +
+'  Axis of Symmetry :: $x = -\\dfrac{b}{2a}$\n' +
+'\n' +
+'  > [!TIP]\n' +
+'  > Check the discriminant $b^2 - 4ac$ first: positive means two real roots,\n' +
+'  > zero means one repeated root, negative means two complex roots.\n' +
+'\n' +
+'  ### Properties at a glance\n' +
+'\n' +
+'  | Discriminant | Roots                  |\n' +
+'  |--------------|------------------------|\n' +
+'  | $b^2 - 4ac > 0$ | Two distinct real roots |\n' +
+'  | $b^2 - 4ac = 0$ | One repeated real root  |\n' +
+'  | $b^2 - 4ac < 0$ | Two complex conjugate roots |\n' +
+'\n' +
+'================================================================\n' +
 'GUIDELINES\n' +
-'- Preserve the source\u2019s section structure. Use ## for major sections, ### only\n' +
-'  for nested groupings within a section.\n' +
-'- For named formulas (Midpoint, Slope, Quadratic Formula, etc.), use the\n' +
-'  "Label :: \\(formula\\)" pattern \u2014 it renders as a clean two-column row.\n' +
-'- For prose explanations or definitions without a clear label, write a plain\n' +
-'  paragraph (no separator).\n' +
-'- Use \\dfrac for stacked fractions, \\sqrt for roots, \\cdot for explicit\n' +
-'  multiplication, ^ and _ for exponents and subscripts, \\pm for \u00b1, \\le \\ge\n' +
-'  \\ne for \u2264 \u2265 \u2260, \\left( \\right) for auto-sized parens.\n' +
-'- If the source has a side-by-side 2-column layout pairing different formula\n' +
-'  groups (e.g. "Adding | Subtracting" matrices, "Standard Form | Vertex Form"),\n' +
-'  put each group as its own ## or ### with rows underneath. Don\u2019t try to\n' +
-'  reproduce the side-by-side visual.\n' +
-'- Don\u2019t HTML-escape anything. The renderer handles escaping; just write the\n' +
-'  text and LaTeX as a human would.\n' +
+'================================================================\n' +
+'\n' +
+'- Preserve the source\u2019s organization. Major sections \u2192 ##; nested groupings\n' +
+'  \u2192 ###. Reach for {color=...} tinting when the source visibly groups topics\n' +
+'  (e.g. a colored sidebar or a labeled section).\n' +
+'- For named formulas (Midpoint, Slope, Quadratic Formula, Distance, etc.),\n' +
+'  use the "Label :: $formula$" pattern \u2014 it renders as a clean two-column row.\n' +
+'- For prose explanations or definitions without a clear left-hand label, use\n' +
+'  a plain paragraph or a > [!DEFINITION] callout.\n' +
+'- Use $...$ for inline math and $$...$$ for display math. DO NOT use \\(...\\)\n' +
+'  or \\[...\\] (they still work for back-compat but $ is the canonical form).\n' +
+'- Inside math, use standard LaTeX: \\dfrac for stacked fractions, \\sqrt for\n' +
+'  roots, \\cdot for explicit multiplication, ^ and _ for exponents/subscripts,\n' +
+'  \\pm for \u00b1, \\le \\ge \\ne for \u2264 \u2265 \u2260, \\left( \\right) for auto-sized parens,\n' +
+'  \\begin{bmatrix} ... \\end{bmatrix} for matrices.\n' +
+'- If the source has a side-by-side layout (e.g. matrices "Adding | Subtracting"),\n' +
+'  reach for ::: columns rather than trying to fake it with a table.\n' +
+'- For comparison tables (rules, properties, cases), GFM pipe tables are the\n' +
+'  right tool.\n' +
+'- Don\u2019t HTML-escape anything. The renderer escapes safely; just write text\n' +
+'  and LaTeX as a human would.\n' +
 '- Output ONLY the formatted content, ready to paste into the Content box.\n' +
 '\n' +
 'Source:\n' +
@@ -1000,6 +1089,14 @@ function compileActivity() {
     ? '<script src="https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0faa6"><\/script>'
     : '';
 
+  // Inline the markdown parser source so reference sheets can render at
+  // student-runtime without an extra script fetch. The parser exports its
+  // own source as window.MARKDOWN_PARSER_SOURCE; if it's not loaded, we
+  // emit no script and the runtime will fall back to the legacy mini-parser.
+  const markdownParserScript = (typeof window.MARKDOWN_PARSER_SOURCE === 'string')
+    ? '<script>' + window.MARKDOWN_PARSER_SOURCE + '<\/script>'
+    : '';
+
   // Webhook: bake in builder value if set, otherwise fall back to the
   // appsScriptURL stored by index.html's settings panel
   const webhookForBake = (builderState.webhook && builderState.webhook.trim())
@@ -1028,6 +1125,7 @@ function compileActivity() {
   html = html.replace(/\{\{WEBHOOK_URL\}\}/g,             _slot(_esc(webhookForBake)));
   html = html.replace(/\{\{GOOGLE_CLIENT_ID\}\}/g,        _slot(GOOGLE_CLIENT_ID));
   html = html.replace(/\{\{DESMOS_API_SCRIPT\}\}/g,       _slot(desmosScript));
+  html = html.replace(/\{\{MARKDOWN_PARSER_SCRIPT\}\}/g,  _slot(markdownParserScript));
   html = html.replace(/\{\{PROBLEMS_HTML\}\}/g,           _slot(problemsHTML));
   html = html.replace(/\{\{SIDEBAR_TOOLS_JSON\}\}/g,      _slot(sidebarToolsJSON));
   html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g,  _slot(settingsJSON));
@@ -1043,46 +1141,32 @@ function _compileProblem(p, idx) {
   const liveAttr  = (p.liveFeedback === false) ? ' data-live="0"' : ' data-live="1"';
   const scoreAttr = (p.scoreOnly === true)     ? ' data-score-only="1"' : '';
 
-  // Build map of blank index (1-based as appears in stem) -> blank config
   const blanks = p.blanks || [];
-
-  // Walk the stem, splitting on {{blank:N}} tokens. Render the prose around
-  // them as KaTeX-aware text. Each token becomes the appropriate input.
   const stem = p.stem || '';
-  const re = /\{\{blank:(\d+)\}\}/g;
-  let lastIndex = 0;
-  let parts = [];
-  let m;
-  while ((m = re.exec(stem)) !== null) {
-    if (m.index > lastIndex) {
-      parts.push({ kind: 'text', value: stem.slice(lastIndex, m.index) });
-    }
-    parts.push({ kind: 'blank', n: parseInt(m[1], 10) });
-    lastIndex = m.index + m[0].length;
-  }
-  if (lastIndex < stem.length) {
-    parts.push({ kind: 'text', value: stem.slice(lastIndex) });
-  }
 
-  // If there were no tokens at all, still render the stem prose
-  if (parts.length === 0 && stem) {
-    parts.push({ kind: 'text', value: stem });
+  // Parse the stem as extended markdown. In stemMode, {{blank:N}} tokens are
+  // protected from any markdown processing and survive into the output HTML
+  // as literal text, which we then post-process into actual <input> elements.
+  // This means blanks now work correctly inside tables, callouts, columns,
+  // and any other block construct — not just flat prose.
+  let stemHTML;
+  if (typeof window.parseMarkdown === 'function') {
+    stemHTML = window.parseMarkdown(stem, { stemMode: true });
+    // Replace each surviving {{blank:N}} token with the matching input HTML.
+    stemHTML = stemHTML.replace(/\{\{blank:(\d+)\}\}/g, (_, n) => {
+      const idxN = parseInt(n, 10);
+      const blank = blanks[idxN - 1];
+      if (!blank) {
+        return '<span class="missing-blank">[unconfigured blank ' + idxN + ']</span>';
+      }
+      const inputId = 'p' + num + '_b' + idxN;
+      return _compileBlankInput(blank, inputId);
+    });
+  } else {
+    // Defensive fallback (parser script missing in dev) — replicate the old
+    // split-and-rejoin behavior so existing simple stems still render.
+    stemHTML = _legacyCompileStem(stem, blanks, num);
   }
-
-  // Compile each part. Text parts pass through (KaTeX delimiters are honored
-  // by the renderer at runtime). Blank parts emit the matching input.
-  const stemHTML = parts.map((part, i) => {
-    if (part.kind === 'text') {
-      return _compileStemText(part.value);
-    }
-    // Blank part — find the matching blank config (1-based index from token)
-    const blank = blanks[part.n - 1];
-    if (!blank) {
-      return '<span class="missing-blank">[unconfigured blank ' + part.n + ']</span>';
-    }
-    const inputId = 'p' + num + '_b' + part.n;
-    return _compileBlankInput(blank, inputId);
-  }).join('');
 
   return [
     '<div class="problem-cell"' + liveAttr + scoreAttr + ' data-problem-num="' + num + '">',
@@ -1093,9 +1177,32 @@ function _compileProblem(p, idx) {
   ].join('\n');
 }
 
-// Compile a text segment of the stem. HTML-escape first so that < > & in the
-// teacher's text cannot inject script tags or break HTML structure.
-// KaTeX auto-render reads the DOM .textContent, which decodes HTML entities,
+// Legacy fallback only — used when parseMarkdown is unavailable. Mirrors the
+// original split-on-{{blank:N}} behavior so simple stems still render.
+function _legacyCompileStem(stem, blanks, num) {
+  const re = /\{\{blank:(\d+)\}\}/g;
+  let lastIndex = 0;
+  const parts = [];
+  let m;
+  while ((m = re.exec(stem)) !== null) {
+    if (m.index > lastIndex) parts.push({ kind: 'text', value: stem.slice(lastIndex, m.index) });
+    parts.push({ kind: 'blank', n: parseInt(m[1], 10) });
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < stem.length) parts.push({ kind: 'text', value: stem.slice(lastIndex) });
+  if (parts.length === 0 && stem) parts.push({ kind: 'text', value: stem });
+
+  return parts.map(part => {
+    if (part.kind === 'text') return _compileStemText(part.value);
+    const blank = blanks[part.n - 1];
+    if (!blank) return '<span class="missing-blank">[unconfigured blank ' + part.n + ']</span>';
+    return _compileBlankInput(blank, 'p' + num + '_b' + part.n);
+  }).join('');
+}
+
+// Compile a text segment of the stem (legacy / fallback path only). HTML-escape
+// first so that < > & in the teacher's text cannot inject script tags or break
+// HTML structure. KaTeX auto-render reads .textContent, which decodes entities,
 // so \( \) delimiters and any LaTeX inside them are unaffected by the escaping.
 function _compileStemText(s) {
   return '<span class="stem-text">' + _esc(s) + '</span>';

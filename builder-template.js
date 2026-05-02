@@ -33,6 +33,7 @@ const WORKSHEET_TEMPLATE = `<!DOCTYPE html>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"><\/script>
 <script src="https://accounts.google.com/gsi/client" async defer><\/script>
 {{DESMOS_API_SCRIPT}}
+{{MARKDOWN_PARSER_SCRIPT}}
 <style>
 :root{
   --ink:#1a1814;--ink-mid:#4a4540;--ink-light:#8a857e;
@@ -100,6 +101,73 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .ref-sheet ul.ref-list li{margin:3px 0}
 .ref-sheet hr.ref-hr{border:none;border-top:1px solid var(--rule);margin:14px 0}
 .ref-sheet-empty{padding:24px;color:var(--ink-light);font-size:13px;text-align:center;font-family:var(--sans)}
+
+/* ---------- EXTENDED MARKDOWN COMPONENTS ---------- */
+/* Used inside .ref-sheet (reference sheets) and .prob-stem (problem stems). */
+.md-heading{font-family:var(--sans)}
+.md-heading-1{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+/* h2 (.md-heading-2) and h3 (.md-heading-3) reuse .ref-section / .ref-subsection styling above */
+
+.md-para{margin:8px 0;line-height:1.6}
+.md-list{margin:8px 0 8px 22px;padding:0;font-size:14px}
+.md-list li{margin:3px 0}
+.md-hr{border:none;border-top:1px solid var(--rule);margin:14px 0}
+
+.md-code{font-family:var(--mono);font-size:13px;padding:1px 5px;background:var(--cream);border:1px solid var(--rule);border-radius:3px;color:var(--ink)}
+.md-highlight{background:linear-gradient(transparent 55%,#fff09a 55%);padding:0 2px;color:var(--ink)}
+
+/* Tables */
+.md-table-wrap{overflow-x:auto;margin:10px 0}
+.md-table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans)}
+.md-table th,.md-table td{border:1px solid var(--rule);padding:7px 11px;text-align:left;vertical-align:top}
+.md-table th{background:var(--page);font-size:11px;font-weight:600;color:var(--ink-mid);letter-spacing:.06em;text-transform:uppercase}
+.md-table tbody tr:nth-child(even){background:rgba(240,236,228,.4)}
+.md-table td{font-family:var(--serif);font-size:14px;line-height:1.5}
+
+/* Callouts */
+.md-callout{display:flex;gap:10px;padding:10px 14px;border-left:3px solid;border-radius:4px;margin:10px 0;font-size:14px}
+.md-callout-icon{flex-shrink:0;font-size:16px;line-height:1.55;color:inherit;opacity:.85}
+.md-callout-body{flex:1;min-width:0}
+.md-callout-body > :first-child{margin-top:0}
+.md-callout-body > :last-child{margin-bottom:0}
+.md-callout-note{background:var(--accent-lt);border-left-color:var(--accent);color:var(--ink)}
+.md-callout-tip{background:var(--green-bg);border-left-color:var(--green-rule);color:var(--ink)}
+.md-callout-warning{background:#fff8e8;border-left-color:#d4b76a;color:var(--ink)}
+.md-callout-example{background:var(--cream);border-left-color:var(--ink-light);color:var(--ink)}
+.md-callout-definition{background:#f3edf7;border-left-color:#a78bbf;color:var(--ink)}
+.md-callout-theorem{background:#eef0f2;border-left-color:#90979f;color:var(--ink)}
+
+/* Multi-column layouts */
+.md-columns{display:grid;gap:14px;margin:12px 0;align-items:start}
+.md-columns-2{grid-template-columns:1fr 1fr}
+.md-columns-3{grid-template-columns:1fr 1fr 1fr}
+.md-columns-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.md-column > :first-child{margin-top:0}
+.md-column > :last-child{margin-bottom:0}
+@media (max-width:560px){
+  .md-columns-2,.md-columns-3,.md-columns-4{grid-template-columns:1fr}
+}
+
+/* Section color tinting */
+.md-section{padding:8px 14px 12px;border-left:3px solid;border-radius:4px;margin:14px 0;background:transparent}
+.md-section > :first-child{margin-top:6px}
+.md-section > :last-child{margin-bottom:0}
+.md-section-blue{background:rgba(26,74,138,.04);border-left-color:var(--accent)}
+.md-section-green{background:rgba(26,102,64,.04);border-left-color:var(--green)}
+.md-section-amber{background:rgba(107,85,0,.05);border-left-color:#d4b76a}
+.md-section-red{background:rgba(138,26,26,.04);border-left-color:var(--red)}
+.md-section-purple{background:rgba(125,79,170,.04);border-left-color:#a78bbf}
+.md-section-gray{background:rgba(74,69,64,.04);border-left-color:var(--ink-light)}
+.md-section-teal{background:rgba(26,102,102,.04);border-left-color:#3a8a8a}
+
+/* Heading text color (when {color=X} used without section grouping) */
+.md-color-blue{color:var(--accent)}
+.md-color-green{color:var(--green)}
+.md-color-amber{color:#8a7000}
+.md-color-red{color:var(--red)}
+.md-color-purple{color:#7d4faa}
+.md-color-gray{color:var(--ink-mid)}
+.md-color-teal{color:#3a8a8a}
 
 /* ---------- PROBLEM CELLS ---------- */
 .main-content{margin-top:12px}
@@ -449,12 +517,19 @@ var ToolRegistry = {
         if (cfg.title && cfg.title.trim()) {
           html += '<div class="ref-sheet-title">' + _refEscape(cfg.title) + '</div>';
         }
-        html += _parseReferenceSheet(raw);
+        // Use the unified markdown parser if available, falling back to the
+        // legacy mini-parser if it isn't (defensive — parser is always
+        // inlined into compiled activities, but during local dev the
+        // ordering in the host page might not be guaranteed).
+        if (typeof window.parseMarkdown === 'function') {
+          html += window.parseMarkdown(raw);
+        } else {
+          html += _parseReferenceSheet(raw);
+        }
         sheet.innerHTML = html;
         body.appendChild(sheet);
 
         // Trigger KaTeX render on this subtree once auto-render is available.
-        // Same delimiter set used elsewhere on the page.
         _renderRefMath(sheet);
 
         return { sheet: sheet };
