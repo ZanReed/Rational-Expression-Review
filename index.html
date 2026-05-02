@@ -164,7 +164,7 @@ body.teacher-mode .add-unit-row{display:flex}
           <div><div id="settingsName" style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink)">Alexander Reed</div><div id="settingsEmail" style="font-family:var(--mono);font-size:11px;color:var(--ink-light)">alreed@dallasisd.org</div></div>
           <button onclick="signOutTeacher()" class="mb" style="margin-left:auto;font-size:11px;padding:4px 8px">Sign out</button>
         </div>
-        <div id="driveConfigStatus" style="margin-top:6px;font-family:var(--sans);font-size:11px;color:var(--green)"></div>
+        <div id="driveConfigStatus" style="margin-top:6px;font-family:var(--sans);font-size:11px;color:var(--green)">✓ Config loaded from Drive.</div>
       </div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
@@ -174,7 +174,7 @@ body.teacher-mode .add-unit-row{display:flex}
         <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
         <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
       </div>
-      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token unlocked.</div>
+      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">✓ Token works!</div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Change PIN (re-encrypt token + push to Drive)</label>
@@ -277,7 +277,7 @@ body.teacher-mode .add-unit-row{display:flex}
 <div class="modal-backdrop" id="removeBackdrop" onclick="if(event.target===this)closeRemoveModal()">
   <div class="modal" style="max-width:360px">
     <h3>Remove resource?</h3>
-    <p id="removeMsg" style="font-size:14px;color:var(--ink-mid);margin-bottom:18px;font-family:var(--sans);line-height:1.6"></p>
+    <p id="removeMsg" style="font-size:14px;color:var(--ink-mid);margin-bottom:18px;font-family:var(--sans);line-height:1.6">Remove "Test Activity" from the index?</p>
     <div class="modal-actions">
       <button class="mb" onclick="closeRemoveModal()">Cancel</button>
       <button class="mb danger" onclick="confirmRemove()">Remove</button>
@@ -422,15 +422,6 @@ body.teacher-mode .add-unit-row{display:flex}
       "tags": []
     },
     {
-      "id": "r1777609726593",
-      "title": "Test Activity",
-      "desc": "",
-      "file": "activities/test_activity.html",
-      "unit": "Untitled Unit",
-      "type": "activity",
-      "tags": []
-    },
-    {
       "id": "r1777610608129",
       "title": "Applications Of Exponentials",
       "desc": "",
@@ -440,7 +431,7 @@ body.teacher-mode .add-unit-row{display:flex}
       "tags": []
     },
     {
-      "id": "r1777697066039",
+      "id": "r1777685411483",
       "title": "Logarithmic and Exponentials Review",
       "desc": "",
       "file": "activities/logarithmic_and_exponentials_review.html",
