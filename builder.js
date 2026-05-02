@@ -107,6 +107,7 @@ function _migrateProblem(p) {
     if (typeof p.scoreOnly !== 'boolean')    p.scoreOnly = false;
     if (!p.id) p.id = _newId();
     if (typeof p.stem !== 'string') p.stem = '';
+    if (!Array.isArray(p.graphs)) p.graphs = [];
     return p;
   }
 
@@ -132,6 +133,7 @@ function _migrateProblem(p) {
     type: 'problem',
     stem: stem,
     blanks: [blank],
+    graphs: [],
     liveFeedback: true,
     scoreOnly: false
   };
@@ -154,6 +156,7 @@ function _newProblem() {
     type: 'problem',
     stem: '',
     blanks: [],
+    graphs: [],
     // Inherit current global defaults at creation time
     liveFeedback: builderState && builderState.defaults ? builderState.defaults.liveFeedback : true,
     scoreOnly:    builderState && builderState.defaults ? builderState.defaults.scoreOnly    : false
@@ -297,8 +300,13 @@ function renderProblems() {
     dropBtn.className = 'add-btn';
     dropBtn.innerHTML = '<span class="plus">+</span> Insert dropdown blank';
     dropBtn.onclick = () => _insertBlankAtCursor(p.id, stemArea, 'dropdown');
+    const graphBtn = document.createElement('button');
+    graphBtn.className = 'add-btn';
+    graphBtn.innerHTML = '<span class="plus">+</span> Insert graph';
+    graphBtn.onclick = () => _openGraphEditor(p.id, null, stemArea);
     insertRow.appendChild(fillBtn);
     insertRow.appendChild(dropBtn);
+    insertRow.appendChild(graphBtn);
     card.appendChild(insertRow);
 
     // ----- Stem analysis: warn about duplicate / orphan blanks
@@ -337,6 +345,22 @@ function renderProblems() {
       });
     }
 
+    // ----- Graphs section (parallel to blanks)
+    const graphs = p.graphs || [];
+    if (graphs.length > 0) {
+      const graphsLabel = document.createElement('div');
+      graphsLabel.className = 'field-label';
+      graphsLabel.style.marginTop = '12px';
+      graphsLabel.textContent = 'Graphs';
+      card.appendChild(graphsLabel);
+
+      const stemTokens = _findGraphTokensInStem(p.stem || '');
+      graphs.forEach((g) => {
+        const isOrphan = !stemTokens.has(g.id);
+        card.appendChild(_renderGraphCard(p, g, isOrphan));
+      });
+    }
+
     container.appendChild(card);
   });
 }
@@ -357,6 +381,311 @@ function _analyzeStem(stem, blanks) {
     if (!inStem.has(i)) orphans.push(i);
   }
   return { duplicates: duplicates, orphans: orphans, inStem: inStem };
+}
+
+// =============================================================================
+// GRAPH BLOCKS
+// -----------------------------------------------------------------------------
+// A graph block lives on a problem as { id, state, alt, width, height,
+// imageDataUri }. The stem references it via {{graph:<id>}}. At compile time
+// the token is replaced with an <img> tag using the cached imageDataUri.
+//
+// Capture happens at SAVE time (not compile time) to keep compileActivity()
+// synchronous — preview-on-keystroke must stay fast.
+// =============================================================================
+
+const GRAPH_DEFAULT_W = 480;
+const GRAPH_DEFAULT_H = 320;
+const GRAPH_TOKEN_RE = /\{\{graph:(graph_[a-z0-9]+)\}\}/g;
+
+function _newGraphId() {
+  return 'graph_' + Math.random().toString(36).slice(2, 10);
+}
+
+function _findGraphTokensInStem(stem) {
+  const ids = new Set();
+  let m;
+  GRAPH_TOKEN_RE.lastIndex = 0;
+  while ((m = GRAPH_TOKEN_RE.exec(stem || '')) !== null) ids.add(m[1]);
+  return ids;
+}
+
+// Render the per-graph chip in the problem editor (under "Graphs").
+function _renderGraphCard(p, g, isOrphan) {
+  const card = document.createElement('div');
+  card.className = 'graph-card' + (isOrphan ? ' orphan' : '');
+
+  // Thumb
+  if (g.imageDataUri) {
+    const img = document.createElement('img');
+    img.className = 'graph-thumb';
+    img.src = g.imageDataUri;
+    img.alt = '';
+    card.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'graph-thumb-empty';
+    ph.textContent = '\u29BF';
+    card.appendChild(ph);
+  }
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'graph-card-body';
+  const idEl = document.createElement('div');
+  idEl.className = 'graph-card-id';
+  idEl.textContent = g.id;
+  body.appendChild(idEl);
+  const altEl = document.createElement('div');
+  altEl.className = 'graph-card-alt' + (g.alt ? '' : ' empty');
+  altEl.textContent = g.alt ? g.alt : 'No alt text — edit to add.';
+  body.appendChild(altEl);
+  if (isOrphan) {
+    const w = document.createElement('div');
+    w.className = 'graph-orphan-warn';
+    w.textContent = '\u26A0 Not referenced in stem';
+    body.appendChild(w);
+  }
+  card.appendChild(body);
+
+  // Actions
+  const actions = document.createElement('div');
+  actions.className = 'graph-card-actions';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'bb-btn';
+  editBtn.title = 'Edit graph';
+  editBtn.textContent = '\u270E';
+  editBtn.onclick = () => _openGraphEditor(p.id, g.id, null);
+  const insertBtn = document.createElement('button');
+  insertBtn.className = 'bb-btn';
+  insertBtn.title = 'Insert reference into stem at end';
+  insertBtn.textContent = '\u21B5';
+  insertBtn.onclick = () => _insertGraphTokenAtEnd(p.id, g.id);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'bb-btn danger';
+  delBtn.title = 'Delete graph';
+  delBtn.textContent = '\u00D7';
+  delBtn.onclick = () => {
+    if (!confirm('Delete this graph? Any {{graph:' + g.id + '}} reference in the stem will become broken text.')) return;
+    p.graphs = (p.graphs || []).filter(x => x.id !== g.id);
+    saveDraft();
+    renderProblems();
+    refreshPreview();
+  };
+  actions.appendChild(editBtn);
+  actions.appendChild(insertBtn);
+  actions.appendChild(delBtn);
+  card.appendChild(actions);
+
+  return card;
+}
+
+// Insert a {{graph:id}} token at the end of the stem (used when a graph exists
+// in p.graphs but the teacher has lost the reference).
+function _insertGraphTokenAtEnd(problemId, graphId) {
+  const p = builderState.problems.find(x => x.id === problemId);
+  if (!p) return;
+  const token = '{{graph:' + graphId + '}}';
+  p.stem = (p.stem || '').replace(/\s*$/, '') + '\n\n' + token + '\n';
+  saveDraft();
+  renderProblems();
+  refreshPreview();
+}
+
+// ---------- Graph editor modal ----------------------------------------------
+// Module-level state: which problem/graph we're editing, and the live Desmos
+// instance. Reset on close so we don't leak calculators.
+let _graphEditor = {
+  problemId: null,
+  graphId: null,         // null = creating new
+  insertTarget: null,    // textarea to insert token into on save (new only)
+  calc: null
+};
+
+function _openGraphEditor(problemId, graphId, insertTarget) {
+  if (typeof Desmos === 'undefined') {
+    alert('Desmos API has not loaded yet. Wait a moment and try again.');
+    return;
+  }
+  const p = builderState.problems.find(x => x.id === problemId);
+  if (!p) return;
+
+  _graphEditor.problemId = problemId;
+  _graphEditor.graphId = graphId;
+  _graphEditor.insertTarget = insertTarget;
+
+  const backdrop = document.getElementById('graphEditorBackdrop');
+  const titleEl  = document.getElementById('graphEditorTitle');
+  const altEl    = document.getElementById('graphEditorAlt');
+  const wEl      = document.getElementById('graphEditorWidth');
+  const hEl      = document.getElementById('graphEditorHeight');
+  const reqEl    = document.getElementById('graphEditorAltRequired');
+  const status   = document.getElementById('graphEditorStatus');
+  const host     = document.getElementById('graphEditorHost');
+
+  // Reset UI
+  reqEl.classList.remove('visible');
+  status.classList.remove('error');
+  status.textContent = '';
+  host.innerHTML = '';
+
+  // Find existing graph (if editing) or seed a fresh one
+  let existing = null;
+  if (graphId) {
+    existing = (p.graphs || []).find(x => x.id === graphId);
+  }
+  if (existing) {
+    titleEl.textContent = 'Edit graph';
+    altEl.value = existing.alt || '';
+    wEl.value = existing.width || GRAPH_DEFAULT_W;
+    hEl.value = existing.height || GRAPH_DEFAULT_H;
+  } else {
+    titleEl.textContent = 'Insert graph';
+    altEl.value = '';
+    wEl.value = GRAPH_DEFAULT_W;
+    hEl.value = GRAPH_DEFAULT_H;
+  }
+
+  // Spin up Desmos in the host. We use a permissive set of options here so the
+  // teacher can author freely; the captured screenshot is just an image.
+  // Modal must be visible (.open) before we instantiate, otherwise the host
+  // has zero size and the calculator mounts with a 0x0 viewport.
+  backdrop.classList.add('open');
+  _graphEditor.calc = Desmos.GraphingCalculator(host, {
+    expressions: true,
+    settingsMenu: true,
+    zoomButtons: true,
+    keypad: true,
+    border: false
+  });
+  if (existing && existing.state) {
+    try {
+      _graphEditor.calc.setState(existing.state);
+    } catch (e) {
+      console.warn('[graph editor] setState failed; starting blank:', e);
+    }
+  }
+
+  // Resize after layout settles
+  setTimeout(() => { if (_graphEditor.calc && _graphEditor.calc.resize) _graphEditor.calc.resize(); }, 60);
+}
+
+function closeGraphEditor() {
+  const backdrop = document.getElementById('graphEditorBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  if (_graphEditor.calc && _graphEditor.calc.destroy) {
+    try { _graphEditor.calc.destroy(); } catch (e) { /* ignore */ }
+  }
+  _graphEditor.calc = null;
+  _graphEditor.problemId = null;
+  _graphEditor.graphId = null;
+  _graphEditor.insertTarget = null;
+}
+// expose for inline onclick
+window.closeGraphEditor = closeGraphEditor;
+
+function saveGraphEditor() {
+  const altEl  = document.getElementById('graphEditorAlt');
+  const wEl    = document.getElementById('graphEditorWidth');
+  const hEl    = document.getElementById('graphEditorHeight');
+  const reqEl  = document.getElementById('graphEditorAltRequired');
+  const status = document.getElementById('graphEditorStatus');
+  const saveBtn = document.getElementById('graphEditorSaveBtn');
+
+  const alt = (altEl.value || '').trim();
+  if (!alt) {
+    reqEl.classList.add('visible');
+    altEl.focus();
+    return;
+  }
+  reqEl.classList.remove('visible');
+
+  const w = Math.max(200, Math.min(900, parseInt(wEl.value, 10) || GRAPH_DEFAULT_W));
+  const h = Math.max(160, Math.min(600, parseInt(hEl.value, 10) || GRAPH_DEFAULT_H));
+
+  const p = builderState.problems.find(x => x.id === _graphEditor.problemId);
+  if (!p || !_graphEditor.calc) { closeGraphEditor(); return; }
+
+  status.classList.remove('error');
+  status.textContent = 'Capturing graph…';
+  saveBtn.disabled = true;
+
+  const calc = _graphEditor.calc;
+  const state = calc.getState();
+
+  // Capture at 2x for retina/print sharpness. asyncScreenshot waits for the
+  // calculator to finish rendering before producing the PNG.
+  _captureGraphPNG(calc, w, h, function(err, dataUri) {
+    saveBtn.disabled = false;
+    if (err) {
+      status.classList.add('error');
+      status.textContent = 'Capture failed: ' + (err.message || err);
+      return;
+    }
+
+    const isNew = !_graphEditor.graphId;
+    const id = _graphEditor.graphId || _newGraphId();
+    if (!Array.isArray(p.graphs)) p.graphs = [];
+
+    const record = {
+      id: id,
+      state: state,
+      alt: alt,
+      width: w,
+      height: h,
+      imageDataUri: dataUri
+    };
+
+    if (isNew) {
+      p.graphs.push(record);
+    } else {
+      const idx = p.graphs.findIndex(g => g.id === id);
+      if (idx >= 0) p.graphs[idx] = record; else p.graphs.push(record);
+    }
+
+    // Insert token at cursor in the stem textarea (new graph only)
+    if (isNew && _graphEditor.insertTarget) {
+      const ta = _graphEditor.insertTarget;
+      const start = ta.selectionStart || ta.value.length;
+      const end   = ta.selectionEnd   || ta.value.length;
+      const token = '{{graph:' + id + '}}';
+      ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+      p.stem = ta.value;
+    }
+
+    saveDraft();
+    closeGraphEditor();
+    renderProblems();
+    refreshPreview();
+  });
+}
+window.saveGraphEditor = saveGraphEditor;
+
+// Capture a Desmos calculator to a PNG data URI. We use asyncScreenshot which
+// renders at the target size and waits for the calculator to settle. The 2x
+// multiplier is for crisp display and print; CSS width/height attributes on
+// the <img> keep it laid out at the authored size.
+function _captureGraphPNG(calc, cssW, cssH, callback) {
+  try {
+    calc.asyncScreenshot(
+      {
+        width: cssW * 2,
+        height: cssH * 2,
+        targetPixelRatio: 1,    // we already pre-multiplied to 2x
+        showLabels: true,
+        mode: 'preserveX'
+      },
+      function(dataUri) {
+        if (!dataUri || typeof dataUri !== 'string') {
+          callback(new Error('Empty screenshot'));
+          return;
+        }
+        callback(null, dataUri);
+      }
+    );
+  } catch (e) {
+    callback(e);
+  }
 }
 
 // Insert a {{blank:N}} token at the textarea's cursor position, then add a
@@ -1193,6 +1522,29 @@ function _compileProblem(p, idx) {
     // split-and-rejoin behavior so existing simple stems still render.
     stemHTML = _legacyCompileStem(stem, blanks, num);
   }
+
+  // Replace each {{graph:id}} token with the cached pre-rendered image.
+  // Capture happened at save-time in the editor modal, so this is just lookup +
+  // string substitution — compileActivity stays synchronous.
+  const graphs = p.graphs || [];
+  const graphsById = {};
+  graphs.forEach(g => { if (g && g.id) graphsById[g.id] = g; });
+  stemHTML = stemHTML.replace(/\{\{graph:(graph_[a-z0-9]+)\}\}/g, (_, id) => {
+    const g = graphsById[id];
+    if (!g || !g.imageDataUri) {
+      return '<span class="missing-blank">[missing graph ' + _esc(id) + ']</span>';
+    }
+    const altSafe = _esc(g.alt || 'Graph');
+    const w = g.width || 480;
+    const h = g.height || 320;
+    return [
+      '<span class="prob-graph-wrap">',
+      '<img class="prob-graph" src="' + g.imageDataUri + '"',
+      ' alt="' + altSafe + '"',
+      ' width="' + w + '" height="' + h + '">',
+      '</span>'
+    ].join('');
+  });
 
   return [
     '<div class="problem-cell"' + liveAttr + scoreAttr + ' data-problem-num="' + num + '">',

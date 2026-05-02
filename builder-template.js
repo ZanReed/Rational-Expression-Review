@@ -184,6 +184,17 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .feedback.incorrect{color:var(--red)}
 .prob-feedback{margin-left:0;display:block;margin-top:8px;min-height:1em}
 
+/* Embedded static graphs (pre-rendered from Desmos at compile time) */
+.prob-graph-wrap{display:block;margin:14px 0;text-align:center}
+.prob-graph{display:inline-block;max-width:100%;height:auto;border:1px solid var(--rule);border-radius:4px;background:white}
+.prob-graph-caption{display:block;font-family:var(--sans);font-size:11px;color:var(--ink-light);margin-top:4px;font-style:italic}
+
+@media print {
+  .prob-graph-wrap{break-inside:avoid;page-break-inside:avoid;margin:10px 0}
+  .prob-graph{border-color:#999;max-width:100%;height:auto}
+  .prob-graph-caption{display:none}
+}
+
 /* Inline blanks (placed mid-sentence in stem) */
 .inline-blank{min-width:80px;width:auto;padding:3px 8px;font-size:14px;vertical-align:baseline;margin:0 4px}
 .inline-blank-wrap{display:inline-block;margin:0 4px;vertical-align:baseline}
