@@ -85,6 +85,22 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .float-win-body iframe{width:100%;height:100%;border:0;display:block}
 .float-win-resize{position:absolute;bottom:0;right:0;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:5;background:linear-gradient(135deg,transparent 0 55%,var(--ink-light) 55% 62%,transparent 62% 72%,var(--ink-light) 72% 79%,transparent 79%)}
 
+/* ---------- REFERENCE SHEET (rendered inside a float window) ---------- */
+.ref-sheet{padding:18px 22px 24px;font-family:var(--serif);color:var(--ink);overflow-y:auto;height:100%;font-size:14px;line-height:1.55}
+.ref-sheet-title{font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.ref-sheet h3.ref-section{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.ref-sheet h3.ref-section:first-child,.ref-sheet-title + h3.ref-section{margin-top:0}
+.ref-sheet h4.ref-subsection{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--ink-mid);margin:12px 0 6px;text-transform:none}
+.ref-sheet .ref-row{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:14px;align-items:baseline;padding:6px 0;border-bottom:1px dotted var(--rule)}
+.ref-sheet .ref-row:last-child{border-bottom:none}
+.ref-sheet .ref-label{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--ink-mid);letter-spacing:.01em}
+.ref-sheet .ref-body{font-family:var(--serif);font-size:15px;color:var(--ink);overflow-x:auto}
+.ref-sheet .ref-para{margin:6px 0;font-size:14px;line-height:1.6}
+.ref-sheet ul.ref-list{margin:6px 0 6px 22px;padding:0;font-size:14px}
+.ref-sheet ul.ref-list li{margin:3px 0}
+.ref-sheet hr.ref-hr{border:none;border-top:1px solid var(--rule);margin:14px 0}
+.ref-sheet-empty{padding:24px;color:var(--ink-light);font-size:13px;text-align:center;font-family:var(--sans)}
+
 /* ---------- PROBLEM CELLS ---------- */
 .main-content{margin-top:12px}
 .problem-cell{background:var(--page);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;margin-bottom:14px}
@@ -416,8 +432,127 @@ var ToolRegistry = {
   },
   desmos_geometry: function(cfg){
     return _desmosTool(cfg, 'Geometry');
+  },
+  reference_sheet: function(cfg){
+    return {
+      label: cfg.label || 'Reference',
+      icon: '\uD83D\uDCCB', // clipboard
+      render: function(body){
+        var raw = (cfg.content || '').toString();
+        if (!raw.trim()) {
+          body.innerHTML = '<div class="ref-sheet-empty">No reference content configured.</div>';
+          return null;
+        }
+        var sheet = document.createElement('div');
+        sheet.className = 'ref-sheet';
+        var html = '';
+        if (cfg.title && cfg.title.trim()) {
+          html += '<div class="ref-sheet-title">' + _refEscape(cfg.title) + '</div>';
+        }
+        html += _parseReferenceSheet(raw);
+        sheet.innerHTML = html;
+        body.appendChild(sheet);
+
+        // Trigger KaTeX render on this subtree once auto-render is available.
+        // Same delimiter set used elsewhere on the page.
+        _renderRefMath(sheet);
+
+        return { sheet: sheet };
+      },
+      destroy: function(state){
+        if (state && state.sheet && state.sheet.parentNode) {
+          state.sheet.parentNode.removeChild(state.sheet);
+        }
+      }
+    };
   }
 };
+
+// ---------- Reference-sheet parser ----------------------------------------
+// Intentionally tiny markdown subset; math passes through verbatim and is
+// rendered by KaTeX after insertion. Only block-level structure is parsed.
+function _parseReferenceSheet(text){
+  var lines = text.split(/\\r?\\n/);
+  var out = '';
+  var listOpen = false;
+  function closeList(){ if (listOpen) { out += '</ul>'; listOpen = false; } }
+
+  for (var i = 0; i < lines.length; i++) {
+    var raw = lines[i];
+    var trimmed = raw.replace(/^\\s+|\\s+$/g, '');
+
+    if (!trimmed) { closeList(); continue; }
+
+    // ### subsection (check before ## so we don't match ## inside ###)
+    if (trimmed.indexOf('### ') === 0) {
+      closeList();
+      out += '<h4 class="ref-subsection">' + _refEscape(trimmed.slice(4)) + '</h4>';
+      continue;
+    }
+    // ## section
+    if (trimmed.indexOf('## ') === 0) {
+      closeList();
+      out += '<h3 class="ref-section">' + _refEscape(trimmed.slice(3)) + '</h3>';
+      continue;
+    }
+    // --- horizontal rule
+    if (/^-{3,}$/.test(trimmed)) {
+      closeList();
+      out += '<hr class="ref-hr">';
+      continue;
+    }
+    // - or * bullet
+    if (trimmed.indexOf('- ') === 0 || trimmed.indexOf('* ') === 0) {
+      if (!listOpen) { out += '<ul class="ref-list">'; listOpen = true; }
+      out += '<li>' + _refEscape(trimmed.slice(2)) + '</li>';
+      continue;
+    }
+    // Label :: body  -> two-column row
+    var sep = trimmed.indexOf(' :: ');
+    if (sep > 0) {
+      closeList();
+      var label = trimmed.slice(0, sep);
+      var bodyText = trimmed.slice(sep + 4);
+      out += '<div class="ref-row">' +
+               '<div class="ref-label">' + _refEscape(label) + '</div>' +
+               '<div class="ref-body">' + _refEscape(bodyText) + '</div>' +
+             '</div>';
+      continue;
+    }
+    // Plain paragraph
+    closeList();
+    out += '<p class="ref-para">' + _refEscape(trimmed) + '</p>';
+  }
+  closeList();
+  return out;
+}
+
+function _refEscape(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function _renderRefMath(el){
+  function attempt(retries){
+    if (typeof renderMathInElement === 'function') {
+      try {
+        renderMathInElement(el, {
+          delimiters: [
+            { left: '\\\\(', right: '\\\\)', display: false },
+            { left: '\\\\[', right: '\\\\]', display: true },
+            { left: '$$',    right: '$$',    display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (e) { console.warn('ref-sheet KaTeX render failed:', e); }
+      return;
+    }
+    if (retries > 0) setTimeout(function(){ attempt(retries - 1); }, 100);
+  }
+  attempt(50);
+}
 
 function _desmosTool(cfg, calcType){
   return {

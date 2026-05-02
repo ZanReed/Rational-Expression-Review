@@ -582,7 +582,8 @@ const TOOL_DEFAULTS = {
   video:             { label: 'Video',      embedUrl: '' },
   desmos_graphing:   { label: 'Graphing',   expressions: [], advanced: false, viewport: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, locked: false }, hideExpressionList: false, hideSettings: false, polar: false, projectorMode: false },
   desmos_scientific: { label: 'Scientific Calc' },
-  desmos_geometry:   { label: 'Geometry',   advanced: false }
+  desmos_geometry:   { label: 'Geometry',   advanced: false },
+  reference_sheet:   { label: 'Formulas',   title: '', content: '' }
 };
 
 function addSidebarTool(type) {
@@ -660,6 +661,7 @@ function renderSidebarTools() {
     else if (t.type === 'desmos_graphing') _renderDesmosGraphingFields(card, t);
     else if (t.type === 'desmos_scientific') _renderSimpleLabelField(card, t);
     else if (t.type === 'desmos_geometry') _renderDesmosGeometryFields(card, t);
+    else if (t.type === 'reference_sheet') _renderReferenceSheetFields(card, t);
     // save / load: no config UI
 
     container.appendChild(card);
@@ -673,7 +675,8 @@ function _toolTypeLabel(type) {
     load: 'Load',
     desmos_graphing: 'Desmos — Graphing Calculator',
     desmos_scientific: 'Desmos — Scientific Calculator',
-    desmos_geometry: 'Desmos — Geometry'
+    desmos_geometry: 'Desmos — Geometry',
+    reference_sheet: 'Reference Sheet'
   })[type] || type;
 }
 
@@ -802,6 +805,174 @@ function _renderDesmosGeometryFields(card, t) {
   hint.textContent = 'Geometry tool opens with a blank construction surface.';
   card.appendChild(hint);
 }
+
+// =============================================================================
+// REFERENCE SHEET — formula sheets, exemplars, and other static reference
+// material rendered into a floating window for student use.
+//
+// Authoring format (markdown-ish, KaTeX-aware):
+//   ## Section heading
+//   ### Subsection heading
+//   Label :: \(formula or text\)        ← two-column row, separator is " :: "
+//   - bullet item
+//   ---                                  ← horizontal rule
+//   Plain paragraph                      ← any line that doesn't match above
+//
+// Math passes through verbatim — the runtime calls KaTeX auto-render after
+// inserting the parsed HTML, so \( \) and \[ \] delimiters work as elsewhere.
+// =============================================================================
+function _renderReferenceSheetFields(card, t) {
+  _renderSimpleLabelField(card, t);
+
+  // Optional in-window title (separate from the sidebar button label)
+  const titleLab = document.createElement('label');
+  titleLab.className = 'field-label';
+  titleLab.style.marginTop = '10px';
+  titleLab.textContent = 'Window title (shown at top of the floating window — optional)';
+  card.appendChild(titleLab);
+
+  const titleInp = document.createElement('input');
+  titleInp.type = 'text';
+  titleInp.className = 'text-input';
+  titleInp.value = t.title || '';
+  titleInp.placeholder = 'e.g. ACP Formulas — Algebra II';
+  titleInp.oninput = () => updateSidebarTool(t.id, 'title', titleInp.value);
+  card.appendChild(titleInp);
+
+  // Content textarea
+  const contentLab = document.createElement('label');
+  contentLab.className = 'field-label';
+  contentLab.style.marginTop = '10px';
+  contentLab.textContent = 'Content';
+  card.appendChild(contentLab);
+
+  const contentHint = document.createElement('div');
+  contentHint.className = 'field-hint';
+  contentHint.innerHTML =
+    'Use <code>## Section</code>, <code>### Subsection</code>, and ' +
+    '<code>Label :: content</code> rows for two-column formula layouts. ' +
+    'Wrap math in <code>\\(...\\)</code> (inline) or <code>\\[...\\]</code> (display). ' +
+    'For bulk import from a PDF, expand the agent prompt below.';
+  card.appendChild(contentHint);
+
+  const ta = document.createElement('textarea');
+  ta.className = 'text-input';
+  ta.rows = 12;
+  ta.style.fontFamily = 'var(--mono, monospace)';
+  ta.style.fontSize = '12px';
+  ta.value = t.content || '';
+  ta.placeholder =
+    '## Coordinate Geometry\n' +
+    'Midpoint :: \\(M = \\left(\\dfrac{x_1+x_2}{2},\\ \\dfrac{y_1+y_2}{2}\\right)\\)\n' +
+    'Slope :: \\(m = \\dfrac{y_2 - y_1}{x_2 - x_1}\\)\n' +
+    'Distance :: \\(d = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}\\)\n';
+  ta.oninput = () => updateSidebarTool(t.id, 'content', ta.value);
+  card.appendChild(ta);
+
+  // Agent prompt panel — the format spec lives next to the tool itself
+  // so it can't drift out of sync with the runtime parser.
+  const promptDetails = document.createElement('details');
+  promptDetails.className = 'advanced';
+  promptDetails.style.marginTop = '10px';
+
+  const summary = document.createElement('summary');
+  summary.textContent = 'Agent prompt for bulk import from a PDF';
+  promptDetails.appendChild(summary);
+
+  const promptHint = document.createElement('div');
+  promptHint.className = 'field-hint';
+  promptHint.style.marginTop = '8px';
+  promptHint.innerHTML =
+    'Copy the prompt below, paste it into Claude (or another agent) along with ' +
+    'a PDF of the source material, and paste the agent\u2019s output into the ' +
+    'Content box above.';
+  promptDetails.appendChild(promptHint);
+
+  const promptBox = document.createElement('textarea');
+  promptBox.className = 'text-input';
+  promptBox.rows = 14;
+  promptBox.style.fontFamily = 'var(--mono, monospace)';
+  promptBox.style.fontSize = '11px';
+  promptBox.readOnly = true;
+  promptBox.value = REFERENCE_SHEET_AGENT_PROMPT;
+  promptBox.onclick = () => promptBox.select();
+  promptDetails.appendChild(promptBox);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'add-btn';
+  copyBtn.style.marginTop = '6px';
+  copyBtn.textContent = 'Copy prompt to clipboard';
+  copyBtn.onclick = (e) => {
+    e.preventDefault();
+    try {
+      navigator.clipboard.writeText(REFERENCE_SHEET_AGENT_PROMPT);
+      copyBtn.textContent = '✓ Copied';
+      setTimeout(() => { copyBtn.textContent = 'Copy prompt to clipboard'; }, 1500);
+    } catch (err) {
+      promptBox.select();
+      document.execCommand('copy');
+      copyBtn.textContent = '✓ Copied (fallback)';
+      setTimeout(() => { copyBtn.textContent = 'Copy prompt to clipboard'; }, 1500);
+    }
+  };
+  promptDetails.appendChild(copyBtn);
+
+  card.appendChild(promptDetails);
+}
+
+// Authoring guide for an LLM agent given a source PDF/document. Kept as a
+// constant so the same text powers the in-builder copy button AND can be
+// exported (e.g. printed from the console) if needed.
+const REFERENCE_SHEET_AGENT_PROMPT =
+'You are converting reference material (a formula sheet, study guide, or exemplar\n' +
+'document) into the format used by an Algebra II activity builder\u2019s "Reference\n' +
+'Sheet" sidebar tool. Read the source document I provide and output ONLY the\n' +
+'formatted content \u2014 no preamble, no commentary, no code fences.\n' +
+'\n' +
+'FORMAT\n' +
+'  ## Section Heading\n' +
+'  ### Subsection Heading\n' +
+'  Label :: content              \u2190 two-column row; separator is " :: " (space-colon-colon-space)\n' +
+'  - bullet item\n' +
+'  ---                            \u2190 horizontal rule\n' +
+'  Plain paragraph                \u2190 any line that doesn\u2019t match the above\n' +
+'\n' +
+'  Math: wrap inline math in \\( ... \\) and display math in \\[ ... \\]. Use\n' +
+'  standard LaTeX inside. Blank lines separate blocks.\n' +
+'\n' +
+'EXAMPLE\n' +
+'  ## Coordinate Geometry\n' +
+'  Midpoint :: \\(M = \\left(\\dfrac{x_1+x_2}{2},\\ \\dfrac{y_1+y_2}{2}\\right)\\)\n' +
+'  Slope :: \\(m = \\dfrac{y_2 - y_1}{x_2 - x_1}\\)\n' +
+'  Distance :: \\(d = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}\\)\n' +
+'\n' +
+'  ## Properties of Exponents\n' +
+'  Product of Powers :: \\(a^m \\cdot a^n = a^{m+n}\\)\n' +
+'  Power of a Power :: \\((a^m)^n = a^{mn}\\)\n' +
+'  Quotient of Powers :: \\(\\dfrac{a^m}{a^n} = a^{m-n}\\)\n' +
+'  Negative Exponent :: \\(a^{-n} = \\dfrac{1}{a^n}\\)\n' +
+'  Rational Exponent :: \\(a^{m/n} = \\sqrt[n]{a^m}\\)\n' +
+'\n' +
+'GUIDELINES\n' +
+'- Preserve the source\u2019s section structure. Use ## for major sections, ### only\n' +
+'  for nested groupings within a section.\n' +
+'- For named formulas (Midpoint, Slope, Quadratic Formula, etc.), use the\n' +
+'  "Label :: \\(formula\\)" pattern \u2014 it renders as a clean two-column row.\n' +
+'- For prose explanations or definitions without a clear label, write a plain\n' +
+'  paragraph (no separator).\n' +
+'- Use \\dfrac for stacked fractions, \\sqrt for roots, \\cdot for explicit\n' +
+'  multiplication, ^ and _ for exponents and subscripts, \\pm for \u00b1, \\le \\ge\n' +
+'  \\ne for \u2264 \u2265 \u2260, \\left( \\right) for auto-sized parens.\n' +
+'- If the source has a side-by-side 2-column layout pairing different formula\n' +
+'  groups (e.g. "Adding | Subtracting" matrices, "Standard Form | Vertex Form"),\n' +
+'  put each group as its own ## or ### with rows underneath. Don\u2019t try to\n' +
+'  reproduce the side-by-side visual.\n' +
+'- Don\u2019t HTML-escape anything. The renderer handles escaping; just write the\n' +
+'  text and LaTeX as a human would.\n' +
+'- Output ONLY the formatted content, ready to paste into the Content box.\n' +
+'\n' +
+'Source:\n' +
+'[attach the PDF or paste the source content here]\n';
 
 // =============================================================================
 // COMPILE ACTIVITY
