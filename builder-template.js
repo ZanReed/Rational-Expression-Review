@@ -236,10 +236,134 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 #submitMsg.success{color:var(--green);font-weight:500}
 #submitMsg.error{color:var(--red);font-weight:500}
 
+/* ---------- MOBILE LAYOUT ---------- */
+/* Sidebar ribbon -> fixed bottom toolbar.
+   Tool windows -> bottom sheet that fills lower 62vh.
+   One window open at a time on mobile (enforced in JS). */
 @media (max-width:720px){
-  body{padding:16px 12px 60px 12px}
-  .sticky-panel{position:static;width:auto;flex-direction:row;flex-wrap:wrap;border-radius:5px;border:1px solid var(--rule);margin-bottom:18px;max-height:none}
-  .ribbon-divider{width:1px;height:auto;margin:0 4px}
+  body{
+    padding:14px 12px calc(76px + env(safe-area-inset-bottom)) 12px;
+    -webkit-text-size-adjust:100%;
+  }
+
+  /* Header */
+  .page-header h1{font-size:24px}
+  .page-header p{font-size:12px}
+
+  /* Student bar: 2-up grid; GSI button drops to its own row */
+  .student-bar{padding:12px;gap:10px}
+  .student-bar label{min-width:0;flex:1 1 calc(50% - 5px)}
+  .student-bar input,.student-bar select{font-size:16px;padding:9px 10px}
+  #gsiHolder{margin-left:0;flex:1 1 100%;justify-content:flex-start;flex-wrap:wrap}
+
+  /* Sidebar -> bottom toolbar (horizontal scroll) */
+  .sticky-panel{
+    position:fixed;
+    top:auto;
+    bottom:0;
+    left:0;
+    right:0;
+    width:auto;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    overflow-y:hidden;
+    max-height:none;
+    border-radius:0;
+    border-top:1px solid var(--rule);
+    border-right:none;
+    border-left:none;
+    border-bottom:none;
+    box-shadow:0 -2px 10px rgba(0,0,0,.08);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+    gap:4px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .ribbon-btn{
+    flex-shrink:0;
+    min-width:64px;
+    min-height:48px;
+    padding:6px 10px;
+    flex-direction:column;
+  }
+  .ribbon-divider{
+    width:1px;height:auto;margin:6px 2px;flex-shrink:0;align-self:stretch;
+  }
+
+  /* Float windows -> bottom sheets (CSS pins them; ignores inline left/top) */
+  .float-window{
+    position:fixed !important;
+    left:0 !important;
+    right:0 !important;
+    top:auto !important;
+    bottom:calc(60px + env(safe-area-inset-bottom)) !important;
+    width:auto !important;
+    height:62vh !important;
+    max-height:calc(100vh - 60px - env(safe-area-inset-bottom) - 24px) !important;
+    border-radius:14px 14px 0 0;
+    box-shadow:0 -8px 28px rgba(0,0,0,.18);
+    animation:sheetSlideUp .22s ease-out;
+  }
+  @keyframes sheetSlideUp{
+    from{transform:translateY(100%)}
+    to{transform:translateY(0)}
+  }
+  .float-win-header{
+    cursor:default;
+    padding:18px 12px 10px 16px;
+    position:relative;
+    touch-action:auto;
+  }
+  /* Grab-handle visual at top of sheet */
+  .float-win-header::before{
+    content:'';
+    position:absolute;
+    top:6px;
+    left:50%;
+    transform:translateX(-50%);
+    width:36px;
+    height:4px;
+    border-radius:2px;
+    background:var(--rule);
+  }
+  .float-win-close{width:36px;height:36px;font-size:18px}
+  .float-win-resize{display:none}
+
+  /* Problem cells: tighter padding; full-width inputs (16px font = no iOS zoom) */
+  .problem-cell{padding:14px 16px}
+  .ans-num{min-width:0;width:100%;font-size:16px;padding:10px 12px}
+  /* Inline blanks stay inline */
+  .ans-num.inline-blank,.inline-blank-wrap .ans-num{
+    width:auto;min-width:80px;display:inline-block;font-size:14px;padding:4px 10px
+  }
+
+  /* Dropdowns: full-width unless inline */
+  .md-dropdown{display:block;min-width:0;width:100%}
+  .md-trigger{font-size:16px;padding:10px 12px;width:100%}
+  .md-option{padding:10px 12px;font-size:15px}
+  .inline-blank-wrap .md-dropdown{display:inline-block;width:auto;min-width:140px}
+  .inline-blank-wrap .md-trigger{font-size:14px;padding:5px 10px;width:auto}
+
+  /* Math overflow: long display equations scroll horizontally instead of breaking layout */
+  .katex-display{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:4px 0}
+
+  /* Submit area */
+  .submit-wrap{flex-wrap:wrap;padding:14px 16px;gap:10px}
+  .score-badge{margin-left:0}
+  #submitBtn{font-size:15px;padding:11px 22px;flex:0 0 auto}
+
+  /* Reference sheets: stack the two-column rows */
+  .ref-sheet{padding:14px 16px 18px;font-size:13px}
+  .ref-sheet .ref-row{grid-template-columns:1fr;gap:4px;padding:8px 0}
+  .ref-sheet .ref-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .ref-sheet .ref-body{font-size:14px}
+}
+
+/* Narrow phones: stack student bar to 1-up */
+@media (max-width:420px){
+  .student-bar label{flex:1 1 100%}
+  .ribbon-btn{min-width:58px}
+  .rb-label{font-size:9px}
 }
 </style>
 </head>
@@ -320,6 +444,10 @@ var WindowManager = (function(){
   var defaultPositions = { offsetX: 100, offsetY: 80, stagger: 28 };
   var openCount = 0;
 
+  function _isMobile(){
+    return !!(window.matchMedia && window.matchMedia('(max-width:720px)').matches);
+  }
+
   function nextZ(){ zCounter += 1; return zCounter; }
 
   function defaultRect(){
@@ -353,6 +481,12 @@ var WindowManager = (function(){
   }
 
   function open(toolId, config){
+    // Mobile: only one drawer open at a time. Close any others first.
+    if (_isMobile()) {
+      Object.keys(windows).forEach(function(id){
+        if (id !== toolId) close(id);
+      });
+    }
     var rect = defaultRect();
     var container = document.getElementById('floatingWindowContainer');
 
@@ -416,42 +550,101 @@ var WindowManager = (function(){
 
   function attachDrag(win, header){
     var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
-    header.addEventListener('mousedown', function(e){
-      if (e.target.tagName === 'BUTTON') return;
+
+    function start(clientX, clientY, target){
+      // No drag on mobile: CSS pins the sheet to the bottom.
+      if (_isMobile()) return false;
+      if (target && target.tagName === 'BUTTON') return false;
       dragging = true;
-      sx = e.clientX; sy = e.clientY;
+      sx = clientX; sy = clientY;
       ox = parseInt(win.style.left, 10) || 0;
       oy = parseInt(win.style.top, 10) || 0;
-      e.preventDefault();
-    });
-    document.addEventListener('mousemove', function(e){
+      return true;
+    }
+    function move(clientX, clientY){
       if (!dragging) return;
-      win.style.left = (ox + e.clientX - sx) + 'px';
-      win.style.top  = (oy + e.clientY - sy) + 'px';
+      win.style.left = (ox + clientX - sx) + 'px';
+      win.style.top  = (oy + clientY - sy) + 'px';
+    }
+    function end(){ dragging = false; }
+
+    header.addEventListener('mousedown', function(e){
+      if (start(e.clientX, e.clientY, e.target)) e.preventDefault();
     });
-    document.addEventListener('mouseup', function(){ dragging = false; });
+    document.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
+    document.addEventListener('mouseup', end);
+
+    header.addEventListener('touchstart', function(e){
+      var t = e.touches[0];
+      if (start(t.clientX, t.clientY, e.target)) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchmove', function(e){
+      if (!dragging) return;
+      var t = e.touches[0];
+      move(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
   }
 
   function attachResize(win, handle, config){
     var resizing = false, sx = 0, sy = 0, ow = 0, oh = 0;
-    handle.addEventListener('mousedown', function(e){
+
+    function start(clientX, clientY){
+      // No resize on mobile.
+      if (_isMobile()) return false;
       resizing = true;
-      sx = e.clientX; sy = e.clientY;
+      sx = clientX; sy = clientY;
       ow = win.offsetWidth; oh = win.offsetHeight;
-      e.preventDefault(); e.stopPropagation();
-    });
-    document.addEventListener('mousemove', function(e){
+      return true;
+    }
+    function move(clientX, clientY){
       if (!resizing) return;
-      var nw = Math.max(300, ow + e.clientX - sx);
-      var nh = Math.max(220, oh + e.clientY - sy);
+      var nw = Math.max(300, ow + clientX - sx);
+      var nh = Math.max(220, oh + clientY - sy);
       win.style.width = nw + 'px';
       win.style.height = nh + 'px';
       if (config && typeof config.onResize === 'function') {
         try { config.onResize(windows[win.getAttribute('data-tool-id')]); } catch (e) {}
       }
+    }
+    function end(){ resizing = false; }
+
+    handle.addEventListener('mousedown', function(e){
+      if (start(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); }
     });
-    document.addEventListener('mouseup', function(){ resizing = false; });
+    document.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
+    document.addEventListener('mouseup', end);
+
+    handle.addEventListener('touchstart', function(e){
+      var t = e.touches[0];
+      if (start(t.clientX, t.clientY)) { e.preventDefault(); e.stopPropagation(); }
+    }, { passive: false });
+    document.addEventListener('touchmove', function(e){
+      if (!resizing) return;
+      var t = e.touches[0];
+      move(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
   }
+
+  // Re-fire onResize on viewport changes (orientation, browser resize, mobile
+  // keyboard) so Desmos and other tools can re-measure the bottom sheet.
+  var _resizeTimer;
+  window.addEventListener('resize', function(){
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(function(){
+      Object.keys(windows).forEach(function(toolId){
+        var w = windows[toolId];
+        if (w && w.config && typeof w.config.onResize === 'function') {
+          try { w.config.onResize(w); } catch (e) {}
+        }
+      });
+    }, 150);
+  });
 
   return { open: open, close: close, toggle: toggle, bringToFront: bringToFront, _windows: windows };
 })();
