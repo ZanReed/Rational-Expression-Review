@@ -188,6 +188,16 @@ function _migrateProblem(p) {
       // Phase 6: force page break before this problem in print mode.
       if (typeof p.print.pageBreakBefore !== 'boolean') p.print.pageBreakBefore = false;
     }
+    // Phase 8+: per-blank width override. Migration: any blank without a
+    // width field gets 'auto'. Old activities will continue to render at
+    // smarter auto widths than before — single-digit answers get 1-char
+    // blanks rather than the prior 4-char floor — but no behavior breaks
+    // (the old hardcoded floor of 4 was width waste, not correctness).
+    if (Array.isArray(p.blanks)) {
+      p.blanks.forEach(b => {
+        if (b && typeof b.width !== 'string') b.width = 'auto';
+      });
+    }
     return p;
   }
 
@@ -199,13 +209,15 @@ function _migrateProblem(p) {
         kind: 'dropdown',
         choices: _normalizeChoices(p.choices || []),
         correctChoice: typeof p.correctChoice === 'number' ? p.correctChoice : 0,
-        randomize: p.randomize !== false
+        randomize: p.randomize !== false,
+        width: 'auto'
       }
     : {
         id: _newId(),
         kind: 'fill_in',
         answer: p.answer || '',
-        tol: parseFloat(p.tol) || 0
+        tol: parseFloat(p.tol) || 0,
+        width: 'auto'
       };
 
   return {
@@ -265,10 +277,62 @@ function _newBlank(kind) {
         { mode: 'text', value: '' }
       ],
       correctChoice: 0,
-      randomize: true
+      randomize: true,
+      // Phase 8+: per-blank width override. 'auto' uses smart sizing based
+      // on answer length (short answers get tight blanks); preset keys
+      // override with fixed widths. See _BLANK_WIDTH_PRESETS.
+      width: 'auto'
     };
   }
-  return { id: _newId(), kind: 'fill_in', answer: '', tol: 0 };
+  return {
+    id: _newId(),
+    kind: 'fill_in',
+    answer: '',
+    tol: 0,
+    width: 'auto'
+  };
+}
+
+// Phase 8+: blank-width presets. Values are character-equivalents that get
+// fed into the existing --ans-len CSS variable, which the input/dropdown
+// width formula multiplies by 0.55em + bias. The 'auto' mode is handled
+// separately in _resolveBlankWidth — it uses a curve that gives short
+// answers tight blanks and long answers proportional space.
+const _BLANK_WIDTH_PRESETS = {
+  'tiny':   1,    // single digit / single letter
+  'small':  3,    // 2-3 chars
+  'medium': 6,    // short word or 4-6 char number
+  'large':  12,   // phrase or long expression
+  'xlarge': 20    // sentence-fragment or very long
+};
+
+const _BLANK_WIDTH_LABELS = {
+  'auto':   'Auto (based on answer length)',
+  'tiny':   'Tiny (~1 char)',
+  'small':  'Small (~3 chars)',
+  'medium': 'Medium (~6 chars)',
+  'large':  'Large (~12 chars)',
+  'xlarge': 'Extra large (~20 chars)'
+};
+
+// Resolve the effective character-length for a blank's width. Used by
+// _compileBlankInput to set --ans-len. The 'auto' curve is intentionally
+// non-linear: very short answers (1-2 chars) get a small bonus so the
+// blank is visually findable, but the bonus tapers off so longer answers
+// don't get oversized.
+function _resolveBlankWidth(blank, answerText) {
+  const w = (blank && blank.width) || 'auto';
+  if (w in _BLANK_WIDTH_PRESETS) return _BLANK_WIDTH_PRESETS[w];
+
+  // Auto: smart curve.
+  const len = (answerText || '').length;
+  if (len <= 1) return 1;        // single char → tight (1 char-eq)
+  if (len <= 2) return 2;        // 2 chars  → 2 char-eq
+  if (len <= 3) return 3;        // 3 chars  → 3 char-eq
+  // Beyond 3 chars, use the answer length verbatim. The CSS formula adds a
+  // 1em bias so even at 4 chars it's plenty wide. The previous floor of 4
+  // is now redundant since len>=4 here.
+  return len;
 }
 
 function addProblem() {
@@ -1004,6 +1068,9 @@ function _renderFillInBlank(card, p, blank, bIdx) {
   tol.oninput = () => _updateBlank(p.id, bIdx, { tol: parseFloat(tol.value) || 0 });
   tolWrap.appendChild(tol);
   card.appendChild(tolWrap);
+
+  // Phase 8+: blank-width override
+  card.appendChild(_buildBlankWidthRow(p, blank, bIdx));
 }
 
 function _renderDropdownBlank(card, p, blank, bIdx) {
@@ -1076,6 +1143,34 @@ function _renderDropdownBlank(card, p, blank, bIdx) {
 
     card.appendChild(row);
   });
+
+  // Phase 8+: blank-width override
+  card.appendChild(_buildBlankWidthRow(p, blank, bIdx));
+}
+
+// Phase 8+: shared "blank width" dropdown row used by both fill-in and
+// dropdown blank cards. Sets blank.width to a preset key or 'auto'.
+function _buildBlankWidthRow(p, blank, bIdx) {
+  const wrap = document.createElement('div');
+  wrap.style.marginTop = '6px';
+  const label = document.createElement('label');
+  label.className = 'field-label';
+  label.textContent = 'Blank width';
+  wrap.appendChild(label);
+
+  const sel = document.createElement('select');
+  sel.className = 'text-input';
+  ['auto', 'tiny', 'small', 'medium', 'large', 'xlarge'].forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = _BLANK_WIDTH_LABELS[k];
+    if ((blank.width || 'auto') === k) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => _updateBlank(p.id, bIdx, { width: sel.value });
+  wrap.appendChild(sel);
+
+  return wrap;
 }
 
 function _updateBlank(problemId, bIdx, patch) {
@@ -1907,7 +2002,7 @@ function _compileBlankInput(blank, inputId) {
 
   if (blank.kind === 'fill_in') {
     const ans = blank.answer || '';
-    const ansLen = Math.max(ans.length, 4);
+    const ansLen = _resolveBlankWidth(blank, ans);
     return '<input type="text" class="ans-num inline-blank" style="--ans-len:' + ansLen + '" id="' + inputId + '" data-correct="' + _escAttr(ans) + '" data-tol="' + (blank.tol || 0) + '" autocomplete="off">';
   }
 
@@ -1915,7 +2010,7 @@ function _compileBlankInput(blank, inputId) {
   const norm = _normalizeChoices(blank.choices || []);
   const correctChoice = norm[blank.correctChoice];
   const correctValue = correctChoice ? correctChoice.value : '';
-  const ansLen = Math.max((correctValue || '').length, 4);
+  const ansLen = _resolveBlankWidth(blank, correctValue);
 
   const options = norm
     .filter(c => c.value && String(c.value).trim())
