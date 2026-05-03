@@ -46,6 +46,14 @@ function _freshState() {
       liveFeedback: true,
       scoreOnly: false
     },
+    // Print-mode defaults (phase 4+). Per-problem workspace/print settings
+    // live on each problem object (p.workspace etc); these are the activity
+    // -wide fallbacks. Stored under .print so future print-related fields
+    // (booklet, answer-key prefs, etc) have a natural home.
+    print: {
+      defaultWorkspaceFormat: 'dots',  // 'blank' | 'lines' | 'dots' | 'squares' | 'coord'
+      units: 'in'                       // 'in' | 'cm' — display-only toggle; spacing is canonical inches
+    },
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
     filename: 'activities/new_activity.html',
@@ -84,6 +92,10 @@ function _migrateState(s) {
   if (!s.defaults) s.defaults = { liveFeedback: true, scoreOnly: false };
   if (typeof s.defaults.liveFeedback !== 'boolean') s.defaults.liveFeedback = true;
   if (typeof s.defaults.scoreOnly !== 'boolean')    s.defaults.scoreOnly = false;
+  // Phase 4: print-mode defaults. Older drafts won't have this; add silently.
+  if (!s.print) s.print = { defaultWorkspaceFormat: 'dots', units: 'in' };
+  if (typeof s.print.defaultWorkspaceFormat !== 'string') s.print.defaultWorkspaceFormat = 'dots';
+  if (s.print.units !== 'cm') s.print.units = 'in';
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
@@ -108,6 +120,14 @@ function _migrateProblem(p) {
     if (!p.id) p.id = _newId();
     if (typeof p.stem !== 'string') p.stem = '';
     if (!Array.isArray(p.graphs)) p.graphs = [];
+    // Phase 4: workspace settings (per-problem). 'default' format means
+    // "use the activity-wide default" (resolved at compile time).
+    if (!p.workspace || typeof p.workspace !== 'object') {
+      p.workspace = { size: 'none', format: 'default' };
+    } else {
+      if (typeof p.workspace.size !== 'string')   p.workspace.size = 'none';
+      if (typeof p.workspace.format !== 'string') p.workspace.format = 'default';
+    }
     return p;
   }
 
@@ -135,7 +155,8 @@ function _migrateProblem(p) {
     blanks: [blank],
     graphs: [],
     liveFeedback: true,
-    scoreOnly: false
+    scoreOnly: false,
+    workspace: { size: 'none', format: 'default' }
   };
 }
 
@@ -159,7 +180,10 @@ function _newProblem() {
     graphs: [],
     // Inherit current global defaults at creation time
     liveFeedback: builderState && builderState.defaults ? builderState.defaults.liveFeedback : true,
-    scoreOnly:    builderState && builderState.defaults ? builderState.defaults.scoreOnly    : false
+    scoreOnly:    builderState && builderState.defaults ? builderState.defaults.scoreOnly    : false,
+    // Phase 4: per-problem workspace settings. 'default' format = use the
+    // activity-wide default (resolved at compile time in _compileProblem).
+    workspace: { size: 'none', format: 'default' }
   };
 }
 
@@ -259,6 +283,45 @@ function renderProblems() {
       cb.onchange = (e) => updateProblem(p.id, e.target.getAttribute('data-flag'), e.target.checked);
     });
     card.appendChild(fbRow);
+
+    // ----- Per-problem workspace (phase 4)
+    // Two compact dropdowns: size (None / 1in / 2in / 3in / Half / Full),
+    // format (Use default / Blank / Lines / Dots / Squares / Coord). Size
+    // labels track the active units toggle in builderState.print.
+    const ws = p.workspace || { size: 'none', format: 'default' };
+    const units = (builderState.print && builderState.print.units) || 'in';
+    const wsRow = document.createElement('div');
+    wsRow.className = 'workspace-row';
+    const sizeKeys = ['none', '1in', '2in', '3in', 'half', 'full'];
+    const fmtKeys  = ['default', 'blank', 'lines', 'dots', 'squares', 'coord'];
+    const defaultFmtName = _wsFormatLabel(
+      (builderState.print && builderState.print.defaultWorkspaceFormat) || 'dots'
+    );
+    const sizeOpts = sizeKeys.map(k =>
+      '<option value="' + k + '"' + (ws.size === k ? ' selected' : '') + '>' +
+      _wsSizeLabel(k, units) + '</option>'
+    ).join('');
+    const fmtOpts = fmtKeys.map(k => {
+      const label = (k === 'default')
+        ? 'Use default (' + defaultFmtName + ')'
+        : _wsFormatLabel(k);
+      return '<option value="' + k + '"' + (ws.format === k ? ' selected' : '') + '>' + label + '</option>';
+    }).join('');
+    wsRow.innerHTML =
+      '<label class="ws-lbl">Work space ' +
+        '<select data-ws-field="size">' + sizeOpts + '</select>' +
+      '</label>' +
+      '<label class="ws-lbl">Format ' +
+        '<select data-ws-field="format">' + fmtOpts + '</select>' +
+      '</label>';
+    wsRow.querySelectorAll('select').forEach(sel => {
+      sel.onchange = (e) => updateProblemWorkspace(
+        p.id,
+        e.target.getAttribute('data-ws-field'),
+        e.target.value
+      );
+    });
+    card.appendChild(wsRow);
 
     // ----- Stem editor (plain textarea — supports {{blank:N}} tokens)
     const stemLabel = document.createElement('label');
@@ -1546,11 +1609,26 @@ function _compileProblem(p, idx) {
     ].join('');
   });
 
+  // Workspace (phase 4) — only emitted if size != 'none'. Format defaults to
+  // the activity-wide setting when the problem's format is 'default'.
+  const ws = p.workspace || {};
+  let workspaceHtml = '';
+  if (ws.size && ws.size !== 'none') {
+    const fmt = _wsResolveFormat(p);
+    const heightInches = _WS_INCHES[ws.size];
+    if (heightInches) {
+      workspaceHtml =
+        '\n  <div class="prob-workspace" data-format="' + fmt +
+        '" data-size="' + ws.size + '"' +
+        ' style="--ws-h:' + heightInches + 'in"></div>';
+    }
+  }
+
   return [
     '<div class="problem-cell"' + liveAttr + scoreAttr + ' data-problem-num="' + num + '">',
     '  <div class="prob-num">PROBLEM ' + num + '</div>',
     '  <div class="prob-stem">' + stemHTML + '</div>',
-    '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>',
+    '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>' + workspaceHtml,
     '</div>'
   ].join('\n');
 }
@@ -1724,6 +1802,75 @@ function setDefault(flag, value) {
 }
 
 // =============================================================================
+// PRINT / WORKSPACE (phase 4)
+// =============================================================================
+// Activity-wide print defaults (default workspace format, units toggle) and
+// per-problem workspace settings. Two-tier model: global defaults set in the
+// activity-config section, per-problem overrides on each problem card.
+
+const _WS_INCHES = { '1in': 1, '2in': 2, '3in': 3, 'half': 5, 'full': 8.5 };
+
+const _WS_FORMAT_LABELS = {
+  'default':  'Use default',
+  'blank':    'Blank',
+  'lines':    'Ruled lines',
+  'dots':     'Dot grid',
+  'squares':  'Square grid',
+  'coord':    'Coordinate plane'
+};
+
+// Display label for a size key, formatted in the active unit system.
+// Spacing is canonical inches — toggling units only changes the displayed
+// number (per design choice (i) — actual paper space is preserved).
+function _wsSizeLabel(sizeKey, units) {
+  if (sizeKey === 'none') return 'No work space';
+  if (sizeKey === 'half') return 'Half page';
+  if (sizeKey === 'full') return 'Full page';
+  const inches = _WS_INCHES[sizeKey];
+  if (inches == null) return sizeKey;
+  if (units === 'cm') {
+    // Round to 1 decimal, drop trailing .0
+    const cm = Math.round(inches * 2.54 * 10) / 10;
+    return (cm % 1 === 0 ? cm.toFixed(0) : cm.toFixed(1)) + ' cm';
+  }
+  return inches + ' in';
+}
+
+function _wsFormatLabel(fmtKey) {
+  return _WS_FORMAT_LABELS[fmtKey] || fmtKey;
+}
+
+// Resolve the effective format for a problem. 'default' on a problem points
+// to the activity-wide default; explicit format wins.
+function _wsResolveFormat(p) {
+  const ws = (p && p.workspace) || {};
+  if (ws.format && ws.format !== 'default') return ws.format;
+  return (builderState && builderState.print && builderState.print.defaultWorkspaceFormat) || 'dots';
+}
+
+// Activity-level print defaults (called from activity-builder.html UI).
+function setPrintDefault(field, value) {
+  if (!builderState.print) builderState.print = { defaultWorkspaceFormat: 'dots', units: 'in' };
+  builderState.print[field] = value;
+  saveDraft();
+  // Re-render so per-problem dropdown labels (which include the resolved
+  // default name and unit conversions) update immediately.
+  renderProblems();
+  refreshPreview();
+}
+
+// Per-problem workspace updater (size and format are nested under p.workspace,
+// so the generic updateProblem can't reach them).
+function updateProblemWorkspace(id, field, value) {
+  const p = builderState.problems.find(x => x.id === id);
+  if (!p) return;
+  if (!p.workspace) p.workspace = { size: 'none', format: 'default' };
+  p.workspace[field] = value;
+  saveDraft();
+  refreshPreview();
+}
+
+// =============================================================================
 // AUTH / PIN UNLOCK
 // =============================================================================
 function openPinModal() {
@@ -1892,6 +2039,12 @@ function renderAll() {
   const scoreCB = document.getElementById('defaultScoreOnly');
   if (liveCB)  liveCB.checked  = !!d.liveFeedback;
   if (scoreCB) scoreCB.checked = !!d.scoreOnly;
+  // Print defaults (phase 4)
+  const pr = builderState.print || { defaultWorkspaceFormat: 'dots', units: 'in' };
+  const fmtSel = document.getElementById('defaultWorkspaceFormat');
+  if (fmtSel) fmtSel.value = pr.defaultWorkspaceFormat || 'dots';
+  const unitInputs = document.querySelectorAll('input[name="printUnits"]');
+  unitInputs.forEach(r => { r.checked = (r.value === (pr.units || 'in')); });
   renderProblems();
   renderSidebarTools();
   refreshPreview();

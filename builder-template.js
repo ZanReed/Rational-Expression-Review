@@ -591,6 +591,87 @@ body.print-preview .prob-graph-wrap{
   page-break-inside:avoid;
   margin:10px 0;
 }
+
+/* ============================================================================
+   PRINT MODE — phase 4: workspace areas
+   ============================================================================
+   Per-problem work space rendered below each problem when its size is set.
+   Compile-time output is a single div carrying:
+     - data-format  one of {blank, lines, dots, squares, coord}
+     - --ws-h       canonical height in inches
+   Format selects the background pattern; height is honored verbatim.
+
+   Hidden in screen mode (only the print view shows them). Patterns use
+   linear-gradient/radial-gradient backgrounds so they print cleanly on any
+   printer without needing image assets.
+   ============================================================================ */
+
+/* Hidden by default — only renders in print mode */
+.prob-workspace{display:none}
+
+body.print-preview .prob-workspace{
+  display:block;
+  height:var(--ws-h, 1in);
+  margin-top:14px;
+  border:1px solid #999;
+  border-radius:2px;
+  background-color:white;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+
+/* Blank format — just the bordered box, no pattern. */
+body.print-preview .prob-workspace[data-format="blank"]{
+  background-image:none;
+}
+
+/* Dot grid — radial gradient at 1/4" spacing. Default for new problems. */
+body.print-preview .prob-workspace[data-format="dots"]{
+  background-image:radial-gradient(circle, #999 0.6px, transparent 0.7px);
+  background-size:0.25in 0.25in;
+  background-position:0.125in 0.125in;
+}
+
+/* Ruled lines — horizontal lines at 0.3" spacing (notebook-paper density). */
+body.print-preview .prob-workspace[data-format="lines"]{
+  background-image:linear-gradient(
+    to bottom,
+    transparent calc(0.3in - 1px),
+    #bbb calc(0.3in - 1px),
+    #bbb 0.3in,
+    transparent 0.3in
+  );
+  background-size:100% 0.3in;
+  background-position:0 0.3in;  /* offset so first line isn't flush with top */
+}
+
+/* Square grid — full graph paper at 1/4" spacing. */
+body.print-preview .prob-workspace[data-format="squares"]{
+  background-image:
+    linear-gradient(#ddd 1px, transparent 1px),
+    linear-gradient(90deg, #ddd 1px, transparent 1px);
+  background-size:0.25in 0.25in;
+}
+
+/* Coordinate plane — light 1/4" grid + bold centered axes. The axes are two
+   thin gradient bands positioned at exactly 50% of width/height. Works for
+   any size, though small workspaces (1in) will look cramped. */
+body.print-preview .prob-workspace[data-format="coord"]{
+  background-image:
+    /* horizontal axis */
+    linear-gradient(to bottom, transparent calc(50% - 0.7px), #444 calc(50% - 0.7px), #444 calc(50% + 0.7px), transparent calc(50% + 0.7px)),
+    /* vertical axis */
+    linear-gradient(to right, transparent calc(50% - 0.7px), #444 calc(50% - 0.7px), #444 calc(50% + 0.7px), transparent calc(50% + 0.7px)),
+    /* light horizontal grid */
+    linear-gradient(#e0e0e0 1px, transparent 1px),
+    /* light vertical grid */
+    linear-gradient(90deg, #e0e0e0 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    0.25in 0.25in,
+    0.25in 0.25in;
+}
 </style>
 </head>
 <body>

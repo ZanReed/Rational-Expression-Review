@@ -115,6 +115,26 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .feedback-toggles{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding:6px 10px;background:var(--cream);border-radius:3px;font-size:11px}
 .feedback-toggles label{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-mid)}
 .feedback-toggles input[type=checkbox]{margin:0}
+
+/* Workspace controls (phase 4) — sits below feedback-toggles on each problem
+   card. Two compact dropdowns: size + format. Visually paired with feedback-
+   toggles for a unified "per-problem options" strip. */
+.workspace-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding:6px 10px;background:var(--cream);border-radius:3px;font-size:11px;align-items:center}
+.workspace-row .ws-lbl{display:inline-flex;align-items:center;gap:6px;color:var(--ink-mid);font-size:11px}
+.workspace-row select{font-family:var(--sans);font-size:11px;padding:3px 6px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;outline:none}
+.workspace-row select:focus{border-color:var(--accent)}
+
+/* Print options panel (phase 4) — lives in the activity-config section.
+   Two controls: default workspace format (dropdown) and units toggle (radio
+   pair). Format change re-renders all problem cards so per-problem dropdowns
+   reflect the new "Use default (X)" label. */
+.print-options-panel{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.print-options-panel .field-label{margin-bottom:0}
+.units-radio{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden;background:white}
+.units-radio label{font-family:var(--mono);font-size:10px;font-weight:500;padding:5px 12px;cursor:pointer;color:var(--ink-light);text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center}
+.units-radio input{display:none}
+.units-radio input:checked + span{background:var(--accent);color:white}
+.units-radio span{display:inline-block;padding:0 2px;border-radius:2px;transition:all .12s}
 .stem-help{margin-bottom:6px}
 .stem-help code{font-family:var(--mono);font-size:11px;background:white;padding:1px 4px;border-radius:2px;border:1px solid var(--rule);color:var(--accent)}
 .stem-area{font-family:var(--serif);font-size:14px;line-height:1.5;min-height:54px}
@@ -283,6 +303,32 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
             <label><input type="checkbox" id="defaultScoreOnly" onchange="setDefault('scoreOnly', this.checked)"> Score-only mode (lockdown — no per-problem reveal)</label>
           </div>
           <div class="field-hint">Each problem has its own toggles that override these. Changing defaults only affects problems added afterward.</div>
+        </div>
+
+        <!-- ===== Print options (phase 4) =====
+             Activity-wide print defaults: which work-space pattern is used
+             when a problem is set to "Use default", and which unit system
+             the work-space size dropdowns display. Toggling units only
+             changes labels — actual paper space is canonical inches. -->
+        <div class="modal-field">
+          <label class="field-label">Print options</label>
+          <div class="print-options-panel">
+            <label class="ws-lbl" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)">
+              Default work-space format
+              <select id="defaultWorkspaceFormat" onchange="setPrintDefault('defaultWorkspaceFormat', this.value)">
+                <option value="dots">Dot grid</option>
+                <option value="blank">Blank</option>
+                <option value="lines">Ruled lines</option>
+                <option value="squares">Square grid</option>
+                <option value="coord">Coordinate plane</option>
+              </select>
+            </label>
+            <div class="units-radio" role="radiogroup" aria-label="Work-space units">
+              <label><input type="radio" name="printUnits" value="in" onchange="setPrintDefault('units', this.value)"><span>Inches</span></label>
+              <label><input type="radio" name="printUnits" value="cm" onchange="setPrintDefault('units', this.value)"><span>cm</span></label>
+            </div>
+          </div>
+          <div class="field-hint">Each problem can override the format, or use the default. The unit toggle only changes how sizes are labeled — the actual printed work space stays the same physical dimensions.</div>
         </div>
       </div>
 
