@@ -1290,33 +1290,40 @@ body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first
   body.pm-density-flush.pm-booklet .lp-content > .problem-cell:first-child{margin-top:0}
 }
 
-/* ---- Font size ---- */
-/* Scaling is applied at the .problem-cell level so KaTeX math (which uses
-   em-based sizing internally) scales proportionally. We don't touch the
-   page-header or cover-header — title font stays the same regardless. */
+/* ---- Font size ----
+   The base .prob-stem rule sets font-size:17px and .ans-num sets 14px,
+   each as explicit absolute values that beat any parent .problem-cell
+   rule via CSS specificity. The font-size dial therefore has to target
+   .prob-stem and .ans-num directly to actually scale the visible content.
+   We also scale .prob-num down for visual balance — at smaller stem sizes
+   the small-caps PROBLEM N label reads too prominently otherwise. */
 
-/* Compact: 92% scale. */
-body.print-preview.pm-fontsize-compact .problem-cell{
-  font-size:13px;
-}
-body.print-preview.pm-fontsize-compact.pm-booklet .problem-cell{
-  font-size:12px;
-}
+/* Compact: ~88% scale (17 → 15, 14 → 12.5, 10 → 9). */
+body.print-preview.pm-fontsize-compact .prob-stem{font-size:15px;line-height:1.55}
+body.print-preview.pm-fontsize-compact .ans-num{font-size:12.5px;padding:5px 8px;min-width:140px}
+body.print-preview.pm-fontsize-compact .prob-num{font-size:9px}
+body.print-preview.pm-fontsize-compact.pm-booklet .prob-stem{font-size:14px;line-height:1.5}
+body.print-preview.pm-fontsize-compact.pm-booklet .ans-num{font-size:11.5px}
 
-/* Tight: 85% scale. */
-body.print-preview.pm-fontsize-tight .problem-cell{
-  font-size:12px;
-}
-body.print-preview.pm-fontsize-tight.pm-booklet .problem-cell{
-  font-size:11px;
-}
+/* Tight: ~76% scale (17 → 13, 14 → 11, 10 → 8). */
+body.print-preview.pm-fontsize-tight .prob-stem{font-size:13px;line-height:1.45}
+body.print-preview.pm-fontsize-tight .ans-num{font-size:11px;padding:3px 6px;min-width:110px}
+body.print-preview.pm-fontsize-tight .prob-num{font-size:8px}
+body.print-preview.pm-fontsize-tight.pm-booklet .prob-stem{font-size:12px;line-height:1.4}
+body.print-preview.pm-fontsize-tight.pm-booklet .ans-num{font-size:10px}
 
 @media print{
-  body.pm-fontsize-compact .problem-cell{font-size:13px}
-  body.pm-fontsize-compact.pm-booklet .problem-cell{font-size:12px}
+  body.pm-fontsize-compact .prob-stem{font-size:15px;line-height:1.55}
+  body.pm-fontsize-compact .ans-num{font-size:12.5px;padding:5px 8px;min-width:140px}
+  body.pm-fontsize-compact .prob-num{font-size:9px}
+  body.pm-fontsize-compact.pm-booklet .prob-stem{font-size:14px;line-height:1.5}
+  body.pm-fontsize-compact.pm-booklet .ans-num{font-size:11.5px}
 
-  body.pm-fontsize-tight .problem-cell{font-size:12px}
-  body.pm-fontsize-tight.pm-booklet .problem-cell{font-size:11px}
+  body.pm-fontsize-tight .prob-stem{font-size:13px;line-height:1.45}
+  body.pm-fontsize-tight .ans-num{font-size:11px;padding:3px 6px;min-width:110px}
+  body.pm-fontsize-tight .prob-num{font-size:8px}
+  body.pm-fontsize-tight.pm-booklet .prob-stem{font-size:12px;line-height:1.4}
+  body.pm-fontsize-tight.pm-booklet .ans-num{font-size:10px}
 }
 </style>
 </head>
