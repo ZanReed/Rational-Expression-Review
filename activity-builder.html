@@ -123,6 +123,10 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .workspace-row .ws-lbl{display:inline-flex;align-items:center;gap:6px;color:var(--ink-mid);font-size:11px}
 .workspace-row select{font-family:var(--sans);font-size:11px;padding:3px 6px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;outline:none}
 .workspace-row select:focus{border-color:var(--accent)}
+/* Page-break checkbox sits at the right side, with a subtle separator from
+   the layout dropdowns. (phase 6) */
+.workspace-row .ws-pb-check{margin-left:auto;cursor:pointer}
+.workspace-row .ws-pb-check input{margin:0}
 
 /* Print options panel (phase 4) — lives in the activity-config section.
    Two controls: default workspace format (dropdown) and units toggle (radio
@@ -390,6 +394,9 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       <div class="preview-controls">
         <button id="printPreviewToggle" class="pp-btn" onclick="togglePrintPreview()" aria-pressed="false" title="Toggle print-layout preview (simulates a paper sheet)">
           <span class="pp-ico" aria-hidden="true">&#x1F5D0;</span> Print preview
+        </button>
+        <button id="pageGuidesToggle" class="pp-btn" onclick="togglePageGuides()" aria-pressed="false" title="Show dashed guides at every page boundary" style="display:none">
+          <span class="pp-ico" aria-hidden="true">&#x2702;</span> Page guides
         </button>
         <button class="pp-btn pp-btn-print" onclick="printFromBuilder()" title="Open the print dialog for the preview">
           <span class="pp-ico" aria-hidden="true">&#x1F5A8;</span> Print

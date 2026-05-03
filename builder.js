@@ -143,9 +143,11 @@ function _migrateProblem(p) {
     // of column count. Span is silently clamped at compile time so it never
     // exceeds the active column count.
     if (!p.print || typeof p.print !== 'object') {
-      p.print = { span: 'auto' };
+      p.print = { span: 'auto', pageBreakBefore: false };
     } else {
       if (typeof p.print.span !== 'string') p.print.span = 'auto';
+      // Phase 6: force page break before this problem in print mode.
+      if (typeof p.print.pageBreakBefore !== 'boolean') p.print.pageBreakBefore = false;
     }
     return p;
   }
@@ -176,7 +178,7 @@ function _migrateProblem(p) {
     liveFeedback: true,
     scoreOnly: false,
     workspace: { size: 'none', format: 'default' },
-    print: { span: 'auto' }
+    print: { span: 'auto', pageBreakBefore: false }
   };
 }
 
@@ -206,7 +208,9 @@ function _newProblem() {
     workspace: { size: 'none', format: 'default' },
     // Phase 5: per-problem print-layout settings. 'auto' span = problem fills
     // one column slot; explicit numbers force span; 'full' = full-row span.
-    print: { span: 'auto' }
+    // Phase 6: pageBreakBefore forces a hard page break before this problem
+    // in print mode.
+    print: { span: 'auto', pageBreakBefore: false }
   };
 }
 
@@ -364,15 +368,33 @@ function renderProblems() {
       wsRow.innerHTML += spanLabel.outerHTML;
     }
 
-    wsRow.querySelectorAll('select').forEach(sel => {
-      sel.onchange = (e) => {
+    // Force page break before this problem (phase 6). Checkbox lives in the
+    // same row as workspace controls — appears for all problems regardless
+    // of column count, since paging is independent of layout. The very first
+    // problem always omits it (a page break before problem 1 is a no-op).
+    if (idx > 0) {
+      const pbCheck = document.createElement('label');
+      pbCheck.className = 'ws-lbl ws-pb-check';
+      const checked = (p.print && p.print.pageBreakBefore) ? 'checked' : '';
+      pbCheck.innerHTML =
+        '<input type="checkbox" data-ws-field="pageBreakBefore" ' + checked + '>' +
+        ' <span title="Force a new page before this problem when printing">' +
+        '\u21B5 Page break before</span>';
+      wsRow.appendChild(pbCheck);
+    }
+
+    wsRow.querySelectorAll('select, input[type=checkbox]').forEach(el => {
+      const handler = (e) => {
         const field = e.target.getAttribute('data-ws-field');
-        if (field === 'span') {
-          updateProblemPrint(p.id, 'span', e.target.value);
+        const value = (e.target.type === 'checkbox') ? e.target.checked : e.target.value;
+        if (field === 'span' || field === 'pageBreakBefore') {
+          updateProblemPrint(p.id, field, value);
         } else {
-          updateProblemWorkspace(p.id, field, e.target.value);
+          updateProblemWorkspace(p.id, field, value);
         }
       };
+      if (el.tagName === 'SELECT') el.onchange = handler;
+      else el.onchange = handler;
     });
     card.appendChild(wsRow);
 
@@ -1625,6 +1647,12 @@ function _compileProblem(p, idx) {
   const resolvedSpan = _resolveSpan(p, activeCols);
   const spanAttr = ' data-span="' + resolvedSpan + '"';
 
+  // Phase 6: forced page break before this problem. Skip on the first
+  // problem (idx 0) — a page break before the very first item is a no-op
+  // and would generate a blank leading page in some browsers' print engines.
+  const pbBefore = !!(p.print && p.print.pageBreakBefore) && idx > 0;
+  const pbAttr = pbBefore ? ' data-page-break-before="1"' : '';
+
   const blanks = p.blanks || [];
   const stem = p.stem || '';
 
@@ -1691,7 +1719,7 @@ function _compileProblem(p, idx) {
   }
 
   return [
-    '<div class="problem-cell"' + liveAttr + scoreAttr + spanAttr + ' data-problem-num="' + num + '">',
+    '<div class="problem-cell"' + liveAttr + scoreAttr + spanAttr + pbAttr + ' data-problem-num="' + num + '">',
     '  <div class="prob-num">PROBLEM ' + num + '</div>',
     '  <div class="prob-stem">' + stemHTML + '</div>',
     '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>' + workspaceHtml,
@@ -1808,6 +1836,7 @@ function refreshPreview() {
 // because @media print rules in the worksheet template hide non-printables
 // regardless of the class.
 let _printPreviewActive = false;
+let _pageGuidesActive = false;
 
 function applyPrintPreviewToIframe() {
   const iframe = document.getElementById('previewFrame');
@@ -1815,6 +1844,12 @@ function applyPrintPreviewToIframe() {
   const body = iframe.contentDocument.body;
   if (!body) return;
   body.classList.toggle('print-preview', _printPreviewActive);
+  body.classList.toggle('pm-show-page-guides', _pageGuidesActive && _printPreviewActive);
+  // Ask the runtime to (re)compute guide positions whenever state changes.
+  // The runtime has an idempotent renderer that's safe to call repeatedly.
+  if (iframe.contentWindow) {
+    iframe.contentWindow.postMessage({ type: 'render-page-guides' }, '*');
+  }
 }
 
 function togglePrintPreview() {
@@ -1823,6 +1858,20 @@ function togglePrintPreview() {
   if (btn) {
     btn.classList.toggle('active', _printPreviewActive);
     btn.setAttribute('aria-pressed', _printPreviewActive ? 'true' : 'false');
+  }
+  // Page guides only meaningful when preview is on; auto-hide their button
+  // to make the dependency obvious.
+  const guideBtn = document.getElementById('pageGuidesToggle');
+  if (guideBtn) guideBtn.style.display = _printPreviewActive ? '' : 'none';
+  applyPrintPreviewToIframe();
+}
+
+function togglePageGuides() {
+  _pageGuidesActive = !_pageGuidesActive;
+  const btn = document.getElementById('pageGuidesToggle');
+  if (btn) {
+    btn.classList.toggle('active', _pageGuidesActive);
+    btn.setAttribute('aria-pressed', _pageGuidesActive ? 'true' : 'false');
   }
   applyPrintPreviewToIframe();
 }

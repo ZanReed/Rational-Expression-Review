@@ -751,6 +751,107 @@ body.print-preview.pm-cols-3 .problem-cell{
 body.print-preview.pm-cols-3 .prob-num{
   font-size:9px;
 }
+
+/* ============================================================================
+   PRINT MODE — phase 6: forced page breaks + informational page guides
+   ============================================================================
+   Two independent features that share a phase:
+
+   1. Forced page break before a problem
+      Per-problem opt-in via [data-page-break-before="1"]. In actual print
+      output, browsers honor 'page-break-before: always' (legacy) and
+      'break-before: page' (CSS Fragmentation L3). Both are emitted for
+      maximum compatibility (Firefox/Chrome/Safari).
+
+      In on-screen preview, a page break can't actually start a new sheet
+      (the simulated sheet is a single scrollable .shell), so we instead
+      render a thick dashed amber rule above the problem to communicate
+      visually: "this is where the next page begins." Combined with the
+      page-guide overlay (feature #2), the teacher sees a clear "page X"
+      label at the forced-break location.
+
+   2. Informational page guides
+      Toggleable via the Page Guides button in the builder. Shows where
+      natural page boundaries fall in the simulated sheet. Implemented
+      runtime-side (in worksheet runtime script) because we need to know
+      the actual rendered shell height to compute boundaries, and that's
+      only available after layout. Runtime injects a .page-guide-overlay
+      with N child .page-guide elements positioned at multiples of the
+      content-area height.
+
+      Guides are presentational only: they do not affect compiled output
+      and are never visible to students. CSS hides them by default; the
+      pm-show-page-guides body class reveals them.
+   ============================================================================ */
+
+/* ---- 1. Forced page break before a problem ---- */
+
+@media print {
+  .problem-cell[data-page-break-before="1"]{
+    page-break-before:always;
+    break-before:page;
+  }
+}
+
+/* On-screen preview: render an amber rule above the cell so teachers see
+   the break location. The rule sits above the cell via a ::before pseudo-
+   element so it doesn't disrupt grid placement of the cell itself. */
+body.print-preview .problem-cell[data-page-break-before="1"]{
+  position:relative;
+}
+body.print-preview .problem-cell[data-page-break-before="1"]::before{
+  content:"\\21B5  Page break before this problem";
+  position:absolute;
+  top:-18px;
+  left:0;
+  right:0;
+  font-family:var(--mono, monospace);
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:#b8860b;
+  border-top:2px dashed #d4a017;
+  padding-top:3px;
+  pointer-events:none;
+}
+
+/* ---- 2. Page-guide overlay ---- */
+
+/* Hidden by default; runtime renders the overlay regardless, but only this
+   class makes it visible. Lets the toggle work without re-rendering. */
+.page-guide-overlay{display:none;position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:5}
+body.print-preview.pm-show-page-guides .page-guide-overlay{display:block}
+
+/* Each guide is a horizontal dashed line with a "Page N" tag. Positioned
+   from top using inline 'top' style set by the runtime. Tag sits at the
+   right edge so it doesn't collide with content. */
+.page-guide{
+  position:absolute;
+  left:-12px;
+  right:-12px;
+  height:0;
+  border-top:1.5px dashed #b8860b;
+}
+.page-guide-label{
+  position:absolute;
+  right:-4px;
+  top:-9px;
+  background:#b8860b;
+  color:white;
+  font-family:var(--mono, monospace);
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.05em;
+  padding:2px 6px;
+  border-radius:2px;
+  text-transform:uppercase;
+}
+
+/* Shell needs position:relative so absolute-positioned overlay aligns. The
+   default .shell rule already sets position:relative in the phase 1 block,
+   but reassert here so the dependency is documented. */
+body.print-preview .shell{position:relative}
 </style>
 </head>
 <body class="{{BODY_CLASSES}}">
@@ -832,9 +933,77 @@ var GOOGLE_CLIENT_ID = '{{GOOGLE_CLIENT_ID}}';
 // permissions). Harmless on the standalone published activity — no parent
 // will ever post such a message.
 window.addEventListener('message', function(e){
-  if (e && e.data && e.data.type === 'request-print') {
+  if (!e || !e.data) return;
+  if (e.data.type === 'request-print') {
     window.print();
+  } else if (e.data.type === 'render-page-guides') {
+    _renderPageGuides();
   }
+});
+
+// ---------- Page guide overlay (phase 6) -----------------------------------
+// Builder-only visual aid: dashed lines at every page boundary in the
+// simulated paper sheet. Computed from the actual rendered shell height so
+// it stays accurate as content grows or shrinks. Idempotent — calling it
+// multiple times rebuilds rather than appending duplicates. The runtime
+// also auto-rebuilds on resize so the guides track layout reflows.
+function _renderPageGuides() {
+  var shell = document.querySelector('.shell');
+  if (!shell) return;
+
+  // Remove any existing overlay so we always rebuild from current measurements.
+  var existing = shell.querySelector('.page-guide-overlay');
+  if (existing) existing.parentNode.removeChild(existing);
+
+  // Only rebuild when in print preview — otherwise the overlay is stale and
+  // its layout wouldn't make sense anyway. (CSS hides it regardless, but
+  // skipping the work avoids needless DOM churn.)
+  if (!document.body.classList.contains('print-preview')) return;
+
+  // Letter portrait, 0.75in margins → 9.5in of usable content per page.
+  // We use the shell's scrollHeight (full content height) to determine total
+  // pages, then space guides at content-page intervals.
+  var DPI = 96; // CSS pixel reference DPI for in→px conversion.
+  var contentInchesPerPage = 9.5;
+  var contentPxPerPage = contentInchesPerPage * DPI;
+
+  // Padding inside the shell is 0.75in (54px) — guides are positioned
+  // relative to the .shell box, so the first page boundary sits at 9.5in
+  // from the top of the content area, i.e. (0.75 + 9.5)in = 10.25in from
+  // the top of the .shell box.
+  var topPaddingInches = 0.75;
+  var topPaddingPx = topPaddingInches * DPI;
+
+  var totalContentPx = shell.scrollHeight - (topPaddingPx * 2); // strip top + bottom padding
+  if (totalContentPx <= contentPxPerPage) return; // single page, no guides needed
+
+  var pageCount = Math.ceil(totalContentPx / contentPxPerPage);
+
+  var overlay = document.createElement('div');
+  overlay.className = 'page-guide-overlay';
+
+  // Draw guides between pages: page 1→2 boundary, page 2→3 boundary, etc.
+  // The label on each guide says the page number that BEGINS below the line.
+  for (var i = 1; i < pageCount; i++) {
+    var guide = document.createElement('div');
+    guide.className = 'page-guide';
+    var topPx = topPaddingPx + (i * contentPxPerPage);
+    guide.style.top = topPx + 'px';
+    var label = document.createElement('div');
+    label.className = 'page-guide-label';
+    label.textContent = 'Page ' + (i + 1);
+    guide.appendChild(label);
+    overlay.appendChild(guide);
+  }
+
+  shell.appendChild(overlay);
+}
+
+// Re-render guides on resize (debounced) so reflows update boundaries.
+var _guideResizeTimer = null;
+window.addEventListener('resize', function(){
+  if (_guideResizeTimer) clearTimeout(_guideResizeTimer);
+  _guideResizeTimer = setTimeout(_renderPageGuides, 120);
 });
 
 // ---------- Print preparation hook (phase 3) -------------------------------
