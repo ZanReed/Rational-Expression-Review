@@ -1619,6 +1619,15 @@ function compileActivity() {
   // into <body class="..."> in the template.
   const bodyClasses = _columnsBodyClass();
 
+  // Phase 7: @page rule baked at compile time. CSS @page can't be scoped to
+  // a body class, so the rule itself must change per print mode. Booklet
+  // uses landscape + 0 margin (sheets supply their own); letter uses
+  // portrait + 0.75in.
+  const isBooklet = builderState && builderState.print && builderState.print.mode === 'booklet';
+  const pagePrintRule = isBooklet
+    ? '@page{size:letter landscape;margin:0}'
+    : '@page{size:letter portrait;margin:0.75in}';
+
   // Slot replacement — use function replacements so that $ signs in JSON/HTML
   // (e.g. $15 in a student answer, $1 in a tool label) are never interpreted
   // as backreference patterns by String.replace, which would silently corrupt
@@ -1636,6 +1645,7 @@ function compileActivity() {
   html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g,  _slot(settingsJSON));
   html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g,      _slot(stateJSON));
   html = html.replace(/\{\{BODY_CLASSES\}\}/g,            _slot(bodyClasses));
+  html = html.replace(/\{\{PRINT_PAGE_RULE\}\}/g,         _slot(pagePrintRule));
 
   return html;
 }

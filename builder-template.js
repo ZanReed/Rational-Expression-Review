@@ -402,7 +402,12 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
    left in place; it composes with the rules below.
    ============================================================================ */
 
-@page{size:letter portrait;margin:0.75in}
+/* @page geometry — mode-dependent, baked in at compile time. The slot is
+   filled by compileActivity() based on builderState.print.mode. Letter
+   mode uses portrait + 0.75in margins (matches the rest of the print
+   layout); booklet mode uses landscape + 0 margins (the .sheet element
+   provides its own margins via its own padding/margin scheme). */
+{{PRINT_PAGE_RULE}}
 
 /* ---- ON-SCREEN PREVIEW ----
    Simulates how a teacher would see the activity laid out on paper, so they
@@ -913,11 +918,10 @@ body.print-preview.pm-booklet .shell{
   display:block;
 }
 
-/* In booklet mode the @page geometry must change to letter landscape.
-   This is the ONLY way to get the printer to feed the right paper. */
-@media print{
-  body.pm-booklet{}  /* placeholder — page rule below is what counts */
-}
+/* In booklet mode the @page geometry is letter landscape — set at compile
+   time via the {{PRINT_PAGE_RULE}} slot above. The print dialog should
+   open in landscape on most browsers; some printer drivers may still need
+   the user to confirm landscape in the dialog manually. */
 /* Note: @page rules inside a media query body selector aren't supported,
    so we declare an unscoped @page that only applies in booklet mode by way
    of the body class gate elsewhere. The simplest cross-browser approach is
