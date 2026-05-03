@@ -1127,6 +1127,12 @@ body.print-preview.pm-booklet:not(.pm-booklet-reading-order) .shell > .page-head
    want columns inside booklet pages can do that via the existing column UI
    (which still works since data-span attrs flow through). */
 .lp-content{
+  /* overflow:hidden mirrors the .logical-page parent so content that
+     overflows the page (rare with the 15% measurement buffer in
+     _renderBooklet) is clipped rather than printing onto the adjacent
+     sheet half. The buffer makes overflow rare; when it happens, clipping
+     is the visual signal to the teacher to split that problem manually
+     via a forced page break. */
   height:100%;
   overflow:hidden;
   display:flex;
@@ -1613,8 +1619,16 @@ function _renderBooklet() {
     // Measure cell height. Move into ruler temporarily; the ruler is
     // hidden, but visibility:hidden preserves layout — works for measurement.
     ruler.appendChild(cell);
-    var h = cell.offsetHeight + 8; // +gap
-    // After measurement we'll move the cell to its final destination below.
+    // Apply a 15% safety buffer to the measured height. KaTeX renders math
+    // asynchronously, web fonts may settle late, and our second pass at
+    // 600ms catches most of these — but some content (large fractions,
+    // vertically-stacked piecewise functions) still grows after our final
+    // measurement. Padding the measured height makes the packer pessimistic,
+    // pushing problems to the next page slightly earlier than necessary.
+    // The cost is ~10-15% wasted vertical space per page; the benefit is
+    // problems never getting clipped at the page boundary.
+    var rawH = cell.offsetHeight + 8; // +gap
+    var h = Math.ceil(rawH * 1.15);
 
     var cap = capacityFor(logicalPages.length); // index of the page we're filling
     if (currentH + h > cap && current.length > 0) {

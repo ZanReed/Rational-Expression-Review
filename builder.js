@@ -1823,7 +1823,7 @@ function _compileBlankInput(blank, inputId) {
       // in the runtime). Trigger is a span that mimics the prior summary
       // button. Options box absolutely positions below the trigger.
       '<span class="md-dropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false" tabindex="0"' + randomizeAttr + '>',
-        '<span class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></span>',
+        '<span class="md-trigger"><span class="md-trigger-label md-placeholder">&#8230;</span></span>',
         '<span class="md-options" role="listbox">' + options + '</span>',
       '</span>',
       '<input type="hidden" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctValue) + '">',
