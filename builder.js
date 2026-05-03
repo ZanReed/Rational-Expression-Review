@@ -1877,6 +1877,34 @@ function _compileStemText(s) {
 // this to scale the underline width when rendering for paper. Variable is
 // inert in screen mode — input width comes from .ans-num/.inline-blank.
 function _compileBlankInput(blank, inputId) {
+  // Phase 8: in answer-key mode, emit a gray-text span containing the
+  // correct answer instead of an interactive input/dropdown. The span keeps
+  // the inline-blank-wrap class so surrounding stem layout is unchanged
+  // (no extra wrapping, no shifted alignment). Math values get KaTeX
+  // markers so they render. The compiled key is structurally simpler than
+  // a regular blank — no event wiring, no hidden input — so the runtime's
+  // _wireValidation/_initDropdowns simply skip it (no .ans-num present).
+  if (_answerKeyMode) {
+    let answerDisplay;
+    if (blank.kind === 'fill_in') {
+      answerDisplay = _esc(blank.answer || '');
+    } else {
+      // Dropdown: show the correct choice's value, rendered as math if its
+      // mode is 'math'. Per spec (1a, locked): show the choice value as
+      // configured — not labeled with verbal-and-numerical, not translated.
+      const norm = _normalizeChoices(blank.choices || []);
+      const correctChoice = norm[blank.correctChoice];
+      if (correctChoice) {
+        answerDisplay = (correctChoice.mode === 'math')
+          ? '\\(' + correctChoice.value + '\\)'
+          : _esc(correctChoice.value);
+      } else {
+        answerDisplay = '<span class="ans-key-missing">[no answer]</span>';
+      }
+    }
+    return '<span class="inline-blank-wrap ans-key-wrap"><span class="ans-key">' + answerDisplay + '</span></span>';
+  }
+
   if (blank.kind === 'fill_in') {
     const ans = blank.answer || '';
     const ansLen = Math.max(ans.length, 4);
@@ -1961,6 +1989,11 @@ let _pageGuidesActive = false;
 // Default false = show imposed (print) layout. Toggling true displays
 // logical pages 1..N in reading order, useful for proofreading content.
 let _bookletReadingOrder = false;
+// Phase 8: answer-key compile mode. Ephemeral (never saved to state). When
+// true, _compileBlankInput emits each blank as a gray-text answer instead
+// of an interactive input/dropdown. Set briefly during the print-answer-
+// key flow, then reset so the preview returns to normal.
+let _answerKeyMode = false;
 
 function applyPrintPreviewToIframe() {
   const iframe = document.getElementById('previewFrame');
@@ -2036,6 +2069,60 @@ function printFromBuilder() {
   //      the iframe decides how to fulfill it.
   // The receiving listener lives in builder-template.js worksheet runtime.
   iframe.contentWindow.postMessage({ type: 'request-print' }, '*');
+}
+
+// Phase 8: print the answer key. Temporarily flips _answerKeyMode on, forces
+// an iframe recompile, waits for rendering to settle (KaTeX async, booklet
+// imposition pass), triggers print, then reverts on afterprint.
+//
+// The flow is necessarily asynchronous: compile is sync but the iframe
+// reload is not, and KaTeX/booklet measurement need ~600ms to settle. We
+// use a single-shot iframe.onload handler that triggers print once the
+// recompile lands, then a one-time message listener for the iframe's
+// 'print-completed' signal to revert the flag. If the user cancels the
+// print dialog, afterprint still fires, so we're safe.
+function printAnswerKey() {
+  const iframe = document.getElementById('previewFrame');
+  if (!iframe) return;
+
+  // Guard against double-invocation while a key print is already in flight.
+  if (_answerKeyMode) return;
+
+  _answerKeyMode = true;
+
+  // Recompile with the flag on. Use direct srcdoc replacement (no debounce)
+  // since this is a deliberate user action.
+  const recompileForPrint = function() {
+    iframe.onload = function() {
+      // Restore the standard onload behavior so future content edits don't
+      // get the print-then-revert wrapping.
+      iframe.onload = applyPrintPreviewToIframe;
+      applyPrintPreviewToIframe();
+      // Wait for KaTeX + booklet rendering to settle. 800ms is conservative
+      // (longer than the 600ms second pass in _renderBooklet).
+      setTimeout(function() {
+        if (!iframe.contentWindow) return;
+        iframe.contentWindow.focus();
+        iframe.contentWindow.postMessage({ type: 'request-print' }, '*');
+      }, 800);
+    };
+    iframe.srcdoc = compileActivity();
+  };
+
+  // Listen for print completion to flip the flag back. The iframe runtime
+  // posts 'print-completed' on its own afterprint event.
+  const onPrintComplete = function(e) {
+    if (!e || !e.data || e.data.type !== 'print-completed') return;
+    window.removeEventListener('message', onPrintComplete);
+    _answerKeyMode = false;
+    // Recompile with flag off so the preview reverts to normal interactive
+    // mode. User edits land on a fresh, blank-bearing document.
+    iframe.onload = applyPrintPreviewToIframe;
+    iframe.srcdoc = compileActivity();
+  };
+  window.addEventListener('message', onPrintComplete);
+
+  recompileForPrint();
 }
 
 // =============================================================================

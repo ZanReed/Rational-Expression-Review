@@ -188,6 +188,10 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .pp-btn.active:hover{background:#143a6a;border-color:#143a6a;color:white}
 .pp-btn-print{background:var(--accent);border-color:var(--accent);color:white}
 .pp-btn-print:hover{background:#143a6a;border-color:#143a6a;color:white}
+/* Phase 8: answer key button — amber accent so teachers can't confuse it
+   with the regular print button. Same shape, different signal color. */
+.pp-btn-key{background:#b8860b;border-color:#b8860b;color:white}
+.pp-btn-key:hover{background:#8c6709;border-color:#8c6709;color:white}
 .pp-btn .pp-ico{font-size:13px;line-height:1}
 
 .preview-frame-wrap{flex:1;padding:18px;overflow:hidden}
@@ -467,6 +471,9 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         </button>
         <button class="pp-btn pp-btn-print" onclick="printFromBuilder()" title="Open the print dialog for the preview">
           <span class="pp-ico" aria-hidden="true">&#x1F5A8;</span> Print
+        </button>
+        <button class="pp-btn pp-btn-key" onclick="printAnswerKey()" title="Print a teacher answer key with all correct answers filled in (gray)">
+          <span class="pp-ico" aria-hidden="true">&#x1F511;</span> Answer key
         </button>
       </div>
     </div>

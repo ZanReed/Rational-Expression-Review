@@ -188,6 +188,25 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 }
 /* Collapse any double <br> the parser emitted at line breaks. */
 .prob-stem br + br{display:none}
+
+/* Phase 8: answer-key text. When the activity is compiled in answer-key
+   mode (builder-only, via the "Print answer key" button), each blank's
+   underline/dropdown is replaced with a gray-text span containing the
+   correct answer. The styling reads like a teacher's pencil annotation:
+   light gray, slightly italic, no border or underline. Visible in both
+   on-screen preview and actual print. */
+.ans-key-wrap{display:inline-block;margin:0 4px;vertical-align:baseline}
+.ans-key{
+  color:#888;
+  font-style:italic;
+  font-family:var(--serif);
+  font-weight:500;
+  /* Slightly underlined to anchor the answer to the blank position so the
+     teacher's eye still tracks "this is where the blank was". */
+  border-bottom:1px solid #aaa;
+  padding:0 4px 1px 4px;
+}
+.ans-key-missing{color:#c00;font-style:italic;font-size:0.9em}
 .stem-text{display:inline}
 .ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s,background .15s}
 .ans-num:focus{border-color:var(--accent)}
@@ -1900,6 +1919,13 @@ window.addEventListener('beforeprint', function(){
 });
 window.addEventListener('afterprint', function(){
   if (!_previewWasManual) document.body.classList.remove('print-preview');
+  // Phase 8: notify the builder parent (if we're inside the preview iframe)
+  // that printing finished. Builder uses this to revert _answerKeyMode and
+  // recompile back to normal interactive preview. Harmless when the
+  // activity is opened standalone — there's no parent to receive it.
+  if (window.parent && window.parent !== window) {
+    try { window.parent.postMessage({ type: 'print-completed' }, '*'); } catch (e) {}
+  }
 });
 
 // ---------- Window manager -------------------------------------------------
