@@ -52,7 +52,13 @@ function _freshState() {
     // (booklet, answer-key prefs, etc) have a natural home.
     print: {
       defaultWorkspaceFormat: 'dots',  // 'blank' | 'lines' | 'dots' | 'squares' | 'coord'
-      units: 'in'                       // 'in' | 'cm' — display-only toggle; spacing is canonical inches
+      units: 'in',                     // 'in' | 'cm' — display-only toggle; spacing is canonical inches
+      // Phase 5 — column layout. columns is the count (1/2/3); preset is a
+      // width distribution key matched to a CSS class on body (pm-cols-...).
+      // The presets vary by column count; switching count resets the preset
+      // to the count-appropriate default.
+      columns: 1,
+      columnPreset: 'equal'            // 'equal' | '60-40' | '40-60' | '25-37-37'
     },
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
@@ -96,6 +102,9 @@ function _migrateState(s) {
   if (!s.print) s.print = { defaultWorkspaceFormat: 'dots', units: 'in' };
   if (typeof s.print.defaultWorkspaceFormat !== 'string') s.print.defaultWorkspaceFormat = 'dots';
   if (s.print.units !== 'cm') s.print.units = 'in';
+  // Phase 5: column layout fields.
+  if (![1, 2, 3].includes(s.print.columns)) s.print.columns = 1;
+  if (typeof s.print.columnPreset !== 'string') s.print.columnPreset = 'equal';
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
@@ -128,6 +137,16 @@ function _migrateProblem(p) {
       if (typeof p.workspace.size !== 'string')   p.workspace.size = 'none';
       if (typeof p.workspace.format !== 'string') p.workspace.format = 'default';
     }
+    // Phase 5: per-problem print settings (column span + future fields).
+    // 'auto' = obey the activity-wide column count. '1' / '2' / '3' force
+    // a specific span; 'full' forces the row-spanning treatment regardless
+    // of column count. Span is silently clamped at compile time so it never
+    // exceeds the active column count.
+    if (!p.print || typeof p.print !== 'object') {
+      p.print = { span: 'auto' };
+    } else {
+      if (typeof p.print.span !== 'string') p.print.span = 'auto';
+    }
     return p;
   }
 
@@ -156,7 +175,8 @@ function _migrateProblem(p) {
     graphs: [],
     liveFeedback: true,
     scoreOnly: false,
-    workspace: { size: 'none', format: 'default' }
+    workspace: { size: 'none', format: 'default' },
+    print: { span: 'auto' }
   };
 }
 
@@ -183,7 +203,10 @@ function _newProblem() {
     scoreOnly:    builderState && builderState.defaults ? builderState.defaults.scoreOnly    : false,
     // Phase 4: per-problem workspace settings. 'default' format = use the
     // activity-wide default (resolved at compile time in _compileProblem).
-    workspace: { size: 'none', format: 'default' }
+    workspace: { size: 'none', format: 'default' },
+    // Phase 5: per-problem print-layout settings. 'auto' span = problem fills
+    // one column slot; explicit numbers force span; 'full' = full-row span.
+    print: { span: 'auto' }
   };
 }
 
@@ -314,12 +337,42 @@ function renderProblems() {
       '<label class="ws-lbl">Format ' +
         '<select data-ws-field="format">' + fmtOpts + '</select>' +
       '</label>';
+
+    // Per-problem column span (phase 5). Options dynamically depend on the
+    // active column count: in 1-col mode the dropdown is hidden entirely
+    // (only 'auto' makes sense); in 2-col mode auto/1/2/full; in 3-col mode
+    // auto/1/2/3/full.
+    const activeCols = (builderState.print && builderState.print.columns) || 1;
+    if (activeCols > 1) {
+      const curSpan = (p.print && p.print.span) || 'auto';
+      const spanKeys = activeCols === 2
+        ? ['auto', '2', 'full']
+        : ['auto', '2', '3', 'full'];
+      const spanLabels = {
+        'auto': '1 col',
+        '2':    '2 cols',
+        '3':    '3 cols',
+        'full': 'Full width'
+      };
+      const spanOpts = spanKeys.map(k =>
+        '<option value="' + k + '"' + (curSpan === k ? ' selected' : '') + '>' +
+        spanLabels[k] + '</option>'
+      ).join('');
+      const spanLabel = document.createElement('label');
+      spanLabel.className = 'ws-lbl';
+      spanLabel.innerHTML = 'Span <select data-ws-field="span">' + spanOpts + '</select>';
+      wsRow.innerHTML += spanLabel.outerHTML;
+    }
+
     wsRow.querySelectorAll('select').forEach(sel => {
-      sel.onchange = (e) => updateProblemWorkspace(
-        p.id,
-        e.target.getAttribute('data-ws-field'),
-        e.target.value
-      );
+      sel.onchange = (e) => {
+        const field = e.target.getAttribute('data-ws-field');
+        if (field === 'span') {
+          updateProblemPrint(p.id, 'span', e.target.value);
+        } else {
+          updateProblemWorkspace(p.id, field, e.target.value);
+        }
+      };
     });
     card.appendChild(wsRow);
 
@@ -1532,6 +1585,11 @@ function compileActivity() {
     defaults: builderState.defaults || { liveFeedback: true, scoreOnly: false }
   });
 
+  // Phase 5: body classes for print column layout. Baked at compile time;
+  // students don't need a runtime-mutable layout. Class string drops cleanly
+  // into <body class="..."> in the template.
+  const bodyClasses = _columnsBodyClass();
+
   // Slot replacement — use function replacements so that $ signs in JSON/HTML
   // (e.g. $15 in a student answer, $1 in a tool label) are never interpreted
   // as backreference patterns by String.replace, which would silently corrupt
@@ -1548,6 +1606,7 @@ function compileActivity() {
   html = html.replace(/\{\{SIDEBAR_TOOLS_JSON\}\}/g,      _slot(sidebarToolsJSON));
   html = html.replace(/\{\{ACTIVITY_SETTINGS_JSON\}\}/g,  _slot(settingsJSON));
   html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g,      _slot(stateJSON));
+  html = html.replace(/\{\{BODY_CLASSES\}\}/g,            _slot(bodyClasses));
 
   return html;
 }
@@ -1558,6 +1617,13 @@ function _compileProblem(p, idx) {
   // Per-problem feedback flags become data-attrs on the cell
   const liveAttr  = (p.liveFeedback === false) ? ' data-live="0"' : ' data-live="1"';
   const scoreAttr = (p.scoreOnly === true)     ? ' data-score-only="1"' : '';
+
+  // Phase 5: per-problem span attribute. Resolved against the active column
+  // count so the markup carries a final, clamped value rather than 'auto'.
+  // CSS uses [data-span="full"] / [data-span="2"] / etc. to set grid-column.
+  const activeCols = (builderState.print && builderState.print.columns) || 1;
+  const resolvedSpan = _resolveSpan(p, activeCols);
+  const spanAttr = ' data-span="' + resolvedSpan + '"';
 
   const blanks = p.blanks || [];
   const stem = p.stem || '';
@@ -1625,7 +1691,7 @@ function _compileProblem(p, idx) {
   }
 
   return [
-    '<div class="problem-cell"' + liveAttr + scoreAttr + ' data-problem-num="' + num + '">',
+    '<div class="problem-cell"' + liveAttr + scoreAttr + spanAttr + ' data-problem-num="' + num + '">',
     '  <div class="prob-num">PROBLEM ' + num + '</div>',
     '  <div class="prob-stem">' + stemHTML + '</div>',
     '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>' + workspaceHtml,
@@ -1871,6 +1937,108 @@ function updateProblemWorkspace(id, field, value) {
 }
 
 // =============================================================================
+// COLUMN LAYOUT (phase 5)
+// =============================================================================
+// Activity-wide column count + width preset, plus per-problem span overrides.
+// Implementation uses CSS Grid (not multi-column flow) so problems can span
+// arbitrary numbers of columns regardless of source order. Body classes drive
+// the grid-template-columns rule; per-problem data-span attributes drive the
+// grid-column placement of each cell.
+
+// Preset catalog. Each entry knows which column counts it applies to and
+// which body class it produces. The 'equal' preset is the implicit default
+// for every count. Adding a new preset = one entry here + matching CSS rule.
+const _COLUMN_PRESETS = {
+  // 1-col: only 'equal' (single full-width column).
+  '1': [
+    { key: 'equal', label: '1 column', cssClass: 'pm-cols-1-equal' }
+  ],
+  // 2-col: equal, wide-left (60/40), wide-right (40/60).
+  '2': [
+    { key: 'equal',  label: '50 / 50',           cssClass: 'pm-cols-2-equal' },
+    { key: '60-40',  label: '60 / 40',           cssClass: 'pm-cols-2-60-40' },
+    { key: '40-60',  label: '40 / 60',           cssClass: 'pm-cols-2-40-60' }
+  ],
+  // 3-col: equal thirds, or 25/37.5/37.5 ("section sidebar + 2 cols").
+  '3': [
+    { key: 'equal',     label: '33 / 33 / 33',           cssClass: 'pm-cols-3-equal' },
+    { key: '25-37-37',  label: '25 / 37.5 / 37.5',       cssClass: 'pm-cols-3-25-37-37' }
+  ]
+};
+
+function _columnsBodyClass() {
+  const pr = (builderState && builderState.print) || {};
+  const count = [1, 2, 3].includes(pr.columns) ? pr.columns : 1;
+  const presets = _COLUMN_PRESETS[String(count)];
+  // Find requested preset; fall back to 'equal' for that count.
+  const match = presets.find(p => p.key === pr.columnPreset) || presets[0];
+  return 'pm-cols-' + count + ' ' + match.cssClass;
+}
+
+// Resolve a problem's effective column span given the active column count.
+// 'auto' = 1 column. Numeric spans ('2', '3') are clamped to the active count
+// — a 'span 3' problem in a 2-col layout becomes a span-2. 'full' is always
+// honored regardless of count (treated as full-row span).
+function _resolveSpan(p, activeColumns) {
+  const requested = (p && p.print && p.print.span) || 'auto';
+  if (requested === 'full') return 'full';
+  if (requested === 'auto' || requested === '1') return 1;
+  const n = parseInt(requested, 10);
+  if (isNaN(n) || n < 1) return 1;
+  return Math.min(n, activeColumns);
+}
+
+function setPrintColumns(value) {
+  const n = parseInt(value, 10);
+  if (![1, 2, 3].includes(n)) return;
+  if (!builderState.print) builderState.print = { defaultWorkspaceFormat: 'dots', units: 'in', columns: 1, columnPreset: 'equal' };
+  builderState.print.columns = n;
+  // Reset preset to 'equal' when changing count, since presets aren't shared
+  // across counts. The preset dropdown in the UI will repopulate.
+  builderState.print.columnPreset = 'equal';
+  saveDraft();
+  // Re-render so the preset dropdown options reflect the new count, and the
+  // per-problem span dropdown options reflect the new max.
+  renderProblems();
+  // Activity-config preset dropdown also needs re-population — handled by
+  // a small helper rather than full renderAll, to preserve focus elsewhere.
+  _repopulateColumnPresetSelect();
+  refreshPreview();
+}
+
+function setPrintColumnPreset(key) {
+  if (!builderState.print) return;
+  builderState.print.columnPreset = key || 'equal';
+  saveDraft();
+  refreshPreview();
+}
+
+function updateProblemPrint(id, field, value) {
+  const p = builderState.problems.find(x => x.id === id);
+  if (!p) return;
+  if (!p.print) p.print = { span: 'auto' };
+  p.print[field] = value;
+  saveDraft();
+  refreshPreview();
+}
+
+// Repopulate the column-preset <select> in activity-config when the column
+// count changes. Called from setPrintColumns (avoids a full re-render).
+function _repopulateColumnPresetSelect() {
+  const sel = document.getElementById('columnPreset');
+  if (!sel) return;
+  const count = (builderState.print && builderState.print.columns) || 1;
+  const presets = _COLUMN_PRESETS[String(count)] || _COLUMN_PRESETS['1'];
+  sel.innerHTML = presets.map(p =>
+    '<option value="' + p.key + '">' + p.label + '</option>'
+  ).join('');
+  sel.value = (builderState.print && builderState.print.columnPreset) || 'equal';
+  // Hide the preset selector for 1-column (only one option).
+  const row = sel.closest('.preset-row');
+  if (row) row.style.display = (count === 1) ? 'none' : '';
+}
+
+// =============================================================================
 // AUTH / PIN UNLOCK
 // =============================================================================
 function openPinModal() {
@@ -2045,6 +2213,11 @@ function renderAll() {
   if (fmtSel) fmtSel.value = pr.defaultWorkspaceFormat || 'dots';
   const unitInputs = document.querySelectorAll('input[name="printUnits"]');
   unitInputs.forEach(r => { r.checked = (r.value === (pr.units || 'in')); });
+  // Column layout (phase 5) — count first, then populate preset dropdown
+  // (which depends on count) and select the saved preset.
+  const colCountSel = document.getElementById('columnCount');
+  if (colCountSel) colCountSel.value = String(pr.columns || 1);
+  _repopulateColumnPresetSelect();
   renderProblems();
   renderSidebarTools();
   refreshPreview();

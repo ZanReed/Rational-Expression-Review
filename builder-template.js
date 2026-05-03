@@ -672,9 +672,88 @@ body.print-preview .prob-workspace[data-format="coord"]{
     0.25in 0.25in,
     0.25in 0.25in;
 }
+
+/* ============================================================================
+   PRINT MODE — phase 5: column system (CSS Grid)
+   ============================================================================
+   Activity-wide column count + width preset come from body classes set at
+   compile time (e.g. "pm-cols-2 pm-cols-2-60-40"). Per-problem span comes
+   from data-span on each .problem-cell. Auto-flow handles natural placement
+   so a span-2 problem lands in the next available 2-wide slot.
+
+   Grid only activates in print mode. Screen mode keeps the existing single
+   -column flow untouched, so this is purely additive.
+
+   Container: .problems-grid (added in phase 5, wraps PROBLEMS_HTML so the
+   submit-wrap and other siblings inside .main-content are not part of the
+   grid even when hidden). Default 1-column produces a single-track grid
+   that's identical visually to the existing flow but lets data-span="full"
+   still work as a no-op.
+   ============================================================================ */
+
+/* Grid activates only in print mode. */
+body.print-preview .problems-grid{
+  display:grid;
+  /* Slightly tighter row gap than column gap to match worksheet feel. */
+  column-gap:0.3in;
+  row-gap:0.18in;
+  /* grid-template-columns set per body class below */
+}
+
+/* ---- Grid templates per column-count + preset ---- */
+body.print-preview.pm-cols-1-equal .problems-grid{
+  grid-template-columns:1fr;
+}
+body.print-preview.pm-cols-2-equal .problems-grid{
+  grid-template-columns:1fr 1fr;
+}
+body.print-preview.pm-cols-2-60-40 .problems-grid{
+  grid-template-columns:6fr 4fr;
+}
+body.print-preview.pm-cols-2-40-60 .problems-grid{
+  grid-template-columns:4fr 6fr;
+}
+body.print-preview.pm-cols-3-equal .problems-grid{
+  grid-template-columns:1fr 1fr 1fr;
+}
+body.print-preview.pm-cols-3-25-37-37 .problems-grid{
+  grid-template-columns:25fr 37.5fr 37.5fr;
+}
+
+/* ---- Per-problem span ---- */
+/* Default (data-span="1") — single column, no rule needed (Grid auto-flow). */
+
+body.print-preview .problem-cell[data-span="2"]{
+  grid-column:span 2;
+}
+body.print-preview .problem-cell[data-span="3"]{
+  grid-column:span 3;
+}
+/* Full-width: span every track regardless of count. 1/-1 is the Grid idiom
+   for "from the first line to the last", which always equals the full row. */
+body.print-preview .problem-cell[data-span="full"]{
+  grid-column:1 / -1;
+}
+
+/* In 1-column mode, every problem occupies the whole row anyway. The span
+   attributes above still apply but visually collapse to the same outcome —
+   no special handling needed. */
+
+/* Tighten cell padding slightly in multi-column layouts so 3-col 1.4"
+   columns don't feel claustrophobic. */
+body.print-preview.pm-cols-2 .problem-cell,
+body.print-preview.pm-cols-3 .problem-cell{
+  padding:10px 12px;
+}
+body.print-preview.pm-cols-3 .problem-cell{
+  font-size:13px;
+}
+body.print-preview.pm-cols-3 .prob-num{
+  font-size:9px;
+}
 </style>
 </head>
-<body>
+<body class="{{BODY_CLASSES}}">
 
 <div class="shell">
 
@@ -714,7 +793,9 @@ body.print-preview .prob-workspace[data-format="coord"]{
   </div>
 
   <main class="main-content">
-    {{PROBLEMS_HTML}}
+    <div class="problems-grid">
+      {{PROBLEMS_HTML}}
+    </div>
 
     <div class="submit-wrap">
       <button id="submitBtn" data-webhook="{{WEBHOOK_URL}}" onclick="submitActivity()">Submit work</button>

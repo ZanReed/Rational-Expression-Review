@@ -328,7 +328,23 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
               <label><input type="radio" name="printUnits" value="cm" onchange="setPrintDefault('units', this.value)"><span>cm</span></label>
             </div>
           </div>
-          <div class="field-hint">Each problem can override the format, or use the default. The unit toggle only changes how sizes are labeled — the actual printed work space stays the same physical dimensions.</div>
+          <!-- Phase 5: column layout (count + preset). Preset row hides for
+               1-column mode (only one preset exists). -->
+          <div class="print-options-panel" style="margin-top:10px">
+            <label class="ws-lbl" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)">
+              Columns
+              <select id="columnCount" onchange="setPrintColumns(this.value)">
+                <option value="1">1 column</option>
+                <option value="2">2 columns</option>
+                <option value="3">3 columns</option>
+              </select>
+            </label>
+            <label class="ws-lbl preset-row" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)">
+              Width
+              <select id="columnPreset" onchange="setPrintColumnPreset(this.value)"></select>
+            </label>
+          </div>
+          <div class="field-hint">Each problem can override the format, or use the default. The unit toggle only changes how sizes are labeled — the actual printed work space stays the same physical dimensions. Multi-column layouts let individual problems span multiple columns or full width via the per-problem Span dropdown.</div>
         </div>
       </div>
 
