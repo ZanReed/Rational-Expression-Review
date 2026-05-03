@@ -323,8 +323,23 @@ input.ans-num.inline-blank{
 .md-trigger::after{content:'\\25BE';color:var(--ink-light);font-size:11px;flex-shrink:0}
 .md-trigger:hover{border-color:var(--accent)}
 .md-dropdown[data-open] .md-trigger{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-lt)}
+/* Correct/incorrect feedback. The background is also pushed down to the
+   trigger label and any KaTeX-rendered content inside it, because KaTeX
+   wraps math in nested <span class="katex"> structures whose own
+   backgrounds (or white empty space between them) visually mask the
+   parent trigger's background. Setting bg on the inner spans guarantees
+   the color shows regardless of whether the answer is plain text or
+   rendered math. */
 .md-trigger.correct{border-color:var(--green-rule);background:var(--green-bg)}
+.md-trigger.correct .md-trigger-label,
+.md-trigger.correct .katex,
+.md-trigger.correct .katex-html,
+.md-trigger.correct .katex-mathml{background:var(--green-bg)}
 .md-trigger.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
+.md-trigger.incorrect .md-trigger-label,
+.md-trigger.incorrect .katex,
+.md-trigger.incorrect .katex-html,
+.md-trigger.incorrect .katex-mathml{background:var(--red-bg)}
 .md-trigger-label{display:inline-block;flex:1}
 .md-placeholder{color:var(--ink-light);font-style:italic}
 .md-options{display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px;min-width:160px}
