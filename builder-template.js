@@ -174,6 +174,14 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .problem-cell{background:var(--page);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;margin-bottom:14px}
 .prob-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:8px}
 .prob-stem{font-family:var(--serif);font-size:17px;line-height:1.7;color:var(--ink)}
+/* If the markdown parser emits <p> wrappers around chunks of stem text
+   (e.g. when LaTeX double-backslash line-breaks split a stem into multiple
+   lines), the default paragraph margins create unwanted vertical gaps
+   between lines. Reset them so spacing is purely line-height-driven.
+   Block-level children inside the stem (lists, callouts, tables) get
+   their normal margins from their own selectors. */
+.prob-stem p{margin:0}
+.prob-stem br + br{display:none} /* collapse consecutive blank lines */
 .stem-text{display:inline}
 .ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s,background .15s}
 .ans-num:focus{border-color:var(--accent)}
