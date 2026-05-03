@@ -1680,7 +1680,16 @@ function printFromBuilder() {
   const iframe = document.getElementById('previewFrame');
   if (!iframe || !iframe.contentWindow) return;
   iframe.contentWindow.focus();
-  iframe.contentWindow.print();
+  // Trigger print from inside the iframe's own context via postMessage rather
+  // than calling iframe.contentWindow.print() directly. Two reasons:
+  //   1. The iframe sandbox blocks modal APIs unless allow-modals is set; even
+  //      with allow-modals, Firefox sometimes drops user-activation on
+  //      cross-frame .print() calls. A message handler inside the iframe
+  //      preserves the activation chain.
+  //   2. Architecturally cleaner — the parent expresses intent ("print this"),
+  //      the iframe decides how to fulfill it.
+  // The receiving listener lives in builder-template.js worksheet runtime.
+  iframe.contentWindow.postMessage({ type: 'request-print' }, '*');
 }
 
 // =============================================================================

@@ -568,6 +568,18 @@ body.print-preview .problem-cell{
 var ACTIVITY_SLUG = '{{ACTIVITY_SLUG}}';
 var GOOGLE_CLIENT_ID = '{{GOOGLE_CLIENT_ID}}';
 
+// ---------- Parent-frame print trigger -------------------------------------
+// When the activity runs inside the builder's preview iframe, the builder's
+// "Print" button posts {type:'request-print'} so the print() call originates
+// inside this realm (preserves user-activation, satisfies sandbox modal
+// permissions). Harmless on the standalone published activity — no parent
+// will ever post such a message.
+window.addEventListener('message', function(e){
+  if (e && e.data && e.data.type === 'request-print') {
+    window.print();
+  }
+});
+
 // ---------- Window manager -------------------------------------------------
 var WindowManager = (function(){
   var windows = {};       // toolId -> { el, instance, config, body }
