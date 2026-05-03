@@ -852,6 +852,258 @@ body.print-preview.pm-show-page-guides .page-guide-overlay{display:block}
    default .shell rule already sets position:relative in the phase 1 block,
    but reassert here so the dependency is documented. */
 body.print-preview .shell{position:relative}
+
+/* ============================================================================
+   PRINT MODE — phase 7: header simplification + booklet imposition
+   ============================================================================
+   Two related features:
+
+   1. Print header simplification (applies to both letter and booklet)
+      Drops the district badge ("Dallas ISD · Algebra II") and the
+      instruction line ("Complete each problem...") to save paper. Title
+      stays. On screen these elements remain visible — only the print
+      stylesheet hides them.
+
+   2. Booklet mode (un-nested saddle-stitch)
+      Triggered by body.pm-booklet. Each physical sheet is letter-landscape;
+      content is split into 5.5"x8.5" logical pages with imposition handled
+      at runtime by _renderBooklet. The on-page geometry uses 0.5" outer /
+      0.6" inner / 0.5" top-bottom margins per logical page (per spec).
+
+      Reading-order mode (.pm-booklet-reading-order) bypasses imposition and
+      shows logical pages in 1..N reading sequence, useful for proofreading.
+   ============================================================================ */
+
+/* ---- 1. Print header simplification ---- */
+body.print-preview .page-header .district-badge,
+body.print-preview .page-header p{display:none !important}
+body.print-preview .page-header{
+  border-bottom:none;
+  margin-bottom:14px;
+  padding-bottom:0;
+}
+body.print-preview .page-header h1{
+  margin-top:0;
+  margin-bottom:8px;
+}
+@media print{
+  .page-header .district-badge,
+  .page-header p{display:none !important}
+  .page-header{border-bottom:none;margin-bottom:14px;padding-bottom:0}
+  .page-header h1{margin-top:0;margin-bottom:8px}
+}
+
+/* ---- 2. Booklet mode ---- */
+
+/* In booklet mode the @page geometry must change to letter landscape.
+   This is the ONLY way to get the printer to feed the right paper. */
+@media print{
+  body.pm-booklet{}  /* placeholder — page rule below is what counts */
+}
+/* Note: @page rules inside a media query body selector aren't supported,
+   so we declare an unscoped @page that only applies in booklet mode by way
+   of the body class gate elsewhere. The simplest cross-browser approach is
+   to require teachers to manually pick "Landscape" in the print dialog when
+   booklet mode is active — most browsers respect that. We document this
+   in the UI hint. */
+
+/* Sheet container = one physical letter-landscape sheet (11" x 8.5") */
+body.print-preview.pm-booklet .sheet,
+@media print{}
+
+body.print-preview.pm-booklet .problems-grid{
+  /* Override the grid display from phase 5 — booklet uses sheet-based flow
+     instead of a grid template. */
+  display:block;
+  column-gap:0;
+  row-gap:0;
+}
+
+body.print-preview.pm-booklet .sheet{
+  display:flex;
+  flex-direction:row;
+  width:11in;
+  height:8.5in;
+  margin:0 auto 24px auto;
+  background:white;
+  box-shadow:0 2px 14px rgba(0,0,0,.25);
+  border:1px solid #444;
+  position:relative;
+  page-break-after:always;
+  break-after:page;
+  overflow:hidden;
+}
+body.print-preview.pm-booklet .sheet:last-child{
+  page-break-after:auto;
+  break-after:auto;
+}
+
+/* Subtle visual separator between left and right halves so teachers see
+   the fold line. Hidden on actual print to avoid confusion. */
+body.print-preview.pm-booklet .sheet::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  width:0;
+  border-left:1px dashed #c0c0c0;
+  pointer-events:none;
+}
+
+/* Sheet label tag — small "Sheet 1 — front" indicator in preview only. */
+body.print-preview.pm-booklet .sheet::before{
+  content:"Sheet " attr(data-booklet) " \\2014  " attr(data-side, "");
+  position:absolute;
+  top:-18px;
+  left:0;
+  font-family:var(--mono, monospace);
+  font-size:9px;
+  font-weight:600;
+  letter-spacing:0.05em;
+  color:#888;
+  text-transform:uppercase;
+}
+body.print-preview.pm-booklet .sheet-front::before{content:"Sheet " attr(data-booklet) " \\2014  Front"}
+body.print-preview.pm-booklet .sheet-back::before{content:"Sheet " attr(data-booklet) " \\2014  Back"}
+
+/* Logical page — half of a sheet, 5.5" wide x 8.5" tall.
+   Margin scheme (per spec): 0.5" outer / 0.6" inner / 0.5" top/bottom.
+   Outer = away from spine, Inner = toward spine. For sheet-front, the LEFT
+   half is page 4 (glue, back cover) and the RIGHT half is page 1 (front
+   cover) — so on sheet-front, the inner edges face each other (right edge
+   of left page, left edge of right page). Same on sheet-back. */
+body.print-preview.pm-booklet .logical-page{
+  width:5.5in;
+  height:8.5in;
+  position:relative;
+  background:white;
+  overflow:hidden;
+  font-size:13px;
+  /* Default symmetric — overridden per-half below */
+  padding:0.5in 0.5in 0.5in 0.5in;
+  box-sizing:border-box;
+}
+/* Left half of a sheet: inner margin (right edge) is wider than outer */
+body.print-preview.pm-booklet .sheet > .logical-page:first-child{
+  padding:0.5in 0.6in 0.5in 0.5in;
+  border-right:1px dashed transparent;  /* placeholder; fold line drawn by ::after on .sheet */
+}
+/* Right half of a sheet: inner margin (left edge) is wider than outer */
+body.print-preview.pm-booklet .sheet > .logical-page:last-child{
+  padding:0.5in 0.5in 0.5in 0.6in;
+}
+
+/* Page-number footer in bottom-outer corner. Skipped on glue page. */
+body.print-preview.pm-booklet .logical-page:not(.lp-glue)::after{
+  content:attr(data-page-num);
+  position:absolute;
+  bottom:0.25in;
+  font-family:var(--mono, monospace);
+  font-size:9px;
+  color:#999;
+}
+body.print-preview.pm-booklet .sheet > .logical-page:first-child:not(.lp-glue)::after{left:0.5in}
+body.print-preview.pm-booklet .sheet > .logical-page:last-child:not(.lp-glue)::after{right:0.5in}
+
+/* Glue page = blank back cover. Render mostly empty with a small corner
+   mark so the teacher sees this is the side that gets glued into the
+   journal. The mark is preview-only; it does NOT print (otherwise it'd
+   show up on student-facing booklets). */
+body.print-preview.pm-booklet .logical-page.lp-glue{}
+.lp-glue-mark{
+  position:absolute;
+  top:0.5in;
+  left:0.5in;
+  font-family:var(--mono, monospace);
+  font-size:8px;
+  font-weight:600;
+  letter-spacing:0.1em;
+  color:#aaa;
+  border:1px dashed #ccc;
+  padding:3px 8px;
+  border-radius:2px;
+}
+@media print{
+  .lp-glue-mark{display:none}
+}
+
+/* Cover-only header: we want the title only on the FIRST logical page of
+   the entire activity (the page-header lives in .shell, not in a logical
+   page, so this is handled by selectively hiding .shell > .page-header
+   when booklet mode is active and inserting it into the cover instead.) */
+
+/* In booklet mode the original .page-header is hidden from print (its
+   content has been duplicated into the cover at compile time — but since
+   we don't actually move it, we instead show it ONLY when on the first
+   logical page. Simpler: keep the page-header outside any logical page
+   for now and let teachers see it in the preview. The first logical page
+   visually carries the title because in our DOM, the page-header sits
+   above .problems-grid at the top of .shell. In booklet preview, we'll
+   tuck it inside the first sheet's cover via CSS positioning.) */
+
+/* For the cover (first logical page), make extra room for the title.
+   Implementation note: the actual title rendering is via .shell > .page-header
+   which sits ABOVE the .problems-grid. In booklet preview, the page-header
+   visually leads the document and the cover content begins below it. To make
+   the cover layout look right, we hide the title for non-first sheets via
+   the shell:has(.sheet:nth-child(...)) pattern — simpler is to render the
+   page-header ONCE at the top and let it be the implicit cover content. */
+
+/* Content area inside a non-glue logical page — multi-column flow if needed
+   so problem cells stack naturally. Single-column by default; teachers who
+   want columns inside booklet pages can do that via the existing column UI
+   (which still works since data-span attrs flow through). */
+.lp-content{
+  height:100%;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.lp-content .problem-cell{
+  background:white;
+  border:1px solid #ccc;
+  padding:8px 10px;
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+
+/* ---- Reading-order mode: bypass imposition, show 1..N pages in sequence.
+   In this mode, _renderBooklet stuffs cells back into the grid in source
+   order (no .sheet wrappers), so we just need a slightly different look —
+   no fold line, no sheet label. Inherit baseline preview styles from
+   phase 1. */
+body.print-preview.pm-booklet.pm-booklet-reading-order .sheet{display:none}
+body.print-preview.pm-booklet.pm-booklet-reading-order .problems-grid{
+  display:block;
+}
+
+/* ---- Print: in booklet mode, hide the simulated-sheet shadow/border
+   chrome (printer applies its own paper). The .sheet still functions as a
+   page-break-after container, but visually flat. */
+@media print{
+  body.pm-booklet .sheet{
+    box-shadow:none;
+    border:none;
+    margin:0 auto;
+    width:11in;
+    height:8.5in;
+    display:flex;
+  }
+  body.pm-booklet .sheet::before,
+  body.pm-booklet .sheet::after{display:none}
+  body.pm-booklet .logical-page{
+    width:5.5in;
+    height:8.5in;
+  }
+  body.pm-booklet .lp-glue-mark{display:none}
+  /* Hide the global page-header on every sheet except the very first
+     (which is sheet-front of booklet 1, containing the cover on its right
+     half). Easiest: keep the page-header outside .problems-grid; it prints
+     on the first page naturally. Sheets after the first naturally start
+     fresh because of page-break-after. */
+}
 </style>
 </head>
 <body class="{{BODY_CLASSES}}">
@@ -935,11 +1187,152 @@ var GOOGLE_CLIENT_ID = '{{GOOGLE_CLIENT_ID}}';
 window.addEventListener('message', function(e){
   if (!e || !e.data) return;
   if (e.data.type === 'request-print') {
+    // Phase 7: ensure booklet imposition is current before printing. The
+    // renderer is idempotent and cheap when nothing changed.
+    if (document.body.classList.contains('pm-booklet')) _renderBooklet();
     window.print();
   } else if (e.data.type === 'render-page-guides') {
     _renderPageGuides();
+    if (document.body.classList.contains('pm-booklet')) _renderBooklet();
   }
 });
+
+// ---------- Booklet imposition (phase 7) -----------------------------------
+// Un-nested saddle-stitch booklets: each physical letter-landscape sheet
+// folds vertically into 4 logical pages (front cover | inside spread | back
+// cover blank-glue). For each booklet:
+//   logical 1 -> sheet front, right half  (cover)
+//   logical 2 -> sheet back,  left half
+//   logical 3 -> sheet back,  right half
+//   logical 4 -> sheet front, left half   (blank glue page)
+//
+// Multi-booklet activities chain: pages 1..3 in booklet 1, pages 5..7 in
+// booklet 2, etc. Pages 4, 8, 12... are always glue. Rounding to a multiple
+// of 4 may leave content-pad pages right before glue.
+//
+// This runs at print-preview entry and before each print. It DOM-rearranges
+// problem cells into a sheet>logical-page hierarchy. Reading-order mode
+// short-circuits the rearrange and shows the original flow.
+
+function _renderBooklet() {
+  // Need a canonical source of problem cells to repack. The first time this
+  // runs, capture the original .problems-grid children into a hidden cache
+  // div so subsequent rebuilds don't lose information.
+  var grid = document.querySelector('.problems-grid');
+  if (!grid) return;
+
+  // Cache original children once. _bookletSourceCells survives reflows.
+  if (!window._bookletSourceCells) {
+    window._bookletSourceCells = Array.prototype.slice.call(grid.children);
+  }
+  var sourceCells = window._bookletSourceCells;
+  if (sourceCells.length === 0) return;
+
+  // Reading-order mode: just put cells back in source order in the grid,
+  // no sheet wrapping. CSS hides booklet-only chrome under
+  // .pm-booklet-reading-order.
+  if (document.body.classList.contains('pm-booklet-reading-order')) {
+    grid.innerHTML = '';
+    grid.classList.remove('booklet-imposed');
+    sourceCells.forEach(function(c){ grid.appendChild(c); });
+    return;
+  }
+
+  // Imposed mode: pack cells into logical pages, then arrange logical pages
+  // into sheets with the imposition mapping above.
+  //
+  // Pagination strategy: each logical page is a fixed 5.5" x 8.5" box with
+  // CSS column-fill:auto so its child cells flow naturally to fit. We start
+  // with one logical page and append cells; a forced page break (data-page
+  // -break-before="1") starts a new logical page. Overflow within a page
+  // is left to natural CSS pagination via the printer / browser, since
+  // measuring rendered heights reliably across MathJax-rendered content
+  // is unreliable. This gives an approximate but predictable layout that
+  // teachers can refine with explicit page breaks.
+
+  var logicalPages = [];
+  var current = [];
+  sourceCells.forEach(function(cell, i) {
+    var forceBreak = (i > 0) && cell.getAttribute('data-page-break-before') === '1';
+    if (forceBreak && current.length > 0) {
+      logicalPages.push(current);
+      current = [];
+    }
+    current.push(cell);
+  });
+  if (current.length > 0) logicalPages.push(current);
+  if (logicalPages.length === 0) return;
+
+  // Round logical-page count up to a multiple of 4 (un-nested booklet rule).
+  // Each booklet's logical pages: [1=cover, 2=inside-L, 3=inside-R, 4=glue].
+  var totalPages = Math.ceil(logicalPages.length / 4) * 4;
+  // Pad with empty pages, but distinguish which are glue (last in each
+  // booklet) vs content-padding (filler before glue if rounding adds slack).
+  while (logicalPages.length < totalPages) logicalPages.push(null);
+
+  // Build sheet wrappers. Each booklet uses 2 physical sheets (front + back).
+  // Sheet front: [glue (page 4) | cover (page 1)]   (left | right)
+  // Sheet back:  [page 2         | page 3        ]
+  //
+  // For booklet B (0-indexed), logical pages are at indices:
+  //   cover = 4B + 0
+  //   inside-L = 4B + 1
+  //   inside-R = 4B + 2
+  //   glue    = 4B + 3
+  grid.innerHTML = '';
+  grid.classList.add('booklet-imposed');
+
+  var bookletCount = totalPages / 4;
+  for (var b = 0; b < bookletCount; b++) {
+    var coverIdx = 4 * b;
+    var insideLIdx = 4 * b + 1;
+    var insideRIdx = 4 * b + 2;
+    var glueIdx = 4 * b + 3;
+
+    // ---- Sheet front: [glue(page 4) | cover(page 1)] ----
+    var sheetFront = document.createElement('div');
+    sheetFront.className = 'sheet sheet-front';
+    sheetFront.setAttribute('data-booklet', String(b + 1));
+    var glueLP = _makeLogicalPage(logicalPages[glueIdx], glueIdx, true);
+    var coverLP = _makeLogicalPage(logicalPages[coverIdx], coverIdx, false);
+    // Mark cover with .lp-cover so first-only header CSS can target it.
+    if (coverIdx === 0) coverLP.classList.add('lp-first');
+    sheetFront.appendChild(glueLP);
+    sheetFront.appendChild(coverLP);
+    grid.appendChild(sheetFront);
+
+    // ---- Sheet back: [page 2 | page 3] ----
+    var sheetBack = document.createElement('div');
+    sheetBack.className = 'sheet sheet-back';
+    sheetBack.setAttribute('data-booklet', String(b + 1));
+    sheetBack.appendChild(_makeLogicalPage(logicalPages[insideLIdx], insideLIdx, false));
+    sheetBack.appendChild(_makeLogicalPage(logicalPages[insideRIdx], insideRIdx, false));
+    grid.appendChild(sheetBack);
+  }
+}
+
+// Build a single logical-page DOM node. cells may be null (glue page),
+// in which case we render an empty page that visually communicates its
+// blank-glue purpose.
+function _makeLogicalPage(cells, pageIndex, isGluePage) {
+  var lp = document.createElement('div');
+  lp.className = 'logical-page';
+  lp.setAttribute('data-page-num', String(pageIndex + 1));
+  if (isGluePage) {
+    lp.classList.add('lp-glue');
+    // Tiny corner mark so a teacher folding paper knows which side is glue.
+    var mark = document.createElement('div');
+    mark.className = 'lp-glue-mark';
+    mark.textContent = 'GLUE';
+    lp.appendChild(mark);
+  } else if (cells && cells.length > 0) {
+    var inner = document.createElement('div');
+    inner.className = 'lp-content';
+    cells.forEach(function(c){ inner.appendChild(c); });
+    lp.appendChild(inner);
+  }
+  return lp;
+}
 
 // ---------- Page guide overlay (phase 6) -----------------------------------
 // Builder-only visual aid: dashed lines at every page boundary in the

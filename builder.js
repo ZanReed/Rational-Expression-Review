@@ -58,7 +58,12 @@ function _freshState() {
       // The presets vary by column count; switching count resets the preset
       // to the count-appropriate default.
       columns: 1,
-      columnPreset: 'equal'            // 'equal' | '60-40' | '40-60' | '25-37-37'
+      columnPreset: 'equal',           // 'equal' | '60-40' | '40-60' | '25-37-37'
+      // Phase 7 — print mode. 'letter' is single-sided letter-portrait
+      // (existing behavior). 'booklet' is un-nested saddle-stitch (each sheet
+      // = 4 logical pages, last page is the glue page = blank back cover,
+      // letter-landscape physical paper). Modes are mutually exclusive.
+      mode: 'letter'
     },
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
@@ -105,6 +110,8 @@ function _migrateState(s) {
   // Phase 5: column layout fields.
   if (![1, 2, 3].includes(s.print.columns)) s.print.columns = 1;
   if (typeof s.print.columnPreset !== 'string') s.print.columnPreset = 'equal';
+  // Phase 7: print mode.
+  if (s.print.mode !== 'booklet') s.print.mode = 'letter';
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
@@ -1837,6 +1844,10 @@ function refreshPreview() {
 // regardless of the class.
 let _printPreviewActive = false;
 let _pageGuidesActive = false;
+// Phase 7: reading-order vs imposed-layout toggle for booklet preview.
+// Default false = show imposed (print) layout. Toggling true displays
+// logical pages 1..N in reading order, useful for proofreading content.
+let _bookletReadingOrder = false;
 
 function applyPrintPreviewToIframe() {
   const iframe = document.getElementById('previewFrame');
@@ -1845,6 +1856,11 @@ function applyPrintPreviewToIframe() {
   if (!body) return;
   body.classList.toggle('print-preview', _printPreviewActive);
   body.classList.toggle('pm-show-page-guides', _pageGuidesActive && _printPreviewActive);
+  // Phase 7: reading-order class only applies in booklet mode.
+  body.classList.toggle('pm-booklet-reading-order',
+    _bookletReadingOrder &&
+    _printPreviewActive &&
+    builderState && builderState.print && builderState.print.mode === 'booklet');
   // Ask the runtime to (re)compute guide positions whenever state changes.
   // The runtime has an idempotent renderer that's safe to call repeatedly.
   if (iframe.contentWindow) {
@@ -1863,6 +1879,13 @@ function togglePrintPreview() {
   // to make the dependency obvious.
   const guideBtn = document.getElementById('pageGuidesToggle');
   if (guideBtn) guideBtn.style.display = _printPreviewActive ? '' : 'none';
+  // Reading-order toggle only meaningful when preview is on AND mode is
+  // booklet. Same auto-hide pattern.
+  const robtn = document.getElementById('readingOrderToggle');
+  if (robtn) {
+    const isBooklet = builderState && builderState.print && builderState.print.mode === 'booklet';
+    robtn.style.display = (_printPreviewActive && isBooklet) ? '' : 'none';
+  }
   applyPrintPreviewToIframe();
 }
 
@@ -1872,6 +1895,16 @@ function togglePageGuides() {
   if (btn) {
     btn.classList.toggle('active', _pageGuidesActive);
     btn.setAttribute('aria-pressed', _pageGuidesActive ? 'true' : 'false');
+  }
+  applyPrintPreviewToIframe();
+}
+
+function toggleBookletReadingOrder() {
+  _bookletReadingOrder = !_bookletReadingOrder;
+  const btn = document.getElementById('readingOrderToggle');
+  if (btn) {
+    btn.classList.toggle('active', _bookletReadingOrder);
+    btn.setAttribute('aria-pressed', _bookletReadingOrder ? 'true' : 'false');
   }
   applyPrintPreviewToIframe();
 }
@@ -2021,7 +2054,13 @@ function _columnsBodyClass() {
   const presets = _COLUMN_PRESETS[String(count)];
   // Find requested preset; fall back to 'equal' for that count.
   const match = presets.find(p => p.key === pr.columnPreset) || presets[0];
-  return 'pm-cols-' + count + ' ' + match.cssClass;
+  let cls = 'pm-cols-' + count + ' ' + match.cssClass;
+  // Phase 7: booklet mode body class. Triggers landscape @page, half-page
+  // logical-page rendering, and density tweaks. The runtime DOES NOT
+  // automatically add pm-print-letter for the alternative — letter is the
+  // implicit default and needs no class.
+  if (pr.mode === 'booklet') cls += ' pm-booklet';
+  return cls;
 }
 
 // Resolve a problem's effective column span given the active column count.
@@ -2040,7 +2079,7 @@ function _resolveSpan(p, activeColumns) {
 function setPrintColumns(value) {
   const n = parseInt(value, 10);
   if (![1, 2, 3].includes(n)) return;
-  if (!builderState.print) builderState.print = { defaultWorkspaceFormat: 'dots', units: 'in', columns: 1, columnPreset: 'equal' };
+  if (!builderState.print) builderState.print = { defaultWorkspaceFormat: 'dots', units: 'in', columns: 1, columnPreset: 'equal', mode: 'letter' };
   builderState.print.columns = n;
   // Reset preset to 'equal' when changing count, since presets aren't shared
   // across counts. The preset dropdown in the UI will repopulate.
@@ -2059,6 +2098,22 @@ function setPrintColumnPreset(key) {
   if (!builderState.print) return;
   builderState.print.columnPreset = key || 'equal';
   saveDraft();
+  refreshPreview();
+}
+
+// Phase 7: print mode (letter | booklet). Switching to booklet activates the
+// imposition pipeline at compile time. Visibility of the booklet-specific
+// preview toggle is also tied to this flag.
+function setPrintMode(mode) {
+  if (mode !== 'letter' && mode !== 'booklet') return;
+  if (!builderState.print) builderState.print = { defaultWorkspaceFormat: 'dots', units: 'in', columns: 1, columnPreset: 'equal', mode: 'letter' };
+  builderState.print.mode = mode;
+  saveDraft();
+  // Toggle visibility of booklet-only UI (reading-order button) in the
+  // preview header. The button itself lives in the parent (builder) page,
+  // not in the iframe runtime, so we tweak it directly here.
+  const robtn = document.getElementById('readingOrderToggle');
+  if (robtn) robtn.style.display = (mode === 'booklet' && _printPreviewActive) ? '' : 'none';
   refreshPreview();
 }
 
@@ -2262,6 +2317,9 @@ function renderAll() {
   if (fmtSel) fmtSel.value = pr.defaultWorkspaceFormat || 'dots';
   const unitInputs = document.querySelectorAll('input[name="printUnits"]');
   unitInputs.forEach(r => { r.checked = (r.value === (pr.units || 'in')); });
+  // Phase 7: print mode radio
+  const modeInputs = document.querySelectorAll('input[name="printMode"]');
+  modeInputs.forEach(r => { r.checked = (r.value === (pr.mode || 'letter')); });
   // Column layout (phase 5) — count first, then populate preset dropdown
   // (which depends on count) and select the saved preset.
   const colCountSel = document.getElementById('columnCount');

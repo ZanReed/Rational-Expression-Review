@@ -332,6 +332,16 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
               <label><input type="radio" name="printUnits" value="cm" onchange="setPrintDefault('units', this.value)"><span>cm</span></label>
             </div>
           </div>
+          <!-- Phase 7: print mode (letter | booklet). Booklet activates
+               un-nested saddle-stitch imposition. -->
+          <div class="print-options-panel" style="margin-top:10px">
+            <span class="ws-lbl" style="font-size:12px;color:var(--ink-mid)">Print mode</span>
+            <div class="units-radio" role="radiogroup" aria-label="Print mode">
+              <label><input type="radio" name="printMode" value="letter" onchange="setPrintMode(this.value)"><span>Letter portrait</span></label>
+              <label><input type="radio" name="printMode" value="booklet" onchange="setPrintMode(this.value)"><span>Booklet (4-up)</span></label>
+            </div>
+          </div>
+          <div class="field-hint">Letter portrait is single-sided 8.5×11. Booklet is un-nested saddle-stitch — each sheet is letter <em>landscape</em> folded to 4 pages, with the back cover blank for gluing into a journal. <strong>For booklet mode, set your print dialog to Landscape orientation and Two-sided.</strong></div>
           <!-- Phase 5: column layout (count + preset). Preset row hides for
                1-column mode (only one preset exists). -->
           <div class="print-options-panel" style="margin-top:10px">
@@ -397,6 +407,9 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         </button>
         <button id="pageGuidesToggle" class="pp-btn" onclick="togglePageGuides()" aria-pressed="false" title="Show dashed guides at every page boundary" style="display:none">
           <span class="pp-ico" aria-hidden="true">&#x2702;</span> Page guides
+        </button>
+        <button id="readingOrderToggle" class="pp-btn" onclick="toggleBookletReadingOrder()" aria-pressed="false" title="Show booklet pages in reading order (1, 2, 3, 4...) for proofreading. Off = imposed print layout." style="display:none">
+          <span class="pp-ico" aria-hidden="true">&#x1F4D6;</span> Reading order
         </button>
         <button class="pp-btn pp-btn-print" onclick="printFromBuilder()" title="Open the print dialog for the preview">
           <span class="pp-ico" aria-hidden="true">&#x1F5A8;</span> Print
