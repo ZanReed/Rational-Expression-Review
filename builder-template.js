@@ -192,21 +192,64 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 /* Phase 8: answer-key text. When the activity is compiled in answer-key
    mode (builder-only, via the "Print answer key" button), each blank's
    underline/dropdown is replaced with a gray-text span containing the
-   correct answer. The styling reads like a teacher's pencil annotation:
-   light gray, slightly italic, no border or underline. Visible in both
-   on-screen preview and actual print. */
-.ans-key-wrap{display:inline-block;margin:0 4px;vertical-align:baseline}
+   correct answer. The wrap uses the SAME width formula as a regular blank
+   (calc with --ans-len) so the answer-key layout has identical horizontal
+   geometry to the student version — easy side-by-side grading. The answer
+   text sits inside, with an underline matching where the student would
+   write. The styling reads like a teacher's pencil annotation:
+   light gray, slightly italic. Visible in both on-screen preview and
+   actual print. */
+.ans-key-wrap{
+  display:inline-block;
+  margin:0 4px;
+  vertical-align:baseline;
+  /* Match the screen-mode inline blank width. The +1em bias matches what
+     input.ans-num.inline-blank uses (line ~196), so the underline below
+     this answer aligns exactly with where the student-version underline
+     would have been. */
+  width:calc(var(--ans-len, 8) * 0.7em + 2.5em);
+  min-width:60px;
+  border-bottom:1px solid #aaa;
+  text-align:center;
+  /* Slight padding to keep the answer text from butting against the edges
+     when it's near the wrap's full width. */
+  padding:0 4px 1px 4px;
+  box-sizing:border-box;
+}
 .ans-key{
   color:#888;
   font-style:italic;
   font-family:var(--serif);
   font-weight:500;
-  /* Slightly underlined to anchor the answer to the blank position so the
-     teacher's eye still tracks "this is where the blank was". */
-  border-bottom:1px solid #aaa;
-  padding:0 4px 1px 4px;
 }
 .ans-key-missing{color:#c00;font-style:italic;font-size:0.9em}
+
+/* In print mode, scale the answer-key wrap to match print-mode blank
+   geometry (which uses a slightly different calc). The print blank uses
+   calc(var(--ans-len, 8) * 0.55em + 1em); we mirror it here so a printed
+   key and printed student version overlay perfectly. */
+body.print-preview .ans-key-wrap,
+@media print{}
+body.print-preview .ans-key-wrap{
+  width:calc(var(--ans-len, 8) * 0.55em + 1em);
+  min-width:60px;
+  border-bottom:1.5px solid #000;
+  padding:0 4px 1px 4px;
+}
+body.print-preview .ans-key{
+  /* Slightly darker in print so the gray actually shows on paper —
+     ink-jet/laser printers can wash out very light grays. */
+  color:#444;
+}
+@media print{
+  .ans-key-wrap{
+    width:calc(var(--ans-len, 8) * 0.55em + 1em);
+    min-width:60px;
+    border-bottom:1.5px solid #000;
+    padding:0 4px 1px 4px;
+  }
+  .ans-key{color:#444}
+}
 .stem-text{display:inline}
 .ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s,background .15s}
 .ans-num:focus{border-color:var(--accent)}

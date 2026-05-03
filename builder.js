@@ -1980,9 +1980,15 @@ function _compileBlankInput(blank, inputId) {
   // a regular blank — no event wiring, no hidden input — so the runtime's
   // _wireValidation/_initDropdowns simply skip it (no .ans-num present).
   if (_answerKeyMode) {
+    // Resolve the same width that the non-key version would use, so the
+    // answer-key layout has byte-for-byte the same visual footprint as the
+    // student version. This makes side-by-side checking against student
+    // copies easy — answers occupy exactly the same horizontal space.
     let answerDisplay;
+    let answerText;
     if (blank.kind === 'fill_in') {
-      answerDisplay = _esc(blank.answer || '');
+      answerText = blank.answer || '';
+      answerDisplay = _esc(answerText);
     } else {
       // Dropdown: show the correct choice's value, rendered as math if its
       // mode is 'math'. Per spec (1a, locked): show the choice value as
@@ -1990,14 +1996,19 @@ function _compileBlankInput(blank, inputId) {
       const norm = _normalizeChoices(blank.choices || []);
       const correctChoice = norm[blank.correctChoice];
       if (correctChoice) {
+        answerText = correctChoice.value || '';
         answerDisplay = (correctChoice.mode === 'math')
           ? '\\(' + correctChoice.value + '\\)'
           : _esc(correctChoice.value);
       } else {
+        answerText = '';
         answerDisplay = '<span class="ans-key-missing">[no answer]</span>';
       }
     }
-    return '<span class="inline-blank-wrap ans-key-wrap"><span class="ans-key">' + answerDisplay + '</span></span>';
+    const ansLen = _resolveBlankWidth(blank, answerText);
+    return '<span class="inline-blank-wrap ans-key-wrap" style="--ans-len:' + ansLen + '">' +
+             '<span class="ans-key">' + answerDisplay + '</span>' +
+           '</span>';
   }
 
   if (blank.kind === 'fill_in') {
