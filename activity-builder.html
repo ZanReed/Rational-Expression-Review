@@ -342,6 +342,28 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
             </div>
           </div>
           <div class="field-hint">Letter portrait is single-sided 8.5×11. Booklet is un-nested saddle-stitch — each sheet is letter <em>landscape</em> folded to 4 pages, with the back cover blank for gluing into a journal. <strong>For booklet mode, set your print dialog to Landscape orientation and Two-sided.</strong></div>
+
+          <!-- Phase 7+: density and font-size scales for paper conservation.
+               Both apply to letter and booklet modes. -->
+          <div class="print-options-panel" style="margin-top:10px">
+            <label class="ws-lbl" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)">
+              Spacing
+              <select id="printDensity" onchange="setPrintDensity(this.value)">
+                <option value="standard">Standard</option>
+                <option value="compact">Compact</option>
+                <option value="tight">Tight</option>
+              </select>
+            </label>
+            <label class="ws-lbl" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)">
+              Font size
+              <select id="printFontSize" onchange="setPrintFontSize(this.value)">
+                <option value="standard">Standard</option>
+                <option value="compact">Compact</option>
+                <option value="tight">Tight</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-hint">Spacing tightens gaps between problems. Font size shrinks problem text. Combine both for maximum density — Tight + Tight fits roughly 50% more content per sheet but reduces readability.</div>
           <!-- Phase 5: column layout (count + preset). Preset row hides for
                1-column mode (only one preset exists). -->
           <div class="print-options-panel" style="margin-top:10px">

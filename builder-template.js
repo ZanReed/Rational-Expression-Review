@@ -1143,6 +1143,113 @@ body.print-preview.pm-booklet.pm-booklet-reading-order .problems-grid{
      on the first page naturally. Sheets after the first naturally start
      fresh because of page-break-after. */
 }
+/* ============================================================================
+   PRINT MODE — phase 7+: density and font-size scales
+   ============================================================================
+   Two independent dial controls applied via body classes:
+
+   Density: pm-density-compact | pm-density-tight
+     Tightens gaps between problem cells, cell padding, and the spacing
+     above workspace blocks. Standard (no class) keeps current spacing.
+
+   Font-size: pm-fontsize-compact | pm-fontsize-tight
+     Scales problem text and dependent elements (numbers, feedback) down
+     proportionally. KaTeX math scales with parent font-size automatically.
+
+   Both work in letter and booklet modes. Together with Tight workspace
+   sizing, an aggressive teacher can fit ~50% more problems per sheet.
+   ============================================================================ */
+
+/* ---- Density ---- */
+/* Compact: ~30% padding reduction, tighter gaps. Still readable. */
+body.print-preview.pm-density-compact .problems-grid{
+  row-gap:0.08in;
+  column-gap:0.18in;
+}
+body.print-preview.pm-density-compact .problem-cell{
+  padding:7px 9px;
+}
+body.print-preview.pm-density-compact .prob-stem{
+  margin:4px 0;
+}
+body.print-preview.pm-density-compact .prob-num{
+  margin-bottom:3px;
+}
+body.print-preview.pm-density-compact .prob-workspace{
+  margin-top:8px;
+}
+body.print-preview.pm-density-compact.pm-booklet .lp-content{
+  gap:5px;
+}
+
+/* Tight: minimal spacing, max density. Padding reduced by ~60%. */
+body.print-preview.pm-density-tight .problems-grid{
+  row-gap:0.04in;
+  column-gap:0.12in;
+}
+body.print-preview.pm-density-tight .problem-cell{
+  padding:4px 7px;
+}
+body.print-preview.pm-density-tight .prob-stem{
+  margin:2px 0;
+}
+body.print-preview.pm-density-tight .prob-num{
+  margin-bottom:1px;
+  font-size:8px;
+}
+body.print-preview.pm-density-tight .prob-workspace{
+  margin-top:4px;
+}
+body.print-preview.pm-density-tight.pm-booklet .lp-content{
+  gap:3px;
+}
+
+/* Same rules apply when actually printing (no .print-preview prefix needed
+   on the body since classes are baked into the body element directly). */
+@media print{
+  body.pm-density-compact .problems-grid{row-gap:0.08in;column-gap:0.18in}
+  body.pm-density-compact .problem-cell{padding:7px 9px}
+  body.pm-density-compact .prob-stem{margin:4px 0}
+  body.pm-density-compact .prob-num{margin-bottom:3px}
+  body.pm-density-compact .prob-workspace{margin-top:8px}
+  body.pm-density-compact.pm-booklet .lp-content{gap:5px}
+
+  body.pm-density-tight .problems-grid{row-gap:0.04in;column-gap:0.12in}
+  body.pm-density-tight .problem-cell{padding:4px 7px}
+  body.pm-density-tight .prob-stem{margin:2px 0}
+  body.pm-density-tight .prob-num{margin-bottom:1px;font-size:8px}
+  body.pm-density-tight .prob-workspace{margin-top:4px}
+  body.pm-density-tight.pm-booklet .lp-content{gap:3px}
+}
+
+/* ---- Font size ---- */
+/* Scaling is applied at the .problem-cell level so KaTeX math (which uses
+   em-based sizing internally) scales proportionally. We don't touch the
+   page-header or cover-header — title font stays the same regardless. */
+
+/* Compact: 92% scale. */
+body.print-preview.pm-fontsize-compact .problem-cell{
+  font-size:13px;
+}
+body.print-preview.pm-fontsize-compact.pm-booklet .problem-cell{
+  font-size:12px;
+}
+
+/* Tight: 85% scale. */
+body.print-preview.pm-fontsize-tight .problem-cell{
+  font-size:12px;
+}
+body.print-preview.pm-fontsize-tight.pm-booklet .problem-cell{
+  font-size:11px;
+}
+
+@media print{
+  body.pm-fontsize-compact .problem-cell{font-size:13px}
+  body.pm-fontsize-compact.pm-booklet .problem-cell{font-size:12px}
+
+  body.pm-fontsize-tight .problem-cell{font-size:12px}
+  body.pm-fontsize-tight.pm-booklet .problem-cell{font-size:11px}
+}
 </style>
 </head>
 <body class="{{BODY_CLASSES}}">

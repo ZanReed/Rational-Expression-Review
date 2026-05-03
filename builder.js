@@ -63,7 +63,14 @@ function _freshState() {
       // (existing behavior). 'booklet' is un-nested saddle-stitch (each sheet
       // = 4 logical pages, last page is the glue page = blank back cover,
       // letter-landscape physical paper). Modes are mutually exclusive.
-      mode: 'letter'
+      mode: 'letter',
+      // Phase 7+: density and font-size scales for print output. Both have
+      // three levels: 'standard' (default), 'compact', 'tight'. Density
+      // tightens gaps, padding, and margins between problems. Font-size
+      // shrinks problem text proportionally. Independent settings — a
+      // teacher can use Tight font with Standard spacing or vice versa.
+      density: 'standard',
+      fontSize: 'standard'
     },
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
@@ -112,6 +119,9 @@ function _migrateState(s) {
   if (typeof s.print.columnPreset !== 'string') s.print.columnPreset = 'equal';
   // Phase 7: print mode.
   if (s.print.mode !== 'booklet') s.print.mode = 'letter';
+  // Phase 7+: density and font-size scales.
+  if (!['standard','compact','tight'].includes(s.print.density)) s.print.density = 'standard';
+  if (!['standard','compact','tight'].includes(s.print.fontSize)) s.print.fontSize = 'standard';
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
@@ -2070,6 +2080,12 @@ function _columnsBodyClass() {
   // automatically add pm-print-letter for the alternative — letter is the
   // implicit default and needs no class.
   if (pr.mode === 'booklet') cls += ' pm-booklet';
+  // Phase 7+: density and font-size scales. 'standard' is the implicit
+  // default (no class emitted) so existing styles apply unchanged.
+  if (pr.density === 'compact')   cls += ' pm-density-compact';
+  if (pr.density === 'tight')     cls += ' pm-density-tight';
+  if (pr.fontSize === 'compact')  cls += ' pm-fontsize-compact';
+  if (pr.fontSize === 'tight')    cls += ' pm-fontsize-tight';
   return cls;
 }
 
@@ -2124,6 +2140,25 @@ function setPrintMode(mode) {
   // not in the iframe runtime, so we tweak it directly here.
   const robtn = document.getElementById('readingOrderToggle');
   if (robtn) robtn.style.display = (mode === 'booklet' && _printPreviewActive) ? '' : 'none';
+  refreshPreview();
+}
+
+// Phase 7+: density and font-size scales. Both accept 'standard'|'compact'
+// |'tight'. They map directly to body classes baked at compile time, so
+// changes take effect on the next preview rebuild.
+function setPrintDensity(value) {
+  if (!['standard','compact','tight'].includes(value)) return;
+  if (!builderState.print) return;
+  builderState.print.density = value;
+  saveDraft();
+  refreshPreview();
+}
+
+function setPrintFontSize(value) {
+  if (!['standard','compact','tight'].includes(value)) return;
+  if (!builderState.print) return;
+  builderState.print.fontSize = value;
+  saveDraft();
   refreshPreview();
 }
 
@@ -2330,6 +2365,11 @@ function renderAll() {
   // Phase 7: print mode radio
   const modeInputs = document.querySelectorAll('input[name="printMode"]');
   modeInputs.forEach(r => { r.checked = (r.value === (pr.mode || 'letter')); });
+  // Phase 7+: density and font-size dropdowns
+  const densitySel  = document.getElementById('printDensity');
+  if (densitySel)  densitySel.value  = pr.density  || 'standard';
+  const fontSel = document.getElementById('printFontSize');
+  if (fontSel) fontSel.value = pr.fontSize || 'standard';
   // Column layout (phase 5) — count first, then populate preset dropdown
   // (which depends on count) and select the saved preset.
   const colCountSel = document.getElementById('columnCount');
