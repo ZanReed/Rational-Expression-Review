@@ -1587,15 +1587,22 @@ function _compileStemText(s) {
 }
 
 // Compile a blank config into the appropriate inline input HTML.
+// Each blank carries a --ans-len CSS variable equal to its correct-answer
+// character count (with a minimum floor). The print-mode stylesheet uses
+// this to scale the underline width when rendering for paper. Variable is
+// inert in screen mode — input width comes from .ans-num/.inline-blank.
 function _compileBlankInput(blank, inputId) {
   if (blank.kind === 'fill_in') {
-    return '<input type="text" class="ans-num inline-blank" id="' + inputId + '" data-correct="' + _escAttr(blank.answer || '') + '" data-tol="' + (blank.tol || 0) + '" autocomplete="off">';
+    const ans = blank.answer || '';
+    const ansLen = Math.max(ans.length, 4);
+    return '<input type="text" class="ans-num inline-blank" style="--ans-len:' + ansLen + '" id="' + inputId + '" data-correct="' + _escAttr(ans) + '" data-tol="' + (blank.tol || 0) + '" autocomplete="off">';
   }
 
   // Dropdown blank
   const norm = _normalizeChoices(blank.choices || []);
   const correctChoice = norm[blank.correctChoice];
   const correctValue = correctChoice ? correctChoice.value : '';
+  const ansLen = Math.max((correctValue || '').length, 4);
 
   const options = norm
     .filter(c => c.value && String(c.value).trim())
@@ -1608,7 +1615,7 @@ function _compileBlankInput(blank, inputId) {
   const randomizeAttr = (blank.randomize === false) ? '' : ' data-randomize="1"';
 
   return [
-    '<span class="inline-blank-wrap">',
+    '<span class="inline-blank-wrap" style="--ans-len:' + ansLen + '">',
       '<details class="md-dropdown"' + randomizeAttr + '>',
         '<summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary>',
         '<div class="md-options">' + options + '</div>',

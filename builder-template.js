@@ -496,6 +496,101 @@ body.print-preview .problem-cell{
     border:none;
   }
 }
+
+/* ============================================================================
+   PRINT MODE — phase 3: element transforms
+   ============================================================================
+   Blanks become underlines, dropdowns become underlines (per design — choices
+   are not shown on paper; students get them from teacher/board), and grading
+   feedback is stripped.
+
+   Underline width scales to expected answer length via the --ans-len CSS
+   variable set at compile time on each blank/wrapper (see _compileBlankInput
+   in builder.js). Floor of 4 chars in the compiler + min-width safety here
+   keeps very-short answers from collapsing to invisible underlines.
+
+   All rules live under body.print-preview and rely on the beforeprint hook
+   (above, in runtime script) to apply the class for direct Ctrl+P prints.
+   The phase 1 @media print block is kept as a defense-in-depth fallback for
+   any environment where beforeprint doesn't fire.
+   ============================================================================ */
+
+/* ---- Fill-in blanks → underline ---- */
+body.print-preview input.inline-blank,
+body.print-preview input.ans-num:not([type="hidden"]){
+  width:calc(var(--ans-len, 8) * 0.55em + 1em) !important;
+  min-width:60px;
+  border:none !important;
+  border-bottom:1.5px solid #000 !important;
+  background:transparent !important;
+  border-radius:0 !important;
+  padding:0 4px 1px 4px !important;
+  color:#000 !important;
+  box-shadow:none !important;
+  font-family:var(--serif);
+}
+/* Standalone (non-inline) full-width blanks get a longer underline floor */
+body.print-preview input.ans-num:not(.inline-blank):not([type="hidden"]){
+  min-width:180px;
+}
+
+/* ---- Dropdowns → underline (no choices shown) ---- */
+body.print-preview .inline-blank-wrap{
+  vertical-align:baseline;
+}
+body.print-preview .md-dropdown{
+  display:inline-block;
+  width:calc(var(--ans-len, 8) * 0.55em + 1em);
+  min-width:80px;
+}
+body.print-preview .md-trigger{
+  display:inline-block;
+  width:100%;
+  border:none !important;
+  border-bottom:1.5px solid #000 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  padding:0 4px 1px 4px !important;
+  color:#000 !important;
+  box-shadow:none !important;
+  font-family:var(--serif);
+  font-size:14px;
+}
+body.print-preview .md-trigger::after{display:none !important}
+body.print-preview .md-options{display:none !important}
+/* Hide the "— Select —" placeholder content but keep layout space */
+body.print-preview .md-trigger .md-placeholder{visibility:hidden}
+
+/* ---- Grading colors stripped (ink-heavy + irrelevant on paper) ----
+   Phase 8 (answer key) will introduce a separate visual treatment for
+   showing correct answers. */
+body.print-preview .ans-num.correct,
+body.print-preview .ans-num.incorrect,
+body.print-preview .md-trigger.correct,
+body.print-preview .md-trigger.incorrect{
+  background:transparent !important;
+  border-color:transparent transparent #000 transparent !important;
+}
+
+/* ---- Feedback messages dropped ---- */
+body.print-preview .feedback,
+body.print-preview .prob-feedback{display:none !important}
+
+/* ---- Problem number / stem: ink-friendly tweaks ---- */
+body.print-preview .prob-num{
+  color:#000;
+  font-weight:600;
+}
+
+/* ---- Graphs: extend the existing @media print rule to preview mode too,
+   so what teachers see in preview matches what comes out of the printer. */
+body.print-preview .prob-graph-caption{display:none}
+body.print-preview .prob-graph{border-color:#999}
+body.print-preview .prob-graph-wrap{
+  break-inside:avoid;
+  page-break-inside:avoid;
+  margin:10px 0;
+}
 </style>
 </head>
 <body>
@@ -578,6 +673,20 @@ window.addEventListener('message', function(e){
   if (e && e.data && e.data.type === 'request-print') {
     window.print();
   }
+});
+
+// ---------- Print preparation hook (phase 3) -------------------------------
+// Add the .print-preview class on beforeprint so element-transform CSS fires
+// even when the user prints without first clicking the preview toggle (e.g.
+// Ctrl+P, browser menu). Restore prior state on afterprint so a manually
+// toggled preview survives a print-and-cancel.
+var _previewWasManual = false;
+window.addEventListener('beforeprint', function(){
+  _previewWasManual = document.body.classList.contains('print-preview');
+  document.body.classList.add('print-preview');
+});
+window.addEventListener('afterprint', function(){
+  if (!_previewWasManual) document.body.classList.remove('print-preview');
 });
 
 // ---------- Window manager -------------------------------------------------
