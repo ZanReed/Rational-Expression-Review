@@ -376,6 +376,126 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
   .ribbon-btn{min-width:58px}
   .rb-label{font-size:9px}
 }
+
+/* ============================================================================
+   PRINT MODE — phase 1 skeleton
+   ============================================================================
+   Two activation paths share one rule set:
+     - body.print-preview        on-screen preview (simulated paper sheet)
+     - @media print              actual paper output
+
+   Phase 1 establishes:
+     - @page geometry (letter portrait, 0.75in margins)
+     - On-screen sheet simulation (white paper on gray void background)
+     - Hiding of non-printable UI (ribbon, submit, sign-in, student-bar, floats)
+     - Body & shell padding overrides so cream background and ribbon-left
+       padding (96px) do not bleed into the print layout
+
+   Phases 2-9 will add modifier classes layered onto .print-preview:
+     - body.pm-booklet           letter-landscape with 4-page imposition
+     - body.pm-cols-{1,2,3}      column counts + width presets
+     - body.pm-units-cm          unit toggle for workspace sizes
+     - body.pm-answer-key        inline answer rendering
+     - body.pm-show-page-guides  dashed informational page-break boundaries
+
+   The existing graph-specific @media print block (above, near .prob-graph) is
+   left in place; it composes with the rules below.
+   ============================================================================ */
+
+@page{size:letter portrait;margin:0.75in}
+
+/* ---- ON-SCREEN PREVIEW ----
+   Simulates how a teacher would see the activity laid out on paper, so they
+   can see content layout before committing to a print run. The simulated
+   sheet sits on a gray void so the white page is visible. */
+body.print-preview{
+  background:#6a6a6a !important;
+  padding:0 !important;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100vh;
+}
+body.print-preview .shell{
+  background:white;
+  width:8.5in;
+  min-height:11in;
+  margin:24px auto;
+  padding:0.75in;
+  box-shadow:0 2px 14px rgba(0,0,0,.25);
+  max-width:none;
+  border:1px solid #444;
+  position:relative;
+}
+
+/* Hide non-printable interactive UI during preview. Same selectors are
+   repeated under @media print below so a Ctrl+P without entering preview
+   mode still produces a clean print. */
+body.print-preview .sticky-panel,
+body.print-preview .submit-wrap,
+body.print-preview #floatingWindowContainer,
+body.print-preview #gsiHolder,
+body.print-preview .student-bar{display:none !important}
+
+/* In preview, problem cells should already look print-clean (no cream
+   background, neutral border) so what teachers see matches paper output. */
+body.print-preview .problem-cell{
+  background:white;
+  border-color:#999;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+
+/* ---- ACTUAL PRINT ---- */
+@media print{
+  /* Hide non-printables regardless of whether preview class is on. */
+  .sticky-panel,
+  .submit-wrap,
+  #floatingWindowContainer,
+  #gsiHolder,
+  .student-bar{display:none !important}
+
+  /* Body: clear cream background and the 96px ribbon-left padding. */
+  body{
+    background:white !important;
+    color:black;
+    padding:0 !important;
+    min-height:0;
+  }
+
+  /* Shell: drop the 920px max-width and auto-centering — @page margin
+     handles paper margins now. */
+  .shell{
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  /* Problem cells: ink-friendly + don't split a problem across pages. */
+  .problem-cell{
+    background:white;
+    border-color:#999;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+
+  /* If preview class is still on when printing (later phases will add a JS
+     beforeprint hook), strip the simulated-sheet styling — the printer
+     applies paper and margins itself. */
+  body.print-preview{
+    background:white !important;
+    display:block;
+  }
+  body.print-preview .shell{
+    background:white;
+    width:auto;
+    min-height:0;
+    margin:0;
+    padding:0;
+    box-shadow:none;
+    border:none;
+  }
+}
 </style>
 </head>
 <body>
