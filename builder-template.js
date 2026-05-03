@@ -895,6 +895,24 @@ body.print-preview .page-header h1{
 
 /* ---- 2. Booklet mode ---- */
 
+/* Booklet mode replaces the letter-portrait simulated sheet with sheet-by
+   -sheet rendering. The .shell constraints from phase 1 (8.5in width,
+   11in min-height) need to be relaxed so multiple landscape sheets can
+   stack vertically without clipping. */
+body.print-preview.pm-booklet{
+  /* Body keeps the gray void; sheets sit on it. */
+  align-items:flex-start;
+}
+body.print-preview.pm-booklet .shell{
+  width:auto;
+  min-height:0;
+  background:transparent;
+  padding:24px;
+  box-shadow:none;
+  border:none;
+  display:block;
+}
+
 /* In booklet mode the @page geometry must change to letter landscape.
    This is the ONLY way to get the printer to feed the right paper. */
 @media print{
@@ -1011,6 +1029,23 @@ body.print-preview.pm-booklet .sheet > .logical-page:last-child:not(.lp-glue)::a
    journal. The mark is preview-only; it does NOT print (otherwise it'd
    show up on student-facing booklets). */
 body.print-preview.pm-booklet .logical-page.lp-glue{}
+
+/* Cover header: the cloned title block sits at the top of the first cover
+   logical page. Original .page-header above .problems-grid is hidden in
+   booklet imposed mode (its content is on the cover instead). In reading-
+   order mode, the original page-header reappears since we're showing the
+   plain flow. */
+body.print-preview.pm-booklet:not(.pm-booklet-reading-order) .shell > .page-header{display:none}
+.lp-cover-header{
+  margin-bottom:0.3in;
+  padding-bottom:0.15in;
+  border-bottom:2px solid #000;
+}
+.lp-cover-header h1{
+  margin:0;
+  font-size:18px;
+  line-height:1.2;
+}
 .lp-glue-mark{
   position:absolute;
   top:0.5in;
@@ -1193,7 +1228,16 @@ window.addEventListener('message', function(e){
     window.print();
   } else if (e.data.type === 'render-page-guides') {
     _renderPageGuides();
-    if (document.body.classList.contains('pm-booklet')) _renderBooklet();
+    if (document.body.classList.contains('pm-booklet')) {
+      // Defer so KaTeX/MathJax has a chance to render math before we
+      // measure cell heights — otherwise unrendered formulas measure
+      // shorter than they actually are, and cells overflow their pages
+      // after math typesets. The 220ms is empirical; KaTeX auto-render
+      // typically finishes within ~100ms even for moderate worksheets.
+      // We also re-run again at 600ms to catch slow renders.
+      setTimeout(_renderBooklet, 220);
+      setTimeout(_renderBooklet, 600);
+    }
   }
 });
 
@@ -1241,26 +1285,77 @@ function _renderBooklet() {
   // Imposed mode: pack cells into logical pages, then arrange logical pages
   // into sheets with the imposition mapping above.
   //
-  // Pagination strategy: each logical page is a fixed 5.5" x 8.5" box with
-  // CSS column-fill:auto so its child cells flow naturally to fit. We start
-  // with one logical page and append cells; a forced page break (data-page
-  // -break-before="1") starts a new logical page. Overflow within a page
-  // is left to natural CSS pagination via the printer / browser, since
-  // measuring rendered heights reliably across MathJax-rendered content
-  // is unreliable. This gives an approximate but predictable layout that
-  // teachers can refine with explicit page breaks.
+  // Pagination uses a measurement pass: we render cells off-screen in a
+  // hidden ruler element with the same width as a logical-page content
+  // area, measure each cell's outerHeight, and pack greedily into pages
+  // that fit within the logical-page content height. Forced page breaks
+  // (data-page-break-before="1") start a new page regardless of remaining
+  // space. The first logical page (cover) reserves vertical space for the
+  // title block, so its capacity is reduced.
+
+  // Logical-page geometry (must match CSS):
+  //   total: 5.5in wide x 8.5in tall
+  //   margins: 0.5in top + 0.5in bottom = content area is 7.5in tall
+  //   width content area: 5.5 - 0.5 - 0.6 = 4.4in (approximate; varies by side)
+  // We use the inner-side width (4.4in) as a conservative measurement
+  // width so cells aren't undersized.
+  var DPI = 96;
+  var contentH = 7.5 * DPI;       // 7.5in available height per logical page
+  var contentW = 4.4 * DPI;       // ~4.4in measurement width
+  // Cover page reserves space for the title block (~0.8in by default).
+  var coverContentH = contentH - (0.8 * DPI);
+
+  // Build a hidden measurement ruler so we can measure cells without
+  // disturbing layout. Append to body (outside .problems-grid).
+  var ruler = document.getElementById('_booklet_ruler');
+  if (!ruler) {
+    ruler = document.createElement('div');
+    ruler.id = '_booklet_ruler';
+    ruler.style.cssText =
+      'position:absolute;left:-99999px;top:0;visibility:hidden;' +
+      'pointer-events:none;font-size:13px;';
+    document.body.appendChild(ruler);
+  }
+  ruler.style.width = contentW + 'px';
 
   var logicalPages = [];
   var current = [];
-  sourceCells.forEach(function(cell, i) {
-    var forceBreak = (i > 0) && cell.getAttribute('data-page-break-before') === '1';
-    if (forceBreak && current.length > 0) {
+  var currentH = 0;
+  var pageNum = 0;
+  var capacityFor = function(idx){ return idx === 0 ? coverContentH : contentH; };
+
+  function flushPage() {
+    if (current.length > 0) {
       logicalPages.push(current);
       current = [];
+      currentH = 0;
+      pageNum++;
+    }
+  }
+
+  sourceCells.forEach(function(cell, i) {
+    // Forced break starts a new logical page.
+    var forceBreak = (i > 0) && cell.getAttribute('data-page-break-before') === '1';
+    if (forceBreak) flushPage();
+
+    // Measure cell height. Move into ruler temporarily; the ruler is
+    // hidden, but visibility:hidden preserves layout — works for measurement.
+    ruler.appendChild(cell);
+    var h = cell.offsetHeight + 8; // +gap
+    // After measurement we'll move the cell to its final destination below.
+
+    var cap = capacityFor(logicalPages.length); // index of the page we're filling
+    if (currentH + h > cap && current.length > 0) {
+      flushPage();
     }
     current.push(cell);
+    currentH += h;
   });
-  if (current.length > 0) logicalPages.push(current);
+  flushPage();
+
+  // Clean up ruler — no longer needed once pages are packed.
+  ruler.parentNode && ruler.parentNode.removeChild(ruler);
+
   if (logicalPages.length === 0) return;
 
   // Round logical-page count up to a multiple of 4 (un-nested booklet rule).
@@ -1296,7 +1391,18 @@ function _renderBooklet() {
     var glueLP = _makeLogicalPage(logicalPages[glueIdx], glueIdx, true);
     var coverLP = _makeLogicalPage(logicalPages[coverIdx], coverIdx, false);
     // Mark cover with .lp-cover so first-only header CSS can target it.
-    if (coverIdx === 0) coverLP.classList.add('lp-first');
+    if (coverIdx === 0) {
+      coverLP.classList.add('lp-first');
+      // Inject the activity title at the top of the very first cover page,
+      // cloned from the original .page-header. Cloning rather than moving
+      // means the original stays in the DOM — useful for reading-order mode.
+      var origHeader = document.querySelector('.shell > .page-header');
+      if (origHeader) {
+        var coverHeader = origHeader.cloneNode(true);
+        coverHeader.classList.add('lp-cover-header');
+        coverLP.insertBefore(coverHeader, coverLP.firstChild);
+      }
+    }
     sheetFront.appendChild(glueLP);
     sheetFront.appendChild(coverLP);
     grid.appendChild(sheetFront);
