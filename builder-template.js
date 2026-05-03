@@ -198,8 +198,27 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 /* Inline blanks (placed mid-sentence in stem) */
 .inline-blank{min-width:80px;width:auto;padding:3px 8px;font-size:14px;vertical-align:baseline;margin:0 4px}
 .inline-blank-wrap{display:inline-block;margin:0 4px;vertical-align:baseline}
-.inline-blank-wrap .md-dropdown{min-width:140px}
+/* Dropdown width inside an inline blank: scale to expected answer length
+   via --ans-len (set on the wrap by _compileBlankInput). Cap minimum at
+   60px (enough for 1-2 char answers like "y" or "up") rather than the
+   prior 140px which forced 6+ blanks per stem to wrap onto separate
+   lines. The em-based formula matches the print-mode underline logic
+   so screen and print look proportional. */
+.inline-blank-wrap .md-dropdown{
+  min-width:60px;
+  width:calc(var(--ans-len, 8) * 0.7em + 2.5em);
+}
 .inline-blank-wrap .md-trigger{padding:4px 9px;font-size:13px}
+/* Inline fill-in (text input) needs the same scaling. The base .ans-num rule
+   sets min-width:200px which would force every fill-in inline blank onto its
+   own line in a multi-blank stem. Override here. --ans-len is set on the
+   input element directly by _compileBlankInput. */
+input.ans-num.inline-blank{
+  min-width:60px;
+  width:calc(var(--ans-len, 8) * 0.7em + 2.5em);
+  font-size:14px;
+  padding:4px 9px;
+}
 
 /* Suppress per-problem feedback when score-only mode is on */
 .problem-cell[data-score-only="1"] .ans-num.correct,
@@ -343,16 +362,17 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
   /* Problem cells: tighter padding; full-width inputs (16px font = no iOS zoom) */
   .problem-cell{padding:14px 16px}
   .ans-num{min-width:0;width:100%;font-size:16px;padding:10px 12px}
-  /* Inline blanks stay inline */
+  /* Inline blanks stay inline — scale to --ans-len like desktop, just with
+     slightly larger touch-target padding/font. */
   .ans-num.inline-blank,.inline-blank-wrap .ans-num{
-    width:auto;min-width:80px;display:inline-block;font-size:14px;padding:4px 10px
+    width:calc(var(--ans-len, 8) * 0.7em + 2.5em);min-width:60px;display:inline-block;font-size:14px;padding:4px 10px
   }
 
   /* Dropdowns: full-width unless inline */
   .md-dropdown{display:block;min-width:0;width:100%}
   .md-trigger{font-size:16px;padding:10px 12px;width:100%}
   .md-option{padding:10px 12px;font-size:15px}
-  .inline-blank-wrap .md-dropdown{display:inline-block;width:auto;min-width:140px}
+  .inline-blank-wrap .md-dropdown{display:inline-block;width:calc(var(--ans-len, 8) * 0.7em + 2.5em);min-width:60px}
   .inline-blank-wrap .md-trigger{font-size:14px;padding:5px 10px;width:auto}
 
   /* Math overflow: long display equations scroll horizontally instead of breaking layout */
@@ -1108,6 +1128,48 @@ body.print-preview.pm-booklet:not(.pm-booklet-reading-order) .shell > .page-head
   page-break-inside:avoid;
 }
 
+/* Columns inside a booklet logical page (phase 7+).
+   When the activity is in booklet mode AND has multi-column layout, each
+   logical page's content area becomes a grid mirroring the phase-5 column
+   templates. This means a 5.5" booklet page with 2 columns gives ~2" wide
+   columns — quite cramped for math, but explicitly requested. The column
+   templates here use percentages directly rather than fr units because
+   .lp-content has overflow:hidden which can interact poorly with fr in
+   some browsers. */
+body.print-preview.pm-booklet.pm-cols-2 .lp-content,
+body.print-preview.pm-booklet.pm-cols-3 .lp-content{
+  display:grid;
+  column-gap:0.18in;
+  row-gap:0.12in;
+  align-content:start;
+}
+body.print-preview.pm-booklet.pm-cols-2-equal .lp-content{grid-template-columns:1fr 1fr}
+body.print-preview.pm-booklet.pm-cols-2-60-40 .lp-content{grid-template-columns:6fr 4fr}
+body.print-preview.pm-booklet.pm-cols-2-40-60 .lp-content{grid-template-columns:4fr 6fr}
+body.print-preview.pm-booklet.pm-cols-3-equal .lp-content{grid-template-columns:1fr 1fr 1fr}
+body.print-preview.pm-booklet.pm-cols-3-25-37-37 .lp-content{grid-template-columns:25fr 37.5fr 37.5fr}
+
+/* Per-problem span attributes already work because .lp-content's children
+   are .problem-cell elements with data-span set at compile time. The
+   grid-column rules from phase 5 already match those, so no extra rules
+   needed here. */
+
+/* @media print parallels for actual print output. */
+@media print{
+  body.pm-booklet.pm-cols-2 .lp-content,
+  body.pm-booklet.pm-cols-3 .lp-content{
+    display:grid;
+    column-gap:0.18in;
+    row-gap:0.12in;
+    align-content:start;
+  }
+  body.pm-booklet.pm-cols-2-equal .lp-content{grid-template-columns:1fr 1fr}
+  body.pm-booklet.pm-cols-2-60-40 .lp-content{grid-template-columns:6fr 4fr}
+  body.pm-booklet.pm-cols-2-40-60 .lp-content{grid-template-columns:4fr 6fr}
+  body.pm-booklet.pm-cols-3-equal .lp-content{grid-template-columns:1fr 1fr 1fr}
+  body.pm-booklet.pm-cols-3-25-37-37 .lp-content{grid-template-columns:25fr 37.5fr 37.5fr}
+}
+
 /* ---- Reading-order mode: bypass imposition, show 1..N pages in sequence.
    In this mode, _renderBooklet stuffs cells back into the grid in source
    order (no .sheet wrappers), so we just need a slightly different look —
@@ -1483,13 +1545,24 @@ function _renderBooklet() {
   //   total: 5.5in wide x 8.5in tall
   //   margins: 0.5in top + 0.5in bottom = content area is 7.5in tall
   //   width content area: 5.5 - 0.5 - 0.6 = 4.4in (approximate; varies by side)
-  // We use the inner-side width (4.4in) as a conservative measurement
-  // width so cells aren't undersized.
+  //
+  // For multi-column logical pages, the measurement width shrinks to the
+  // column width and the effective vertical capacity multiplies by column
+  // count (since cells can flow into adjacent columns). This is an
+  // approximation — true bin-packing across columns is significantly more
+  // complex — but it gives a reasonable cell-to-page distribution. Force-
+  // page-break flags still respected.
   var DPI = 96;
-  var contentH = 7.5 * DPI;       // 7.5in available height per logical page
-  var contentW = 4.4 * DPI;       // ~4.4in measurement width
-  // Cover page reserves space for the title block (~0.8in by default).
-  var coverContentH = contentH - (0.8 * DPI);
+  var pr = (window._builderPrintCfg) || {};
+  var colCount = 1;
+  if (document.body.classList.contains('pm-cols-2')) colCount = 2;
+  else if (document.body.classList.contains('pm-cols-3')) colCount = 3;
+  var contentH = 7.5 * DPI;            // 7.5in tall per column
+  var pageCapacity = contentH * colCount; // total vertical area in column-inches
+  var contentW = (4.4 / colCount) * DPI - (0.18 * DPI * (colCount - 1) / colCount);
+  if (contentW < 60) contentW = 60;    // safety floor
+  // Cover page: -0.8in for the title (full width subtraction).
+  var coverPageCapacity = pageCapacity - (0.8 * DPI * colCount);
 
   // Build a hidden measurement ruler so we can measure cells without
   // disturbing layout. Append to body (outside .problems-grid).
@@ -1508,7 +1581,7 @@ function _renderBooklet() {
   var current = [];
   var currentH = 0;
   var pageNum = 0;
-  var capacityFor = function(idx){ return idx === 0 ? coverContentH : contentH; };
+  var capacityFor = function(idx){ return idx === 0 ? coverPageCapacity : pageCapacity; };
 
   function flushPage() {
     if (current.length > 0) {
