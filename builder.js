@@ -1807,7 +1807,7 @@ function _compileBlankInput(blank, inputId) {
     .filter(c => c.value && String(c.value).trim())
     .map(c => {
       const display = (c.mode === 'math') ? '\\(' + c.value + '\\)' : _esc(c.value);
-      return '<div class="md-option" data-value="' + _escAttr(c.value) + '" tabindex="0">' + display + '</div>';
+      return '<span class="md-option" role="option" data-value="' + _escAttr(c.value) + '" tabindex="0">' + display + '</span>';
     })
     .join('');
 
@@ -1815,10 +1815,17 @@ function _compileBlankInput(blank, inputId) {
 
   return [
     '<span class="inline-blank-wrap" style="--ans-len:' + ansLen + '">',
-      '<details class="md-dropdown"' + randomizeAttr + '>',
-        '<summary class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></summary>',
-        '<div class="md-options">' + options + '</div>',
-      '</details>',
+      // Phase 7+: span-based dropdown (was <details>/<summary>). The HTML
+      // spec disallows <details> inside <p>, which forced browsers to hoist
+      // the dropdown out of paragraph wrappers and broke inline flow in
+      // multi-blank stems. Spans nest cleanly inside <p>. Open/closed
+      // state is managed by JS via data-open attribute (see _initDropdowns
+      // in the runtime). Trigger is a span that mimics the prior summary
+      // button. Options box absolutely positions below the trigger.
+      '<span class="md-dropdown" role="combobox" aria-haspopup="listbox" aria-expanded="false" tabindex="0"' + randomizeAttr + '>',
+        '<span class="md-trigger"><span class="md-trigger-label md-placeholder">&mdash; Select &mdash;</span></span>',
+        '<span class="md-options" role="listbox">' + options + '</span>',
+      '</span>',
       '<input type="hidden" class="ans-num" id="' + inputId + '" data-correct="' + _escAttr(correctValue) + '">',
     '</span>'
   ].join('');

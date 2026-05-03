@@ -174,14 +174,20 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .problem-cell{background:var(--page);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;margin-bottom:14px}
 .prob-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:8px}
 .prob-stem{font-family:var(--serif);font-size:17px;line-height:1.7;color:var(--ink)}
-/* If the markdown parser emits <p> wrappers around chunks of stem text
-   (e.g. when LaTeX double-backslash line-breaks split a stem into multiple
-   lines), the default paragraph margins create unwanted vertical gaps
-   between lines. Reset them so spacing is purely line-height-driven.
-   Block-level children inside the stem (lists, callouts, tables) get
-   their normal margins from their own selectors. */
-.prob-stem p{margin:0}
-.prob-stem br + br{display:none} /* collapse consecutive blank lines */
+/* Stems may contain multiple <p class="md-para"> chunks emitted by the
+   markdown parser when LaTeX line-break commands or paragraph breaks are
+   present. Default <p> margins create unwanted vertical gaps between
+   adjacent stem lines, so we zero them. The dropdown markup is span-based
+   (phase 7+) so it nests cleanly inside <p> without forcing structural
+   breaks. Block-level constructs intentionally placed in stems (lists,
+   callouts, tables) keep their margins via their own selectors. */
+.prob-stem > p,
+.prob-stem > .md-para,
+.prob-stem p.md-para{
+  margin:0;
+}
+/* Collapse any double <br> the parser emitted at line breaks. */
+.prob-stem br + br{display:none}
 .stem-text{display:inline}
 .ans-num{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);min-width:200px;outline:none;transition:border-color .15s,background .15s}
 .ans-num:focus{border-color:var(--accent)}
@@ -246,18 +252,17 @@ input.ans-num.inline-blank{
 
 /* ---------- CUSTOM DROPDOWN (math + text choices) ---------- */
 .md-dropdown{position:relative;display:inline-block;min-width:240px;vertical-align:baseline}
-.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;list-style:none;display:inline-flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s}
-.md-trigger::-webkit-details-marker{display:none}
-.md-trigger::marker{display:none;content:''}
+.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;display:inline-flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s;user-select:none}
 .md-trigger::after{content:'\\25BE';color:var(--ink-light);font-size:11px;flex-shrink:0}
 .md-trigger:hover{border-color:var(--accent)}
-.md-dropdown[open] .md-trigger{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-lt)}
+.md-dropdown[data-open] .md-trigger{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-lt)}
 .md-trigger.correct{border-color:var(--green-rule);background:var(--green-bg)}
 .md-trigger.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
 .md-trigger-label{display:inline-block;flex:1}
 .md-placeholder{color:var(--ink-light);font-style:italic}
-.md-options{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px;min-width:160px}
-.md-option{padding:8px 11px;cursor:pointer;border-radius:2px;font-family:var(--mono);font-size:14px;color:var(--ink);transition:background .1s}
+.md-options{display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px;min-width:160px}
+.md-dropdown[data-open] .md-options{display:block}
+.md-option{display:block;padding:8px 11px;cursor:pointer;border-radius:2px;font-family:var(--mono);font-size:14px;color:var(--ink);transition:background .1s;white-space:nowrap}
 .md-option:hover,.md-option:focus{background:var(--accent-lt);color:var(--accent);outline:none}
 
 /* ---------- SCORE BADGE ---------- */
@@ -2411,6 +2416,45 @@ function _initDropdowns(){
       shuffled.forEach(function(el){ optsBox.appendChild(el); });
     }
 
+    // Open/close behavior. Was previously via <details> native open/close;
+    // now we manage the data-open attribute manually since the structure is
+    // span-based (block-element <details> couldn't legally nest inside a
+    // <p>, which broke inline stem flow). Toggle on trigger click; close
+    // on outside click (handled below outside this loop).
+    function toggleOpen(){
+      var isOpen = wrap.hasAttribute('data-open');
+      // Close any other open dropdowns first so only one is open at a time.
+      document.querySelectorAll('.md-dropdown[data-open]').forEach(function(d){
+        if (d !== wrap) {
+          d.removeAttribute('data-open');
+          d.setAttribute('aria-expanded', 'false');
+        }
+      });
+      if (isOpen) {
+        wrap.removeAttribute('data-open');
+        wrap.setAttribute('aria-expanded', 'false');
+      } else {
+        wrap.setAttribute('data-open', '');
+        wrap.setAttribute('aria-expanded', 'true');
+      }
+    }
+    trigger.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleOpen();
+    });
+    // Keyboard: Enter/Space on the dropdown wrapper opens; Escape closes.
+    wrap.addEventListener('keydown', function(e){
+      if (e.target === wrap || e.target === trigger) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleOpen();
+        } else if (e.key === 'Escape') {
+          wrap.removeAttribute('data-open');
+          wrap.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+
     // Wire option clicks
     optsBox.querySelectorAll('.md-option').forEach(function(opt){
       function pick(){
@@ -2418,9 +2462,10 @@ function _initDropdowns(){
         label.innerHTML = opt.innerHTML;
         input.value = opt.getAttribute('data-value') || '';
         input.dispatchEvent(new Event('input', { bubbles: true }));
-        wrap.removeAttribute('open');
+        wrap.removeAttribute('data-open');
+        wrap.setAttribute('aria-expanded', 'false');
       }
-      opt.addEventListener('click', pick);
+      opt.addEventListener('click', function(e){ e.stopPropagation(); pick(); });
       opt.addEventListener('keydown', function(e){
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
       });
@@ -2429,8 +2474,11 @@ function _initDropdowns(){
 
   // Close-on-outside-click
   document.addEventListener('click', function(e){
-    document.querySelectorAll('.md-dropdown[open]').forEach(function(d){
-      if (!d.contains(e.target)) d.removeAttribute('open');
+    document.querySelectorAll('.md-dropdown[data-open]').forEach(function(d){
+      if (!d.contains(e.target)) {
+        d.removeAttribute('data-open');
+        d.setAttribute('aria-expanded', 'false');
+      }
     });
   });
 }
