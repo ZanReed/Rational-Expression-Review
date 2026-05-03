@@ -70,7 +70,20 @@ function _freshState() {
       // shrinks problem text proportionally. Independent settings — a
       // teacher can use Tight font with Standard spacing or vice versa.
       density: 'standard',
-      fontSize: 'standard'
+      fontSize: 'standard',
+      // Phase 7+: print-header field options. Name and Period always print
+      // (a worksheet without a name line is uncommon enough that auto-on
+      // is the right default). Date and Score are optional. Two custom
+      // fields let teachers add Phone/Table/Group/etc. — each is gated on
+      // its label being non-empty (no label → field doesn't print, even
+      // if the show-flag is on). Custom field 1 prints before custom 2,
+      // both after Date but before Score (which is always pinned right).
+      headerOptions: {
+        showDate: false,
+        showScore: false,
+        custom1Label: '',
+        custom2Label: ''
+      }
     },
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
@@ -122,6 +135,15 @@ function _migrateState(s) {
   // Phase 7+: density and font-size scales.
   if (!['standard','compact','tight','flush'].includes(s.print.density)) s.print.density = 'standard';
   if (!['standard','compact','tight'].includes(s.print.fontSize)) s.print.fontSize = 'standard';
+  // Phase 7+: header options. Older drafts won't have the object; create it.
+  if (!s.print.headerOptions || typeof s.print.headerOptions !== 'object') {
+    s.print.headerOptions = { showDate: false, showScore: false, custom1Label: '', custom2Label: '' };
+  } else {
+    if (typeof s.print.headerOptions.showDate     !== 'boolean') s.print.headerOptions.showDate = false;
+    if (typeof s.print.headerOptions.showScore    !== 'boolean') s.print.headerOptions.showScore = false;
+    if (typeof s.print.headerOptions.custom1Label !== 'string')  s.print.headerOptions.custom1Label = '';
+    if (typeof s.print.headerOptions.custom2Label !== 'string')  s.print.headerOptions.custom2Label = '';
+  }
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
@@ -1638,6 +1660,14 @@ function compileActivity() {
     ? '@page{size:letter landscape;margin:0}'
     : '@page{size:letter portrait;margin:0.75in}';
 
+  // Phase 7+: print-header HTML. Renders Name/Period (always) plus Date/
+  // Score/Custom1/Custom2 if their flags/labels are configured. The whole
+  // strip lives inside the .page-header so it inherits "first page only"
+  // visibility in booklet mode (handled via CSS hiding original page-
+  // header on subsequent sheets, plus runtime cloning of the header into
+  // the booklet cover).
+  const printHeaderHTML = _buildPrintHeaderHTML();
+
   // Slot replacement — use function replacements so that $ signs in JSON/HTML
   // (e.g. $15 in a student answer, $1 in a tool label) are never interpreted
   // as backreference patterns by String.replace, which would silently corrupt
@@ -1656,8 +1686,64 @@ function compileActivity() {
   html = html.replace(/\{\{BUILDER_STATE_JSON\}\}/g,      _slot(stateJSON));
   html = html.replace(/\{\{BODY_CLASSES\}\}/g,            _slot(bodyClasses));
   html = html.replace(/\{\{PRINT_PAGE_RULE\}\}/g,         _slot(pagePrintRule));
+  html = html.replace(/\{\{PRINT_HEADER_HTML\}\}/g,       _slot(printHeaderHTML));
 
   return html;
+}
+
+// Phase 7+: assemble the print-only header strip (Name/Period and any
+// configured optional fields). Returns a fragment of HTML that drops into
+// the {{PRINT_HEADER_HTML}} slot in the template.
+//
+// Each "field" is a label + horizontal underline on which the student
+// writes. The strip is wrapped in .print-student-header which CSS hides
+// in screen mode (it duplicates info from the existing student-bar) and
+// shows only in print/print-preview.
+function _buildPrintHeaderHTML() {
+  const opts = (builderState && builderState.print && builderState.print.headerOptions)
+    || { showDate: false, showScore: false, custom1Label: '', custom2Label: '' };
+
+  // Each entry becomes one inline field. Order: Name, Period, Date,
+  // Custom1, Custom2, Score (Score is always last so it pins to the right
+  // visually). Labels and width hints handled by CSS.
+  const fields = [
+    { cls: 'pf-name',   label: 'Name',   widthClass: 'pf-w-wide' },
+    { cls: 'pf-period', label: 'Period', widthClass: 'pf-w-narrow' }
+  ];
+  if (opts.showDate) {
+    fields.push({ cls: 'pf-date', label: 'Date', widthClass: 'pf-w-medium' });
+  }
+  // Custom fields gated on label being non-empty regardless of any
+  // separate "show" flag — empty label = no field, by design (see
+  // setPrintHeaderOption + UI).
+  if (opts.custom1Label && opts.custom1Label.trim()) {
+    fields.push({ cls: 'pf-custom1', label: opts.custom1Label.trim(), widthClass: 'pf-w-medium' });
+  }
+  if (opts.custom2Label && opts.custom2Label.trim()) {
+    fields.push({ cls: 'pf-custom2', label: opts.custom2Label.trim(), widthClass: 'pf-w-medium' });
+  }
+
+  const fieldHTML = fields.map(f =>
+    '<span class="pf-field ' + f.cls + ' ' + f.widthClass + '">' +
+      '<span class="pf-label">' + _esc(f.label) + '</span>' +
+      '<span class="pf-line"></span>' +
+    '</span>'
+  ).join('');
+
+  // Score box renders separately so it can be pinned right via flex.
+  // Format is "Score: ___ / ___" with both blanks empty (per spec — some
+  // teachers grade with totals, some with percentages, and pre-filling
+  // either side prejudices that choice).
+  const scoreHTML = opts.showScore
+    ? '<span class="pf-score-box">' +
+        '<span class="pf-label">Score:</span>' +
+        '<span class="pf-line pf-score-numerator"></span>' +
+        '<span class="pf-divider">/</span>' +
+        '<span class="pf-line pf-score-denominator"></span>' +
+      '</span>'
+    : '';
+
+  return '<div class="print-student-header">' + fieldHTML + scoreHTML + '</div>';
 }
 
 function _compileProblem(p, idx) {
@@ -2180,6 +2266,20 @@ function setPrintFontSize(value) {
   refreshPreview();
 }
 
+// Phase 7+: print header options (Name/Period always-on; Date/Score/Custom
+// are opt-in). One generic setter handles all four boolean+string fields.
+function setPrintHeaderOption(field, value) {
+  if (!builderState.print) return;
+  if (!builderState.print.headerOptions) {
+    builderState.print.headerOptions = { showDate: false, showScore: false, custom1Label: '', custom2Label: '' };
+  }
+  // Sanity-check field name to avoid corrupting state via DOM-attr typos
+  if (!['showDate','showScore','custom1Label','custom2Label'].includes(field)) return;
+  builderState.print.headerOptions[field] = value;
+  saveDraft();
+  refreshPreview();
+}
+
 function updateProblemPrint(id, field, value) {
   const p = builderState.problems.find(x => x.id === id);
   if (!p) return;
@@ -2388,6 +2488,16 @@ function renderAll() {
   if (densitySel)  densitySel.value  = pr.density  || 'standard';
   const fontSel = document.getElementById('printFontSize');
   if (fontSel) fontSel.value = pr.fontSize || 'standard';
+  // Phase 7+: print header field options
+  const ho = pr.headerOptions || { showDate: false, showScore: false, custom1Label: '', custom2Label: '' };
+  const dateCB     = document.getElementById('printShowDate');
+  const scoreBoxCB = document.getElementById('printShowScore');
+  if (dateCB)     dateCB.checked     = !!ho.showDate;
+  if (scoreBoxCB) scoreBoxCB.checked = !!ho.showScore;
+  const c1 = document.getElementById('printCustom1Label');
+  const c2 = document.getElementById('printCustom2Label');
+  if (c1) c1.value = ho.custom1Label || '';
+  if (c2) c2.value = ho.custom2Label || '';
   // Column layout (phase 5) — count first, then populate preset dropdown
   // (which depends on count) and select the saved preset.
   const colCountSel = document.getElementById('columnCount');

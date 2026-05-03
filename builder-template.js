@@ -936,6 +936,95 @@ body.print-preview .page-header h1{
   .page-header h1{margin-top:0;margin-bottom:8px}
 }
 
+/* ============================================================================
+   PRINT MODE — phase 7+: print-only student header strip
+   ============================================================================
+   The .print-student-header is emitted by _buildPrintHeaderHTML at compile
+   time and lives inside .page-header so it inherits "first-page-only"
+   behavior in booklet mode (booklet imposition hides .page-header on all
+   sheets except the cover, and clones it onto the cover).
+
+   Hidden in screen mode entirely (the existing .student-bar covers digital
+   data entry; the print-student-header is purely for paper). Layout:
+     - Letter mode: single horizontal row with fields wrapping naturally
+       if the activity title is long
+     - Booklet mode: two-row stack (Name+Period on row 1, the rest on
+       row 2) since 4.4in width is too narrow for the full row inline
+
+   Each field is a label + horizontal underline that the student writes on.
+   The Score box is pinned to the right via margin-left:auto on its element.
+   ============================================================================ */
+
+.print-student-header{display:none}
+
+body.print-preview .print-student-header,
+@media print{} /* placeholder — actual @media print rules below */
+body.print-preview .print-student-header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:14px 22px;
+  margin-top:8px;
+  margin-bottom:6px;
+  font-family:var(--sans);
+  font-size:12px;
+  color:#000;
+}
+
+.pf-field{display:inline-flex;align-items:flex-end;gap:6px}
+.pf-label{font-weight:600;color:#000;letter-spacing:0.02em;flex-shrink:0}
+.pf-line{display:inline-block;border-bottom:1px solid #000;height:1.1em;flex-shrink:0}
+.pf-w-narrow .pf-line{width:0.7in}
+.pf-w-medium .pf-line{width:1.2in}
+.pf-w-wide   .pf-line{width:2.4in}
+
+/* Score box: pinned right via margin-left:auto. Two short underlines with
+   a "/" between them; teacher fills numerator + denominator (some teachers
+   prefer percentages, others prefer score totals — leaving both blank
+   accommodates either). */
+.pf-score-box{display:inline-flex;align-items:flex-end;gap:5px;margin-left:auto}
+.pf-score-box .pf-line{width:0.55in}
+.pf-divider{font-weight:600;color:#000;padding:0 1px}
+
+/* Booklet mode: 2-row stack. The cover is only 4.4in wide so we wrap. */
+body.print-preview.pm-booklet .print-student-header{
+  font-size:11px;
+  gap:10px 16px;
+}
+body.print-preview.pm-booklet .pf-w-wide .pf-line{width:1.8in}
+body.print-preview.pm-booklet .pf-w-medium .pf-line{width:0.9in}
+body.print-preview.pm-booklet .pf-score-box{
+  /* In booklet, score box drops to its own row to avoid cramming */
+  margin-left:0;
+  flex-basis:100%;
+  justify-content:flex-end;
+}
+
+@media print{
+  .print-student-header{
+    display:flex !important;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    gap:14px 22px;
+    margin-top:8px;
+    margin-bottom:6px;
+    font-family:var(--sans);
+    font-size:12px;
+    color:#000;
+  }
+  body.pm-booklet .print-student-header{
+    font-size:11px;
+    gap:10px 16px;
+  }
+  body.pm-booklet .pf-w-wide .pf-line{width:1.8in}
+  body.pm-booklet .pf-w-medium .pf-line{width:0.9in}
+  body.pm-booklet .pf-score-box{
+    margin-left:0;
+    flex-basis:100%;
+    justify-content:flex-end;
+  }
+}
+
 /* ---- 2. Booklet mode ---- */
 
 /* Booklet mode replaces the letter-portrait simulated sheet with sheet-by
@@ -1421,6 +1510,7 @@ body.print-preview.pm-fontsize-tight.pm-booklet .ans-num{font-size:10px}
     <div class="district-badge"><span class="badge-dot"></span>Dallas ISD &middot; Algebra II</div>
     <h1>{{TITLE}}</h1>
     <p>Complete each problem, then click Submit to record your work.</p>
+    {{PRINT_HEADER_HTML}}
   </div>
 
   <div class="student-bar">

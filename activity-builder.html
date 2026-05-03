@@ -365,6 +365,37 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
             </label>
           </div>
           <div class="field-hint">Spacing tightens gaps between problems. Font size shrinks problem text. Combine both for maximum density — Tight + Tight fits roughly 50% more content per sheet but reduces readability.</div>
+
+          <!-- Phase 7+: print header fields (Name/Period always shown;
+               Date/Score/Custom1/Custom2 are opt-in). Custom fields gate
+               on label being non-empty: typing a label enables the field,
+               clearing it disables. -->
+          <div class="print-options-panel" style="margin-top:10px;flex-direction:column;align-items:stretch;gap:8px">
+            <span class="ws-lbl" style="font-size:12px;color:var(--ink-mid);font-weight:500">Print header fields</span>
+            <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12px;color:var(--ink-mid)">
+              <span style="color:var(--ink-light);font-style:italic">Name &amp; Period print automatically.</span>
+              <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer">
+                <input type="checkbox" id="printShowDate" onchange="setPrintHeaderOption('showDate', this.checked)">
+                Date
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer">
+                <input type="checkbox" id="printShowScore" onchange="setPrintHeaderOption('showScore', this.checked)">
+                Score box
+              </label>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:var(--ink-mid)">
+              <label style="display:inline-flex;align-items:center;gap:6px">
+                Custom field 1:
+                <input type="text" id="printCustom1Label" placeholder="(e.g., Phone, Table)" maxlength="20" style="padding:4px 8px;border:1px solid var(--rule);border-radius:3px;font-family:var(--sans);font-size:12px;width:160px" oninput="setPrintHeaderOption('custom1Label', this.value)">
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px">
+                Custom field 2:
+                <input type="text" id="printCustom2Label" placeholder="(e.g., Group, Bin)" maxlength="20" style="padding:4px 8px;border:1px solid var(--rule);border-radius:3px;font-family:var(--sans);font-size:12px;width:160px" oninput="setPrintHeaderOption('custom2Label', this.value)">
+              </label>
+            </div>
+          </div>
+          <div class="field-hint">Each printed worksheet shows Name and Period at the top. Add Date, Score, or up to two custom fields (e.g., Phone, Table, Group). Custom fields appear only when the label is filled in.</div>
+
           <!-- Phase 5: column layout (count + preset). Preset row hides for
                1-column mode (only one preset exists). -->
           <div class="print-options-panel" style="margin-top:10px">
