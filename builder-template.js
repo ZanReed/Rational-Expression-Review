@@ -1214,7 +1214,15 @@ body.print-preview.pm-density-tight.pm-booklet .lp-content{
    their independent left/right borders since column-gap is 0.
 
    Workspace blocks inside cells are unaffected — they keep their own
-   border for visual separation between problem and work area. */
+   border for visual separation between problem and work area.
+
+   Three pieces are needed to fully eliminate gaps:
+     1. row-gap/column-gap on .problems-grid → 0
+     2. margin-bottom on .problem-cell → 0   (the base rule has 14px)
+     3. border-radius on .problem-cell → 0   (rounded corners leave visible
+        gaps at the overlap point even when borders touch)
+   The negative margin-top is then a polish step that collapses the doubled
+   border thickness at the shared edge. */
 body.print-preview.pm-density-flush .problems-grid{
   row-gap:0;
   column-gap:0;
@@ -1222,6 +1230,8 @@ body.print-preview.pm-density-flush .problems-grid{
 body.print-preview.pm-density-flush .problem-cell{
   padding:5px 8px;
   margin-top:-1px;
+  margin-bottom:0;
+  border-radius:0;
 }
 body.print-preview.pm-density-flush .problem-cell:first-child{
   margin-top:0;
@@ -1239,9 +1249,15 @@ body.print-preview.pm-density-flush .prob-workspace{
 body.print-preview.pm-density-flush.pm-booklet .lp-content{
   gap:0;
 }
-/* In booklet mode, the .lp-content uses flexbox column layout; the
-   negative-margin trick works there too. First-child of .lp-content
-   is the first cell on that logical page, so it keeps its border. */
+/* Booklet mode: .lp-content .problem-cell rule (line ~1103) has higher
+   specificity than the unscoped flush rule above, so we re-specify the
+   flush values at matching specificity to win the cascade. */
+body.print-preview.pm-density-flush.pm-booklet .lp-content .problem-cell{
+  padding:5px 8px;
+  margin-top:-1px;
+  margin-bottom:0;
+  border-radius:0;
+}
 body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first-child{
   margin-top:0;
 }
@@ -1264,12 +1280,13 @@ body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first
   body.pm-density-tight.pm-booklet .lp-content{gap:3px}
 
   body.pm-density-flush .problems-grid{row-gap:0;column-gap:0}
-  body.pm-density-flush .problem-cell{padding:5px 8px;margin-top:-1px}
+  body.pm-density-flush .problem-cell{padding:5px 8px;margin-top:-1px;margin-bottom:0;border-radius:0}
   body.pm-density-flush .problem-cell:first-child{margin-top:0}
   body.pm-density-flush .prob-stem{margin:2px 0}
   body.pm-density-flush .prob-num{margin-bottom:2px;font-size:9px}
   body.pm-density-flush .prob-workspace{margin-top:5px}
   body.pm-density-flush.pm-booklet .lp-content{gap:0}
+  body.pm-density-flush.pm-booklet .lp-content .problem-cell{padding:5px 8px;margin-top:-1px;margin-bottom:0;border-radius:0}
   body.pm-density-flush.pm-booklet .lp-content > .problem-cell:first-child{margin-top:0}
 }
 
