@@ -260,13 +260,8 @@ body.print-preview .ans-key{
 .feedback.incorrect{color:var(--red)}
 .prob-feedback{margin-left:0;display:block;margin-top:8px;min-height:1em}
 
-/* Embedded static graphs (pre-rendered from Desmos at compile time)
-   The wrap is a <span> (so it nests cleanly inside the parser's <p class="md-para">)
-   but we display it as a block-level image container via CSS. inline-block
-   plus width:100% gives block-like layout while remaining HTML-valid inside
-   inline content. The image scales to its container width via max-width:100%
-   on .prob-graph. */
-.prob-graph-wrap{display:inline-block;width:100%;margin:14px 0;text-align:center}
+/* Embedded static graphs (pre-rendered from Desmos at compile time) */
+.prob-graph-wrap{display:block;margin:14px 0;text-align:center}
 .prob-graph{display:inline-block;max-width:100%;height:auto;border:1px solid var(--rule);border-radius:4px;background:white}
 .prob-graph-caption{display:block;font-family:var(--sans);font-size:11px;color:var(--ink-light);margin-top:4px;font-style:italic}
 
@@ -319,27 +314,17 @@ input.ans-num.inline-blank{
 
 /* ---------- CUSTOM DROPDOWN (math + text choices) ---------- */
 .md-dropdown{position:relative;display:inline-block;min-width:240px;vertical-align:baseline}
-.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;display:inline-flex;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s;user-select:none}
+/* Trigger fills the dropdown wrapper so its background (correct/incorrect
+   colors, hover state) paints the entire allocated width, not just the
+   width of the displayed value. Without width:100% the trigger is only
+   as wide as its content, so a short LaTeX answer like \(log36\) would
+   get a tiny green box surrounded by uncolored space. */
+.md-trigger{font-family:var(--mono);font-size:14px;padding:7px 11px;border:1px solid var(--rule);border-radius:3px;background:white;color:var(--ink);cursor:pointer;display:flex;width:100%;box-sizing:border-box;justify-content:space-between;align-items:center;gap:10px;transition:border-color .15s,background .15s;user-select:none}
 .md-trigger::after{content:'\\25BE';color:var(--ink-light);font-size:11px;flex-shrink:0}
 .md-trigger:hover{border-color:var(--accent)}
 .md-dropdown[data-open] .md-trigger{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-lt)}
-/* Correct/incorrect feedback. The background is also pushed down to the
-   trigger label and any KaTeX-rendered content inside it, because KaTeX
-   wraps math in nested <span class="katex"> structures whose own
-   backgrounds (or white empty space between them) visually mask the
-   parent trigger's background. Setting bg on the inner spans guarantees
-   the color shows regardless of whether the answer is plain text or
-   rendered math. */
 .md-trigger.correct{border-color:var(--green-rule);background:var(--green-bg)}
-.md-trigger.correct .md-trigger-label,
-.md-trigger.correct .katex,
-.md-trigger.correct .katex-html,
-.md-trigger.correct .katex-mathml{background:var(--green-bg)}
 .md-trigger.incorrect{border-color:var(--red-rule);background:var(--red-bg)}
-.md-trigger.incorrect .md-trigger-label,
-.md-trigger.incorrect .katex,
-.md-trigger.incorrect .katex-html,
-.md-trigger.incorrect .katex-mathml{background:var(--red-bg)}
 .md-trigger-label{display:inline-block;flex:1}
 .md-placeholder{color:var(--ink-light);font-style:italic}
 .md-options{display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--rule);border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;z-index:50;padding:2px;min-width:160px}
@@ -1791,18 +1776,16 @@ function _renderBooklet() {
     // Measure cell height. Move into ruler temporarily; the ruler is
     // hidden, but visibility:hidden preserves layout — works for measurement.
     ruler.appendChild(cell);
-    // Apply a safety buffer to the measured height to handle async-rendered
-    // content. Most cells get 15%; cells with embedded graph images get 30%
-    // because the image's intrinsic dimensions aren't known until the
-    // browser actually loads/decodes the data URI, which can finish after
-    // both our measurement passes (220ms and 600ms post-render). The
-    // larger buffer pushes graph problems to their own page slightly
-    // earlier — the cost is more wasted space on those pages, but the
-    // benefit is graph problems never get clipped.
+    // Apply a 15% safety buffer to the measured height. KaTeX renders math
+    // asynchronously, web fonts may settle late, and our second pass at
+    // 600ms catches most of these — but some content (large fractions,
+    // vertically-stacked piecewise functions) still grows after our final
+    // measurement. Padding the measured height makes the packer pessimistic,
+    // pushing problems to the next page slightly earlier than necessary.
+    // The cost is ~10-15% wasted vertical space per page; the benefit is
+    // problems never getting clipped at the page boundary.
     var rawH = cell.offsetHeight + 8; // +gap
-    var hasGraph = !!cell.querySelector('.prob-graph-wrap');
-    var bufferFactor = hasGraph ? 1.30 : 1.15;
-    var h = Math.ceil(rawH * bufferFactor);
+    var h = Math.ceil(rawH * 1.15);
 
     var cap = capacityFor(logicalPages.length); // index of the page we're filling
     if (currentH + h > cap && current.length > 0) {

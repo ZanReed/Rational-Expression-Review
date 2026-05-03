@@ -2382,16 +2382,6 @@ function _columnsBodyClass() {
 // honored regardless of count (treated as full-row span).
 function _resolveSpan(p, activeColumns) {
   const requested = (p && p.print && p.print.span) || 'auto';
-  // Phase 7+: when the problem contains an embedded graph and the teacher
-  // hasn't explicitly set a span, auto-promote to full-width. Embedded
-  // graph images at typical Desmos export sizes (480x320) are wider than
-  // narrow column slots can comfortably display, even with max-width:100%
-  // scaling — they end up tiny and the surrounding text gets cramped.
-  // Full-width gives the graph room to render at a useful size while the
-  // problem text wraps naturally above/below. Manual overrides win.
-  if (requested === 'auto' && p && Array.isArray(p.graphs) && p.graphs.length > 0) {
-    return 'full';
-  }
   if (requested === 'full') return 'full';
   if (requested === 'auto' || requested === '1') return 1;
   const n = parseInt(requested, 10);
