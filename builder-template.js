@@ -2543,7 +2543,16 @@ function validateInput(el){
 function _mirrorDropdownState(el, ok){
   var parent = el.parentNode;
   if (!parent) return;
-  var dropdown = parent.querySelector('.md-dropdown');
+  // Find the dropdown that is a SIBLING of this input (within the same
+  // .inline-blank-wrap), not a descendant of one. Using parent.querySelector
+  // would scan deep, which could in theory pick up a nested dropdown.
+  // Direct-child '> .md-dropdown' guarantees we only get the one paired
+  // with this hidden input.
+  var dropdown = null;
+  for (var i = 0; i < parent.children.length; i++) {
+    var c = parent.children[i];
+    if (c.classList && c.classList.contains('md-dropdown')) { dropdown = c; break; }
+  }
   if (!dropdown) return;
   var trigger = dropdown.querySelector('.md-trigger');
   if (!trigger) return;
