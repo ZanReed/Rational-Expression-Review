@@ -1637,8 +1637,50 @@ function refreshPreview() {
   _previewDebounce = setTimeout(() => {
     const iframe = document.getElementById('previewFrame');
     if (!iframe) return;
+    // Re-apply the print-preview body class on every reload — srcdoc rebuilds
+    // the iframe document from scratch, so the class would otherwise be lost.
+    iframe.onload = applyPrintPreviewToIframe;
     iframe.srcdoc = compileActivity();
   }, 250);
+}
+
+// =============================================================================
+// PRINT PREVIEW (phase 2)
+// =============================================================================
+// Toggle that flips the iframe body's `.print-preview` class so the teacher
+// sees a simulated letter-portrait sheet (white page on gray void) before
+// committing to a print run. The class is purely a builder-side concern —
+// compileActivity() never bakes it into the published HTML.
+//
+// printFromBuilder() opens the print dialog for the iframe contents directly,
+// independent of the toggle state. Either path produces clean print output
+// because @media print rules in the worksheet template hide non-printables
+// regardless of the class.
+let _printPreviewActive = false;
+
+function applyPrintPreviewToIframe() {
+  const iframe = document.getElementById('previewFrame');
+  if (!iframe || !iframe.contentDocument) return;
+  const body = iframe.contentDocument.body;
+  if (!body) return;
+  body.classList.toggle('print-preview', _printPreviewActive);
+}
+
+function togglePrintPreview() {
+  _printPreviewActive = !_printPreviewActive;
+  const btn = document.getElementById('printPreviewToggle');
+  if (btn) {
+    btn.classList.toggle('active', _printPreviewActive);
+    btn.setAttribute('aria-pressed', _printPreviewActive ? 'true' : 'false');
+  }
+  applyPrintPreviewToIframe();
+}
+
+function printFromBuilder() {
+  const iframe = document.getElementById('previewFrame');
+  if (!iframe || !iframe.contentWindow) return;
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
 }
 
 // =============================================================================

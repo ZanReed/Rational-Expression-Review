@@ -1066,6 +1066,20 @@ function renderSidebar(){
     }
     ribbon.appendChild(btn);
   });
+
+  // ---- Print button -------------------------------------------------------
+  // Always present at the bottom of the ribbon. Calls window.print(); the
+  // @media print rules in the stylesheet hide the ribbon (and everything else
+  // non-printable) before the printer captures output. A divider separates it
+  // from any tools above when present.
+  if (tools.length > 0) {
+    var printDivider = document.createElement('div');
+    printDivider.className = 'ribbon-divider';
+    ribbon.appendChild(printDivider);
+  }
+  var printBtn = _actionBtn('\uD83D\uDDA8', 'Print', function(){ window.print(); });
+  printBtn.setAttribute('data-action', 'print');
+  ribbon.appendChild(printBtn);
 }
 
 function _actionBtn(icon, label, onClick){
