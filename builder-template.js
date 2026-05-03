@@ -198,8 +198,13 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 .feedback.incorrect{color:var(--red)}
 .prob-feedback{margin-left:0;display:block;margin-top:8px;min-height:1em}
 
-/* Embedded static graphs (pre-rendered from Desmos at compile time) */
-.prob-graph-wrap{display:block;margin:14px 0;text-align:center}
+/* Embedded static graphs (pre-rendered from Desmos at compile time)
+   The wrap is a <span> (so it nests cleanly inside the parser's <p class="md-para">)
+   but we display it as a block-level image container via CSS. inline-block
+   plus width:100% gives block-like layout while remaining HTML-valid inside
+   inline content. The image scales to its container width via max-width:100%
+   on .prob-graph. */
+.prob-graph-wrap{display:inline-block;width:100%;margin:14px 0;text-align:center}
 .prob-graph{display:inline-block;max-width:100%;height:auto;border:1px solid var(--rule);border-radius:4px;background:white}
 .prob-graph-caption{display:block;font-family:var(--sans);font-size:11px;color:var(--ink-light);margin-top:4px;font-style:italic}
 
@@ -1619,16 +1624,18 @@ function _renderBooklet() {
     // Measure cell height. Move into ruler temporarily; the ruler is
     // hidden, but visibility:hidden preserves layout — works for measurement.
     ruler.appendChild(cell);
-    // Apply a 15% safety buffer to the measured height. KaTeX renders math
-    // asynchronously, web fonts may settle late, and our second pass at
-    // 600ms catches most of these — but some content (large fractions,
-    // vertically-stacked piecewise functions) still grows after our final
-    // measurement. Padding the measured height makes the packer pessimistic,
-    // pushing problems to the next page slightly earlier than necessary.
-    // The cost is ~10-15% wasted vertical space per page; the benefit is
-    // problems never getting clipped at the page boundary.
+    // Apply a safety buffer to the measured height to handle async-rendered
+    // content. Most cells get 15%; cells with embedded graph images get 30%
+    // because the image's intrinsic dimensions aren't known until the
+    // browser actually loads/decodes the data URI, which can finish after
+    // both our measurement passes (220ms and 600ms post-render). The
+    // larger buffer pushes graph problems to their own page slightly
+    // earlier — the cost is more wasted space on those pages, but the
+    // benefit is graph problems never get clipped.
     var rawH = cell.offsetHeight + 8; // +gap
-    var h = Math.ceil(rawH * 1.15);
+    var hasGraph = !!cell.querySelector('.prob-graph-wrap');
+    var bufferFactor = hasGraph ? 1.30 : 1.15;
+    var h = Math.ceil(rawH * bufferFactor);
 
     var cap = capacityFor(logicalPages.length); // index of the page we're filling
     if (currentH + h > cap && current.length > 0) {
