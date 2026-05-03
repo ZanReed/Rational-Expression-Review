@@ -120,7 +120,7 @@ function _migrateState(s) {
   // Phase 7: print mode.
   if (s.print.mode !== 'booklet') s.print.mode = 'letter';
   // Phase 7+: density and font-size scales.
-  if (!['standard','compact','tight'].includes(s.print.density)) s.print.density = 'standard';
+  if (!['standard','compact','tight','flush'].includes(s.print.density)) s.print.density = 'standard';
   if (!['standard','compact','tight'].includes(s.print.fontSize)) s.print.fontSize = 'standard';
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
@@ -2084,6 +2084,7 @@ function _columnsBodyClass() {
   // default (no class emitted) so existing styles apply unchanged.
   if (pr.density === 'compact')   cls += ' pm-density-compact';
   if (pr.density === 'tight')     cls += ' pm-density-tight';
+  if (pr.density === 'flush')     cls += ' pm-density-flush';
   if (pr.fontSize === 'compact')  cls += ' pm-fontsize-compact';
   if (pr.fontSize === 'tight')    cls += ' pm-fontsize-tight';
   return cls;
@@ -2147,7 +2148,7 @@ function setPrintMode(mode) {
 // |'tight'. They map directly to body classes baked at compile time, so
 // changes take effect on the next preview rebuild.
 function setPrintDensity(value) {
-  if (!['standard','compact','tight'].includes(value)) return;
+  if (!['standard','compact','tight','flush'].includes(value)) return;
   if (!builderState.print) return;
   builderState.print.density = value;
   saveDraft();

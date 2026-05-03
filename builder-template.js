@@ -1204,6 +1204,48 @@ body.print-preview.pm-density-tight.pm-booklet .lp-content{
   gap:3px;
 }
 
+/* Flush: zero spacing between cells; borders collapse into shared edges.
+   Each cell drops its top border (except the first) and uses a -1px top
+   margin so its top edge overlaps the previous cell's bottom edge — net
+   effect is single-thickness shared border between adjacent cells.
+
+   For grid layouts (multi-column), the same trick works: cells in the
+   same column collapse vertically. Cells in adjacent columns retain
+   their independent left/right borders since column-gap is 0.
+
+   Workspace blocks inside cells are unaffected — they keep their own
+   border for visual separation between problem and work area. */
+body.print-preview.pm-density-flush .problems-grid{
+  row-gap:0;
+  column-gap:0;
+}
+body.print-preview.pm-density-flush .problem-cell{
+  padding:5px 8px;
+  margin-top:-1px;
+}
+body.print-preview.pm-density-flush .problem-cell:first-child{
+  margin-top:0;
+}
+body.print-preview.pm-density-flush .prob-stem{
+  margin:2px 0;
+}
+body.print-preview.pm-density-flush .prob-num{
+  margin-bottom:2px;
+  font-size:9px;
+}
+body.print-preview.pm-density-flush .prob-workspace{
+  margin-top:5px;
+}
+body.print-preview.pm-density-flush.pm-booklet .lp-content{
+  gap:0;
+}
+/* In booklet mode, the .lp-content uses flexbox column layout; the
+   negative-margin trick works there too. First-child of .lp-content
+   is the first cell on that logical page, so it keeps its border. */
+body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first-child{
+  margin-top:0;
+}
+
 /* Same rules apply when actually printing (no .print-preview prefix needed
    on the body since classes are baked into the body element directly). */
 @media print{
@@ -1220,6 +1262,15 @@ body.print-preview.pm-density-tight.pm-booklet .lp-content{
   body.pm-density-tight .prob-num{margin-bottom:1px;font-size:8px}
   body.pm-density-tight .prob-workspace{margin-top:4px}
   body.pm-density-tight.pm-booklet .lp-content{gap:3px}
+
+  body.pm-density-flush .problems-grid{row-gap:0;column-gap:0}
+  body.pm-density-flush .problem-cell{padding:5px 8px;margin-top:-1px}
+  body.pm-density-flush .problem-cell:first-child{margin-top:0}
+  body.pm-density-flush .prob-stem{margin:2px 0}
+  body.pm-density-flush .prob-num{margin-bottom:2px;font-size:9px}
+  body.pm-density-flush .prob-workspace{margin-top:5px}
+  body.pm-density-flush.pm-booklet .lp-content{gap:0}
+  body.pm-density-flush.pm-booklet .lp-content > .problem-cell:first-child{margin-top:0}
 }
 
 /* ---- Font size ---- */
