@@ -653,6 +653,15 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       Paste text in the bulk-import format. Each <code>## Problem</code> heading creates one new problem at the end of your activity. Stems only — add blanks, dropdowns, and graphs after import using the GUI.
     </div>
 
+    <details class="advanced" style="margin-bottom:14px">
+      <summary>Agent prompt for bulk import from a PDF or doc</summary>
+      <div class="field-hint" style="margin-top:8px">
+        Copy the prompt below, paste it into Claude (or another agent) along with your source material (a problem set PDF, exam, textbook section, etc.), and paste the agent's output into the textarea below.
+      </div>
+      <textarea class="text-input" id="bulkImportAgentPrompt" rows="12" readonly spellcheck="false" style="font-family:var(--mono, monospace);font-size:11px;margin-top:8px"></textarea>
+      <button type="button" class="add-btn" id="bulkImportAgentPromptCopyBtn" style="margin-top:6px" onclick="copyBulkImportAgentPrompt(event)">Copy prompt to clipboard</button>
+    </details>
+
     <div class="modal-field">
       <textarea class="text-input" id="bulkImportText" rows="12" spellcheck="false" placeholder="## Problem&#10;First problem stem...&#10;&#10;## Problem&#10;Second problem stem..."></textarea>
     </div>

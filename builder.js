@@ -3355,6 +3355,12 @@ function openBulkImportModal() {
   previewEl.innerHTML = '';
   _renderBulkImportInitialActions();
 
+  // Populate the agent-prompt textarea from the canonical constant. Done on
+  // every open so any future runtime tweaks to the constant take effect
+  // without requiring a page reload.
+  const promptEl = document.getElementById('bulkImportAgentPrompt');
+  if (promptEl) promptEl.value = BULK_IMPORT_AGENT_PROMPT;
+
   document.getElementById('bulkImportBackdrop').classList.add('open');
   // Focus the textarea so the teacher can paste immediately.
   setTimeout(() => {
@@ -3521,6 +3527,156 @@ function _dismissBulkImportStatus() {
   host.style.display = 'none';
 }
 window._dismissBulkImportStatus = _dismissBulkImportStatus;
+
+// Copy the agent prompt to the clipboard. Falls back to execCommand for
+// browsers/contexts where the async clipboard API isn't available.
+function copyBulkImportAgentPrompt(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const btn = document.getElementById('bulkImportAgentPromptCopyBtn');
+  const ta = document.getElementById('bulkImportAgentPrompt');
+  const restore = () => { if (btn) btn.textContent = 'Copy prompt to clipboard'; };
+  try {
+    navigator.clipboard.writeText(BULK_IMPORT_AGENT_PROMPT);
+    if (btn) btn.textContent = '✓ Copied';
+    setTimeout(restore, 1500);
+  } catch (err) {
+    if (ta) { ta.select(); document.execCommand('copy'); }
+    if (btn) btn.textContent = '✓ Copied (fallback)';
+    setTimeout(restore, 1500);
+  }
+}
+window.copyBulkImportAgentPrompt = copyBulkImportAgentPrompt;
+
+// Authoring guide for an LLM agent given source material (PDF, exam, problem
+// set, textbook section). Kept as a constant so the same text powers the
+// in-builder copy button AND can be exported (e.g. printed from the console)
+// if needed. Match the REFERENCE_SHEET_AGENT_PROMPT pattern: plain text in
+// concatenated string literals so backslashes don't need to be doubled.
+const BULK_IMPORT_AGENT_PROMPT =
+'You are converting source material (a problem set, exam, textbook section,\n' +
+'or worked exercises) into the BULK IMPORT format used by an Algebra II\n' +
+'activity builder. Read the source I provide and output ONLY the formatted\n' +
+'problems — no preamble, no commentary, no code fences, no explanations.\n' +
+'\n' +
+'================================================================\n' +
+'CORE FORMAT\n' +
+'================================================================\n' +
+'\n' +
+'Each problem starts with a line that begins (at column 0) with:\n' +
+'\n' +
+'  ## Problem\n' +
+'\n' +
+'Everything between one ## Problem heading and the next is one problem stem.\n' +
+'You may add a number after the word for readability — `## Problem 1`,\n' +
+'`## Problem 17`, etc. — but it is optional and is ignored by the parser.\n' +
+'Output the headings without numbering unless the source itself numbers them.\n' +
+'\n' +
+'A complete minimal example:\n' +
+'\n' +
+'  ## Problem\n' +
+'  Solve for $x$: $2x + 5 = 13$.\n' +
+'\n' +
+'  ## Problem\n' +
+'  Find the slope of the line through $(1, 2)$ and $(4, 8)$.\n' +
+'\n' +
+'================================================================\n' +
+'WHAT TO INCLUDE IN A STEM\n' +
+'================================================================\n' +
+'\n' +
+'- The full problem statement, exactly as worded in the source (paraphrase\n' +
+'  only to fix obvious typos or to expand "use the formula above" references\n' +
+'  that won\u2019t make sense out of context).\n' +
+'- Math in LaTeX: $...$ for inline, $$...$$ for display.\n' +
+'- Multiple-choice options as a bulleted or numbered list directly under the\n' +
+'  question:\n' +
+'\n' +
+'    ## Problem\n' +
+'    Solve for $x$: $2x + 3 = 11$.\n' +
+'    - A) $x = 3$\n' +
+'    - B) $x = 4$\n' +
+'    - C) $x = 5$\n' +
+'    - D) $x = 6$\n' +
+'\n' +
+'- Tables, callouts, or multi-column layouts ONLY if the problem itself\n' +
+'  contains them (e.g. "Given the table below, find..."). For supported\n' +
+'  extended-markdown syntax (GFM tables, > [!NOTE] callouts, ::: columns),\n' +
+'  see the reference-sheet agent prompt — the same parser handles both.\n' +
+'\n' +
+'================================================================\n' +
+'WHAT TO LEAVE OUT\n' +
+'================================================================\n' +
+'\n' +
+'- Answer keys, solutions, worked-out steps. Stems only — the teacher adds\n' +
+'  blanks and answers in the GUI after import.\n' +
+'- Blank tokens like {{blank:1}} or fill-in-the-blank markers. The teacher\n' +
+'  adds these via the builder GUI; do NOT insert them.\n' +
+'- Hints, "remember that...", or pedagogical scaffolding that wasn\u2019t in the\n' +
+'  source. Faithful transcription is the goal.\n' +
+'- Graphs, figures, or images. If the source problem references a figure\n' +
+'  ("the graph below shows..."), keep the wording — the teacher adds the\n' +
+'  graph via the builder\u2019s graph block tool after import.\n' +
+'- Section headers from the source ("Chapter 4 \u00a7 2", "Practice Problems").\n' +
+'  Drop these; they\u2019re not problem stems.\n' +
+'- Any text BEFORE the first `## Problem` heading. The parser will warn and\n' +
+'  discard preamble, so just don\u2019t emit any.\n' +
+'\n' +
+'================================================================\n' +
+'COMMON MISTAKES TO AVOID\n' +
+'================================================================\n' +
+'\n' +
+'- Using `### Problem` (three hashes) or `#Problem` / `##Problem` (no space).\n' +
+'  The parser only recognizes `## ` followed by `Problem` at column 0.\n' +
+'- Indenting `## Problem` with spaces or tabs. Headings must start at\n' +
+'  column 0 or they become stem content.\n' +
+'- Numbering with `1.` / `2.` / `Problem 1:` instead of using the\n' +
+'  `## Problem` heading. The parser will treat your whole document as a\n' +
+'  single stem (or worse, no stems at all).\n' +
+'- HTML-escaping math (`&lt;`, `&amp;`). Just write `<`, `&`, etc. naturally;\n' +
+'  the renderer handles escaping.\n' +
+'- Wrapping output in triple backticks or a markdown code fence. Output the\n' +
+'  raw `## Problem` text directly.\n' +
+'\n' +
+'================================================================\n' +
+'COMPLETE EXAMPLE (mimicking a typical textbook section)\n' +
+'================================================================\n' +
+'\n' +
+'  ## Problem\n' +
+'  Simplify: $\\dfrac{x^2 - 9}{x + 3}$.\n' +
+'\n' +
+'  ## Problem\n' +
+'  Solve the system:\n' +
+'  $$\\begin{cases} 2x + y = 7 \\\\ x - y = 2 \\end{cases}$$\n' +
+'\n' +
+'  ## Problem\n' +
+'  A function $f$ is defined by $f(x) = 3x - 4$. Find $f(2)$ and $f(-1)$.\n' +
+'\n' +
+'  ## Problem\n' +
+'  Which of the following is equivalent to $\\log_2(8) + \\log_2(4)$?\n' +
+'  - A) $\\log_2(12)$\n' +
+'  - B) $\\log_2(32)$\n' +
+'  - C) $5$\n' +
+'  - D) $12$\n' +
+'\n' +
+'================================================================\n' +
+'GUIDELINES\n' +
+'================================================================\n' +
+'\n' +
+'- One problem per `## Problem` heading. Sub-parts (a), (b), (c) of a single\n' +
+'  source problem stay together as ONE stem with the parts as a list inside.\n' +
+'- Preserve the source order. Don\u2019t reorder, group, or re-categorize.\n' +
+'- If a source problem has no usable stem (e.g. it\u2019s entirely a figure with\n' +
+'  no text, or it references a deleted section), skip it rather than\n' +
+'  emitting an empty `## Problem` heading.\n' +
+'- Use $...$ for inline math and $$...$$ for display math. DO NOT use\n' +
+'  \\(...\\) or \\[...\\] (still works but $ is canonical).\n' +
+'- Standard LaTeX inside math: \\dfrac, \\sqrt, \\cdot, ^ and _, \\pm, \\le \\ge\n' +
+'  \\ne for \u2264 \u2265 \u2260, \\left( \\right), \\begin{cases}...\\end{cases} for systems,\n' +
+'  \\begin{bmatrix}...\\end{bmatrix} for matrices.\n' +
+'- Output ONLY the formatted problems, ready to paste into the bulk-import\n' +
+'  textarea. No header text, no problem count, no closing summary.\n' +
+'\n' +
+'Source:\n' +
+'[attach the PDF or paste the source content here]\n';
 
 // =============================================================================
 // LOAD ACTIVITY — modal flow
