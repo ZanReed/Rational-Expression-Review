@@ -172,7 +172,7 @@ body{font-family:var(--sans);background:var(--cream);color:var(--ink);min-height
 /* ---------- PROBLEM CELLS ---------- */
 .main-content{margin-top:12px}
 .problem-cell{background:var(--page);border:1px solid var(--rule);border-radius:5px;padding:18px 22px;margin-bottom:14px}
-.prob-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:8px}
+.prob-num,.fig-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:8px}
 .prob-stem{font-family:var(--serif);font-size:17px;line-height:1.7;color:var(--ink)}
 /* Stems may contain multiple <p class="md-para"> chunks emitted by the
    markdown parser when LaTeX line-break commands or paragraph breaks are
@@ -269,6 +269,32 @@ body.print-preview .ans-key{
   .prob-graph-wrap{break-inside:avoid;page-break-inside:avoid;margin:10px 0}
   .prob-graph{border-color:#999;max-width:100%;height:auto}
   .prob-graph-caption{display:none}
+}
+
+/* ---------- FIGURE BLOCKS (v3) ----------
+   Top-level figures that flow next to problems in the print grid. Use case:
+   2-column layouts where a graph needs to span both columns while question
+   text stays in one. Shares .grid-block with .problem-cell so [data-span]
+   and [data-page-break-before] rules apply uniformly.
+
+   Screen mode: centered figure with the FIGURE N label above. No border on
+   the cell itself (the image already has one) so it reads as a figure, not
+   a problem.
+
+   Print mode: keep-together via break-inside:avoid so a figure doesn't get
+   split across pages. */
+.figure-cell{margin-bottom:14px;padding:8px 22px;text-align:center}
+.fig-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--ink-light);margin-bottom:6px;text-align:left}
+.figure-body{display:inline-block;margin:0}
+.figure-img{display:block;margin:0 auto;max-width:100%;height:auto;border:1px solid var(--rule);border-radius:4px;background:white}
+.fig-caption{display:block;font-family:var(--sans);font-size:12px;color:var(--ink-mid);margin:6px 0;font-style:italic;line-height:1.4}
+.figure-body[data-cap-pos="above"] .fig-caption{margin-top:0;margin-bottom:8px}
+.figure-body[data-cap-pos="below"] .fig-caption{margin-top:8px;margin-bottom:0}
+
+@media print {
+  .figure-cell{break-inside:avoid;page-break-inside:avoid;margin-bottom:10px;padding:6px 12px}
+  .figure-img{border-color:#999}
+  .fig-caption{color:#444;font-size:10px}
 }
 
 /* Inline blanks (placed mid-sentence in stem) */
@@ -682,7 +708,7 @@ body.print-preview .feedback,
 body.print-preview .prob-feedback{display:none !important}
 
 /* ---- Problem number / stem: ink-friendly tweaks ---- */
-body.print-preview .prob-num{
+body.print-preview .prob-num,.fig-num{
   color:#000;
   font-weight:600;
 }
@@ -827,16 +853,19 @@ body.print-preview.pm-cols-3-25-37-37 .problems-grid{
 
 /* ---- Per-problem span ---- */
 /* Default (data-span="1") — single column, no rule needed (Grid auto-flow). */
+/* v3: span rules target .grid-block, a class added to both .problem-cell
+   and .figure-cell. This lets graph blocks span columns the same way
+   problems do without duplicating every rule. */
 
-body.print-preview .problem-cell[data-span="2"]{
+body.print-preview .grid-block[data-span="2"]{
   grid-column:span 2;
 }
-body.print-preview .problem-cell[data-span="3"]{
+body.print-preview .grid-block[data-span="3"]{
   grid-column:span 3;
 }
 /* Full-width: span every track regardless of count. 1/-1 is the Grid idiom
    for "from the first line to the last", which always equals the full row. */
-body.print-preview .problem-cell[data-span="full"]{
+body.print-preview .grid-block[data-span="full"]{
   grid-column:1 / -1;
 }
 
@@ -847,13 +876,15 @@ body.print-preview .problem-cell[data-span="full"]{
 /* Tighten cell padding slightly in multi-column layouts so 3-col 1.4"
    columns don't feel claustrophobic. */
 body.print-preview.pm-cols-2 .problem-cell,
-body.print-preview.pm-cols-3 .problem-cell{
+body.print-preview.pm-cols-2 .figure-cell,
+body.print-preview.pm-cols-3 .problem-cell,
+body.print-preview.pm-cols-3 .figure-cell{
   padding:10px 12px;
 }
 body.print-preview.pm-cols-3 .problem-cell{
   font-size:13px;
 }
-body.print-preview.pm-cols-3 .prob-num{
+body.print-preview.pm-cols-3 .prob-num,.fig-num{
   font-size:9px;
 }
 
@@ -890,9 +921,11 @@ body.print-preview.pm-cols-3 .prob-num{
    ============================================================================ */
 
 /* ---- 1. Forced page break before a problem ---- */
+/* v3: rules target .grid-block (shared class on .problem-cell and
+   .figure-cell) so figures honor pageBreakBefore the same way problems do. */
 
 @media print {
-  .problem-cell[data-page-break-before="1"]{
+  .grid-block[data-page-break-before="1"]{
     page-break-before:always;
     break-before:page;
   }
@@ -901,11 +934,11 @@ body.print-preview.pm-cols-3 .prob-num{
 /* On-screen preview: render an amber rule above the cell so teachers see
    the break location. The rule sits above the cell via a ::before pseudo-
    element so it doesn't disrupt grid placement of the cell itself. */
-body.print-preview .problem-cell[data-page-break-before="1"]{
+body.print-preview .grid-block[data-page-break-before="1"]{
   position:relative;
 }
-body.print-preview .problem-cell[data-page-break-before="1"]::before{
-  content:"\\21B5  Page break before this problem";
+body.print-preview .grid-block[data-page-break-before="1"]::before{
+  content:"\\21B5  Page break before this block";
   position:absolute;
   top:-18px;
   left:0;
@@ -1409,7 +1442,7 @@ body.print-preview.pm-density-compact .problem-cell{
 body.print-preview.pm-density-compact .prob-stem{
   margin:4px 0;
 }
-body.print-preview.pm-density-compact .prob-num{
+body.print-preview.pm-density-compact .prob-num,.fig-num{
   margin-bottom:3px;
 }
 body.print-preview.pm-density-compact .prob-workspace{
@@ -1430,7 +1463,7 @@ body.print-preview.pm-density-tight .problem-cell{
 body.print-preview.pm-density-tight .prob-stem{
   margin:2px 0;
 }
-body.print-preview.pm-density-tight .prob-num{
+body.print-preview.pm-density-tight .prob-num,.fig-num{
   margin-bottom:1px;
   font-size:8px;
 }
@@ -1476,7 +1509,7 @@ body.print-preview.pm-density-flush .problem-cell:first-child{
 body.print-preview.pm-density-flush .prob-stem{
   margin:2px 0;
 }
-body.print-preview.pm-density-flush .prob-num{
+body.print-preview.pm-density-flush .prob-num,.fig-num{
   margin-bottom:2px;
   font-size:9px;
 }
@@ -1505,14 +1538,14 @@ body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first
   body.pm-density-compact .problems-grid{row-gap:0.08in;column-gap:0.18in}
   body.pm-density-compact .problem-cell{padding:7px 9px}
   body.pm-density-compact .prob-stem{margin:4px 0}
-  body.pm-density-compact .prob-num{margin-bottom:3px}
+  body.pm-density-compact .prob-num,.fig-num{margin-bottom:3px}
   body.pm-density-compact .prob-workspace{margin-top:8px}
   body.pm-density-compact.pm-booklet .lp-content{gap:5px}
 
   body.pm-density-tight .problems-grid{row-gap:0.04in;column-gap:0.12in}
   body.pm-density-tight .problem-cell{padding:4px 7px}
   body.pm-density-tight .prob-stem{margin:2px 0}
-  body.pm-density-tight .prob-num{margin-bottom:1px;font-size:8px}
+  body.pm-density-tight .prob-num,.fig-num{margin-bottom:1px;font-size:8px}
   body.pm-density-tight .prob-workspace{margin-top:4px}
   body.pm-density-tight.pm-booklet .lp-content{gap:3px}
 
@@ -1520,7 +1553,7 @@ body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first
   body.pm-density-flush .problem-cell{padding:5px 8px;margin-top:-1px;margin-bottom:0;border-radius:0}
   body.pm-density-flush .problem-cell:first-child{margin-top:0}
   body.pm-density-flush .prob-stem{margin:2px 0}
-  body.pm-density-flush .prob-num{margin-bottom:2px;font-size:9px}
+  body.pm-density-flush .prob-num,.fig-num{margin-bottom:2px;font-size:9px}
   body.pm-density-flush .prob-workspace{margin-top:5px}
   body.pm-density-flush.pm-booklet .lp-content{gap:0}
   body.pm-density-flush.pm-booklet .lp-content .problem-cell{padding:5px 8px;margin-top:-1px;margin-bottom:0;border-radius:0}
@@ -1538,27 +1571,27 @@ body.print-preview.pm-density-flush.pm-booklet .lp-content > .problem-cell:first
 /* Compact: ~88% scale (17 → 15, 14 → 12.5, 10 → 9). */
 body.print-preview.pm-fontsize-compact .prob-stem{font-size:15px;line-height:1.55}
 body.print-preview.pm-fontsize-compact .ans-num{font-size:12.5px;padding:5px 8px;min-width:140px}
-body.print-preview.pm-fontsize-compact .prob-num{font-size:9px}
+body.print-preview.pm-fontsize-compact .prob-num,.fig-num{font-size:9px}
 body.print-preview.pm-fontsize-compact.pm-booklet .prob-stem{font-size:14px;line-height:1.5}
 body.print-preview.pm-fontsize-compact.pm-booklet .ans-num{font-size:11.5px}
 
 /* Tight: ~76% scale (17 → 13, 14 → 11, 10 → 8). */
 body.print-preview.pm-fontsize-tight .prob-stem{font-size:13px;line-height:1.45}
 body.print-preview.pm-fontsize-tight .ans-num{font-size:11px;padding:3px 6px;min-width:110px}
-body.print-preview.pm-fontsize-tight .prob-num{font-size:8px}
+body.print-preview.pm-fontsize-tight .prob-num,.fig-num{font-size:8px}
 body.print-preview.pm-fontsize-tight.pm-booklet .prob-stem{font-size:12px;line-height:1.4}
 body.print-preview.pm-fontsize-tight.pm-booklet .ans-num{font-size:10px}
 
 @media print{
   body.pm-fontsize-compact .prob-stem{font-size:15px;line-height:1.55}
   body.pm-fontsize-compact .ans-num{font-size:12.5px;padding:5px 8px;min-width:140px}
-  body.pm-fontsize-compact .prob-num{font-size:9px}
+  body.pm-fontsize-compact .prob-num,.fig-num{font-size:9px}
   body.pm-fontsize-compact.pm-booklet .prob-stem{font-size:14px;line-height:1.5}
   body.pm-fontsize-compact.pm-booklet .ans-num{font-size:11.5px}
 
   body.pm-fontsize-tight .prob-stem{font-size:13px;line-height:1.45}
   body.pm-fontsize-tight .ans-num{font-size:11px;padding:3px 6px;min-width:110px}
-  body.pm-fontsize-tight .prob-num{font-size:8px}
+  body.pm-fontsize-tight .prob-num,.fig-num{font-size:8px}
   body.pm-fontsize-tight.pm-booklet .prob-stem{font-size:12px;line-height:1.4}
   body.pm-fontsize-tight.pm-booklet .ans-num{font-size:10px}
 }

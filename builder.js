@@ -33,7 +33,11 @@ function slugify(s) {
 function _newId() { return 'x' + Math.random().toString(36).slice(2, 9); }
 
 // State schema version — bump when the shape changes incompatibly
-const STATE_VERSION = 2;
+// v3 (May 2026): introduces graph_block — a top-level figure that flows as
+// a sibling to problems in the print grid, lets a graph span multiple columns
+// while leaving question text in a single column. Block discriminator is
+// `type: 'problem' | 'graph_block'` on each entry of builderState.problems[].
+const STATE_VERSION = 3;
 
 function _freshState() {
   return {
@@ -147,9 +151,14 @@ function _migrateState(s) {
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
 
-  // Migrate each problem: old types fill_in/dropdown become unified problem
-  // with one trailing blank carrying the prior config
-  s.problems = s.problems.map(_migrateProblem);
+  // Migrate each block. v3 introduces graph_block (siblings to problems in
+  // the same array). Dispatch on type so problem-shaped legacy entries keep
+  // running through _migrateProblem (which also handles v1 → v2 cleanup),
+  // and graph_block entries go through their own path.
+  s.problems = s.problems.map(b => {
+    if (b && b.type === 'graph_block') return _migrateGraphBlock(b);
+    return _migrateProblem(b);
+  });
 
   s.version = STATE_VERSION;
   return s;
@@ -162,6 +171,9 @@ function _migrateProblem(p) {
 
   // Already migrated (has blanks array and no legacy fields)
   if (Array.isArray(p.blanks) && (!p.type || p.type === 'problem')) {
+    // v3: stamp explicit type on every block so the dispatch in _migrateState
+    // and the compile/render passes can rely on it.
+    p.type = 'problem';
     // Touch up missing flags
     if (typeof p.liveFeedback !== 'boolean') p.liveFeedback = true;
     if (typeof p.scoreOnly !== 'boolean')    p.scoreOnly = false;
@@ -233,6 +245,34 @@ function _migrateProblem(p) {
   };
 }
 
+// v3: validate / fill defaults on a graph_block. Mirrors _migrateProblem but
+// for graph blocks. Idempotent — safe to run on already-valid v3 blocks.
+function _migrateGraphBlock(b) {
+  if (!b || typeof b !== 'object') return _newGraphBlock();
+  if (!b.id) b.id = _newId();
+  b.type = 'graph_block';
+  // Graph payload (state, alt, width, height, imageDataUri) — same shape as
+  // today's inline p.graphs[i]. May be null if the block was created but the
+  // teacher cancelled the editor before saving a graph.
+  if (!b.graph || typeof b.graph !== 'object') b.graph = null;
+  if (b.graph) {
+    if (typeof b.graph.alt    !== 'string') b.graph.alt = '';
+    if (typeof b.graph.width  !== 'number') b.graph.width = GRAPH_DEFAULT_W;
+    if (typeof b.graph.height !== 'number') b.graph.height = GRAPH_DEFAULT_H;
+  }
+  if (typeof b.caption !== 'string') b.caption = '';
+  if (b.captionPosition !== 'above' && b.captionPosition !== 'below') {
+    b.captionPosition = 'below';
+  }
+  if (!b.print || typeof b.print !== 'object') {
+    b.print = { span: 'auto', pageBreakBefore: false };
+  } else {
+    if (typeof b.print.span !== 'string')                 b.print.span = 'auto';
+    if (typeof b.print.pageBreakBefore !== 'boolean')     b.print.pageBreakBefore = false;
+  }
+  return b;
+}
+
 function _normalizeChoices(arr) {
   return (arr || []).map(c => {
     if (typeof c === 'string') return { mode: 'text', value: c };
@@ -261,6 +301,22 @@ function _newProblem() {
     // one column slot; explicit numbers force span; 'full' = full-row span.
     // Phase 6: pageBreakBefore forces a hard page break before this problem
     // in print mode.
+    print: { span: 'auto', pageBreakBefore: false }
+  };
+}
+
+// v3: graph_block factory. Top-level figure that flows next to problems in
+// the print grid. Use case: 2-column layouts where the question text stays
+// in one column but the graph needs to span both. Default span is 'auto'
+// (one column); teacher can promote to 'full' or '2'/'3' via the same span
+// dropdown problems use. graph is null until the editor saves one.
+function _newGraphBlock() {
+  return {
+    id: _newId(),
+    type: 'graph_block',
+    graph: null,            // { state, alt, width, height, imageDataUri } when saved
+    caption: '',
+    captionPosition: 'below',
     print: { span: 'auto', pageBreakBefore: false }
   };
 }
@@ -347,6 +403,22 @@ function addProblem() {
   refreshPreview();
 }
 
+// v3: append a new graph_block and immediately open the graph editor for it.
+// If the teacher cancels the editor, the empty block stays — the card UI
+// shows a placeholder thumb and an "Edit graph" button. They can also delete
+// the empty block via the standard card actions. Auto-opening the editor
+// matches the natural workflow ("I added a graph block; now build the graph").
+function addGraphBlock() {
+  const b = _newGraphBlock();
+  builderState.problems.push(b);
+  saveDraft();
+  renderProblems();
+  refreshPreview();
+  // Open the editor so the teacher can build the graph right away.
+  _openGraphEditor({ kind: 'block', blockId: b.id });
+}
+window.addGraphBlock = addGraphBlock;
+
 function removeProblem(id) {
   builderState.problems = builderState.problems.filter(p => p.id !== id);
   saveDraft();
@@ -378,6 +450,10 @@ function moveProblem(id, dir) {
 // =============================================================================
 // PROBLEM RENDERING — unified model with inline blanks
 // =============================================================================
+// v3 dispatcher: walks builderState.problems[] and renders each entry into
+// the editor list, dispatching to _renderProblemCard or _renderGraphBlockCard
+// based on type. Maintains two counters (problemNum, figureNum) so display
+// labels stay consistent with how the worksheet will compile.
 function renderProblems() {
   const container = document.getElementById('problemsContainer');
   if (!container) return;
@@ -386,22 +462,39 @@ function renderProblems() {
     container.innerHTML = '<div class="empty-hint">No problems yet. Click "Add problem" below.</div>';
     return;
   }
-  builderState.problems.forEach((p, idx) => {
-    const card = document.createElement('div');
-    card.className = 'block-card';
-    card.setAttribute('data-id', p.id);
+  let problemNum = 0;
+  let figureNum  = 0;
+  builderState.problems.forEach((b, idx) => {
+    if (b && b.type === 'graph_block') {
+      figureNum++;
+      container.appendChild(_renderGraphBlockCard(b, idx, figureNum));
+    } else {
+      problemNum++;
+      container.appendChild(_renderProblemCard(b, idx, problemNum));
+    }
+  });
+}
 
-    // ----- Header: number, feedback toggles, action buttons
-    const header = document.createElement('div');
-    header.className = 'block-header';
-    header.innerHTML =
-      '<span class="block-num">Problem ' + (idx + 1) + '</span>' +
-      '<div class="block-actions">' +
-        '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + p.id + '\', -1)">↑</button>' +
-        '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + p.id + '\', 1)">↓</button>' +
-        '<button class="bb-btn danger" title="Remove" onclick="removeProblem(\'' + p.id + '\')">✕</button>' +
-      '</div>';
-    card.appendChild(header);
+// Renders one problem editor card. Extracted from the original renderProblems
+// body during the v3 dispatcher refactor — behavior is unchanged from v2 except
+// the displayed problem number now comes from a caller-supplied counter
+// (rather than idx+1) so figures don't consume problem numbers.
+function _renderProblemCard(p, idx, displayNum) {
+  const card = document.createElement('div');
+  card.className = 'block-card';
+  card.setAttribute('data-id', p.id);
+
+  // ----- Header: number, feedback toggles, action buttons
+  const header = document.createElement('div');
+  header.className = 'block-header';
+  header.innerHTML =
+    '<span class="block-num">Problem ' + displayNum + '</span>' +
+    '<div class="block-actions">' +
+      '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + p.id + '\', -1)">↑</button>' +
+      '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + p.id + '\', 1)">↓</button>' +
+      '<button class="bb-btn danger" title="Remove" onclick="removeProblem(\'' + p.id + '\')">✕</button>' +
+    '</div>';
+  card.appendChild(header);
 
     // ----- Per-problem feedback toggles
     const fbRow = document.createElement('div');
@@ -544,7 +637,7 @@ function renderProblems() {
     const graphBtn = document.createElement('button');
     graphBtn.className = 'add-btn';
     graphBtn.innerHTML = '<span class="plus">+</span> Insert graph';
-    graphBtn.onclick = () => _openGraphEditor(p.id, null, stemArea);
+    graphBtn.onclick = () => _openGraphEditor({ kind: 'inline', problemId: p.id, graphId: null, insertTarget: stemArea });
     insertRow.appendChild(fillBtn);
     insertRow.appendChild(dropBtn);
     insertRow.appendChild(graphBtn);
@@ -602,8 +695,154 @@ function renderProblems() {
       });
     }
 
-    container.appendChild(card);
+    return card;
+}
+
+// v3: render the editor card for a graph_block. Header is "Figure N" (the
+// figure counter, supplied by the dispatcher in renderProblems). Body shows
+// a thumbnail of the captured graph (or a placeholder if none yet), an
+// "Edit graph" button that opens the existing modal targeted at this block,
+// a caption textarea, a caption-position dropdown, and the same span /
+// page-break-before controls problems use.
+function _renderGraphBlockCard(b, idx, figureNum) {
+  const card = document.createElement('div');
+  card.className = 'block-card figure-block-card';
+  card.setAttribute('data-id', b.id);
+
+  // ----- Header
+  const header = document.createElement('div');
+  header.className = 'block-header';
+  header.innerHTML =
+    '<span class="block-num">Figure ' + figureNum + '</span>' +
+    '<div class="block-actions">' +
+      '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + b.id + '\', -1)">↑</button>' +
+      '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + b.id + '\', 1)">↓</button>' +
+      '<button class="bb-btn danger" title="Remove" onclick="removeProblem(\'' + b.id + '\')">✕</button>' +
+    '</div>';
+  card.appendChild(header);
+
+  // ----- Span / page-break controls (mirror problem card row, sans workspace)
+  const wsRow = document.createElement('div');
+  wsRow.className = 'workspace-row';
+  const activeCols = (builderState.print && builderState.print.columns) || 1;
+  if (activeCols > 1) {
+    const curSpan = (b.print && b.print.span) || 'auto';
+    const spanKeys = activeCols === 2 ? ['auto', '2', 'full'] : ['auto', '2', '3', 'full'];
+    const spanLabels = { 'auto': '1 col', '2': '2 cols', '3': '3 cols', 'full': 'Full width' };
+    const spanOpts = spanKeys.map(k =>
+      '<option value="' + k + '"' + (curSpan === k ? ' selected' : '') + '>' + spanLabels[k] + '</option>'
+    ).join('');
+    const spanLabel = document.createElement('label');
+    spanLabel.className = 'ws-lbl';
+    spanLabel.innerHTML = 'Span <select data-ws-field="span">' + spanOpts + '</select>';
+    wsRow.appendChild(spanLabel);
+  }
+  if (idx > 0) {
+    const pbCheck = document.createElement('label');
+    pbCheck.className = 'ws-lbl ws-pb-check';
+    const checked = (b.print && b.print.pageBreakBefore) ? 'checked' : '';
+    pbCheck.innerHTML =
+      '<input type="checkbox" data-ws-field="pageBreakBefore" ' + checked + '>' +
+      ' <span title="Force a new page before this figure when printing">↵ Page break before</span>';
+    wsRow.appendChild(pbCheck);
+  }
+  // Empty-state filler when 1-col mode + idx==0 leaves no controls.
+  if (!wsRow.firstChild) {
+    const hint = document.createElement('span');
+    hint.style.color = 'var(--ink-light)';
+    hint.style.fontStyle = 'italic';
+    hint.textContent = 'Switch to 2- or 3-column print mode to set this figure to span columns.';
+    wsRow.appendChild(hint);
+  }
+  wsRow.querySelectorAll('select, input[type=checkbox]').forEach(el => {
+    el.onchange = (e) => {
+      const field = e.target.getAttribute('data-ws-field');
+      const value = (e.target.type === 'checkbox') ? e.target.checked : e.target.value;
+      updateProblemPrint(b.id, field, value);
+    };
   });
+  card.appendChild(wsRow);
+
+  // ----- Graph thumb + edit button
+  const figRow = document.createElement('div');
+  figRow.className = 'figure-block-row';
+  if (b.graph && b.graph.imageDataUri) {
+    const img = document.createElement('img');
+    img.className = 'graph-thumb';
+    img.src = b.graph.imageDataUri;
+    img.alt = '';
+    figRow.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'graph-thumb-empty';
+    ph.textContent = '⦿';
+    ph.title = 'No graph yet — click Edit graph to build one.';
+    figRow.appendChild(ph);
+  }
+  const figBody = document.createElement('div');
+  figBody.className = 'graph-card-body';
+  if (b.graph && b.graph.alt) {
+    const altEl = document.createElement('div');
+    altEl.className = 'graph-card-alt';
+    altEl.textContent = b.graph.alt;
+    figBody.appendChild(altEl);
+  } else {
+    const altEl = document.createElement('div');
+    altEl.className = 'graph-card-alt empty';
+    altEl.textContent = b.graph ? 'No alt text — edit to add.' : 'No graph yet — click Edit graph below.';
+    figBody.appendChild(altEl);
+  }
+  figRow.appendChild(figBody);
+  const editBtn = document.createElement('button');
+  editBtn.className = 'bb-btn';
+  editBtn.style.marginLeft = 'auto';
+  editBtn.title = 'Edit graph';
+  editBtn.innerHTML = '✎ Edit graph';
+  editBtn.style.width = 'auto';
+  editBtn.style.padding = '4px 10px';
+  editBtn.onclick = () => _openGraphEditor({ kind: 'block', blockId: b.id });
+  figRow.appendChild(editBtn);
+  card.appendChild(figRow);
+
+  // ----- Caption + caption position
+  const capLabel = document.createElement('div');
+  capLabel.className = 'field-label';
+  capLabel.style.marginTop = '10px';
+  capLabel.textContent = 'Caption (optional)';
+  card.appendChild(capLabel);
+
+  const capArea = document.createElement('textarea');
+  capArea.className = 'text-input';
+  capArea.rows = 2;
+  capArea.placeholder = 'e.g. Graph of f(x) = x² + 3x − 4. Math is supported with $...$.';
+  capArea.value = b.caption || '';
+  capArea.oninput = () => {
+    b.caption = capArea.value;
+    saveDraft();
+    refreshPreview();
+  };
+  card.appendChild(capArea);
+
+  const capPosRow = document.createElement('div');
+  capPosRow.className = 'workspace-row';
+  capPosRow.style.marginTop = '6px';
+  const positions = ['below', 'above'];
+  const posOpts = positions.map(k =>
+    '<option value="' + k + '"' + ((b.captionPosition || 'below') === k ? ' selected' : '') +
+    '>' + (k === 'below' ? 'Below the graph' : 'Above the graph') + '</option>'
+  ).join('');
+  capPosRow.innerHTML =
+    '<label class="ws-lbl">Caption position ' +
+      '<select data-cap-pos>' + posOpts + '</select>' +
+    '</label>';
+  capPosRow.querySelector('select').onchange = (e) => {
+    b.captionPosition = e.target.value;
+    saveDraft();
+    refreshPreview();
+  };
+  card.appendChild(capPosRow);
+
+  return card;
 }
 
 // Analyze a stem string, returning issues for the editor warning banner.
@@ -696,7 +935,7 @@ function _renderGraphCard(p, g, isOrphan) {
   editBtn.className = 'bb-btn';
   editBtn.title = 'Edit graph';
   editBtn.textContent = '\u270E';
-  editBtn.onclick = () => _openGraphEditor(p.id, g.id, null);
+  editBtn.onclick = () => _openGraphEditor({ kind: 'inline', problemId: p.id, graphId: g.id, insertTarget: null });
   const insertBtn = document.createElement('button');
   insertBtn.className = 'bb-btn';
   insertBtn.title = 'Insert reference into stem at end';
@@ -734,26 +973,42 @@ function _insertGraphTokenAtEnd(problemId, graphId) {
 }
 
 // ---------- Graph editor modal ----------------------------------------------
-// Module-level state: which problem/graph we're editing, and the live Desmos
-// instance. Reset on close so we don't leak calculators.
+// Module-level state for the editor modal. v3 changed the target shape: instead
+// of (problemId, graphId, insertTarget), the editor now takes a single
+// target object that's either:
+//   { kind: 'inline', problemId, graphId, insertTarget }  — graph embedded in
+//     a problem's stem via {{graph:id}} token (existing behavior)
+//   { kind: 'block', blockId }                            — top-level
+//     graph_block (v3+); the entire block IS this one graph
+// Reset on close so we don't leak calculators.
 let _graphEditor = {
-  problemId: null,
-  graphId: null,         // null = creating new
-  insertTarget: null,    // textarea to insert token into on save (new only)
+  target: null,
   calc: null
 };
 
-function _openGraphEditor(problemId, graphId, insertTarget) {
+function _openGraphEditor(target) {
   if (typeof Desmos === 'undefined') {
     alert('Desmos API has not loaded yet. Wait a moment and try again.');
     return;
   }
-  const p = builderState.problems.find(x => x.id === problemId);
-  if (!p) return;
 
-  _graphEditor.problemId = problemId;
-  _graphEditor.graphId = graphId;
-  _graphEditor.insertTarget = insertTarget;
+  // Resolve "existing" graph object based on target kind.
+  let existing = null;
+  if (target && target.kind === 'block') {
+    const block = builderState.problems.find(x => x.id === target.blockId);
+    if (!block) return;
+    existing = block.graph || null;
+  } else if (target && target.kind === 'inline') {
+    const p = builderState.problems.find(x => x.id === target.problemId);
+    if (!p) return;
+    if (target.graphId) {
+      existing = (p.graphs || []).find(x => x.id === target.graphId) || null;
+    }
+  } else {
+    return;
+  }
+
+  _graphEditor.target = target;
 
   const backdrop = document.getElementById('graphEditorBackdrop');
   const titleEl  = document.getElementById('graphEditorTitle');
@@ -770,18 +1025,13 @@ function _openGraphEditor(problemId, graphId, insertTarget) {
   status.textContent = '';
   host.innerHTML = '';
 
-  // Find existing graph (if editing) or seed a fresh one
-  let existing = null;
-  if (graphId) {
-    existing = (p.graphs || []).find(x => x.id === graphId);
-  }
   if (existing) {
-    titleEl.textContent = 'Edit graph';
+    titleEl.textContent = (target.kind === 'block') ? 'Edit figure' : 'Edit graph';
     altEl.value = existing.alt || '';
     wEl.value = existing.width || GRAPH_DEFAULT_W;
     hEl.value = existing.height || GRAPH_DEFAULT_H;
   } else {
-    titleEl.textContent = 'Insert graph';
+    titleEl.textContent = (target.kind === 'block') ? 'Build figure' : 'Insert graph';
     altEl.value = '';
     wEl.value = GRAPH_DEFAULT_W;
     hEl.value = GRAPH_DEFAULT_H;
@@ -818,9 +1068,7 @@ function closeGraphEditor() {
     try { _graphEditor.calc.destroy(); } catch (e) { /* ignore */ }
   }
   _graphEditor.calc = null;
-  _graphEditor.problemId = null;
-  _graphEditor.graphId = null;
-  _graphEditor.insertTarget = null;
+  _graphEditor.target = null;
 }
 // expose for inline onclick
 window.closeGraphEditor = closeGraphEditor;
@@ -844,8 +1092,8 @@ function saveGraphEditor() {
   const w = Math.max(200, Math.min(900, parseInt(wEl.value, 10) || GRAPH_DEFAULT_W));
   const h = Math.max(160, Math.min(600, parseInt(hEl.value, 10) || GRAPH_DEFAULT_H));
 
-  const p = builderState.problems.find(x => x.id === _graphEditor.problemId);
-  if (!p || !_graphEditor.calc) { closeGraphEditor(); return; }
+  const target = _graphEditor.target;
+  if (!target || !_graphEditor.calc) { closeGraphEditor(); return; }
 
   status.classList.remove('error');
   status.textContent = 'Capturing graph…';
@@ -864,8 +1112,32 @@ function saveGraphEditor() {
       return;
     }
 
-    const isNew = !_graphEditor.graphId;
-    const id = _graphEditor.graphId || _newGraphId();
+    if (target.kind === 'block') {
+      // v3: top-level graph_block. The block IS the graph, so we replace
+      // block.graph wholesale. No id needed (the block's id is the identity).
+      const block = builderState.problems.find(x => x.id === target.blockId);
+      if (!block) { closeGraphEditor(); return; }
+      block.graph = {
+        state: state,
+        alt: alt,
+        width: w,
+        height: h,
+        imageDataUri: dataUri
+      };
+      saveDraft();
+      closeGraphEditor();
+      renderProblems();
+      refreshPreview();
+      return;
+    }
+
+    // Inline path (existing behavior): graph lives in p.graphs[] and is
+    // referenced from the stem via {{graph:id}} token.
+    const p = builderState.problems.find(x => x.id === target.problemId);
+    if (!p) { closeGraphEditor(); return; }
+
+    const isNew = !target.graphId;
+    const id = target.graphId || _newGraphId();
     if (!Array.isArray(p.graphs)) p.graphs = [];
 
     const record = {
@@ -885,8 +1157,8 @@ function saveGraphEditor() {
     }
 
     // Insert token at cursor in the stem textarea (new graph only)
-    if (isNew && _graphEditor.insertTarget) {
-      const ta = _graphEditor.insertTarget;
+    if (isNew && target.insertTarget) {
+      const ta = target.insertTarget;
       const start = ta.selectionStart || ta.value.length;
       const end   = ta.selectionEnd   || ta.value.length;
       const token = '{{graph:' + id + '}}';
@@ -1705,8 +1977,19 @@ function compileActivity() {
     builderState.filename = 'activities/' + builderState.slug + '.html';
   }
 
-  // Compile problems
-  const problemsHTML = builderState.problems.map((p, idx) => _compileProblem(p, idx)).join('\n');
+  // Compile blocks. v3 dispatches on type — problems get a problem number,
+  // graph blocks get a figure number, and the two counters advance
+  // independently so figures don't consume problem numbers and vice versa.
+  let _problemNum = 0;
+  let _figureNum  = 0;
+  const problemsHTML = builderState.problems.map((b, idx) => {
+    if (b && b.type === 'graph_block') {
+      _figureNum++;
+      return _compileGraphBlock(b, _figureNum, idx);
+    }
+    _problemNum++;
+    return _compileProblem(b, _problemNum, idx);
+  }).join('\n');
 
   // Decide if Desmos API is needed
   const needsDesmos = builderState.sidebarTools.some(t =>
@@ -1841,8 +2124,7 @@ function _buildPrintHeaderHTML() {
   return '<div class="print-student-header">' + fieldHTML + scoreHTML + '</div>';
 }
 
-function _compileProblem(p, idx) {
-  const num = idx + 1;
+function _compileProblem(p, num, idx) {
 
   // Per-problem feedback flags become data-attrs on the cell
   const liveAttr  = (p.liveFeedback === false) ? ' data-live="0"' : ' data-live="1"';
@@ -1927,10 +2209,68 @@ function _compileProblem(p, idx) {
   }
 
   return [
-    '<div class="problem-cell"' + liveAttr + scoreAttr + spanAttr + pbAttr + ' data-problem-num="' + num + '">',
+    '<div class="problem-cell grid-block"' + liveAttr + scoreAttr + spanAttr + pbAttr + ' data-problem-num="' + num + '">',
     '  <div class="prob-num">PROBLEM ' + num + '</div>',
     '  <div class="prob-stem">' + stemHTML + '</div>',
     '  <span class="feedback prob-feedback" id="fb_p' + num + '"></span>' + workspaceHtml,
+    '</div>'
+  ].join('\n');
+}
+
+// v3: compile a graph_block to a .figure-cell that participates in the same
+// .problems-grid as problems. Shares the .grid-block class so [data-span] and
+// [data-page-break-before] CSS rules apply uniformly. The figure label
+// (FIGURE N) sits above the image; caption (if present) sits above or below
+// the image based on b.captionPosition. If no graph has been saved yet, emits
+// a placeholder "[graph not configured]" span instead of a broken <img>.
+function _compileGraphBlock(b, figNum, idx) {
+  const activeCols = (builderState.print && builderState.print.columns) || 1;
+  const resolvedSpan = _resolveSpan(b, activeCols);
+  const spanAttr = ' data-span="' + resolvedSpan + '"';
+
+  const pbBefore = !!(b.print && b.print.pageBreakBefore) && idx > 0;
+  const pbAttr = pbBefore ? ' data-page-break-before="1"' : '';
+
+  // Image (or placeholder for an unconfigured block)
+  let imgHTML;
+  if (b.graph && b.graph.imageDataUri) {
+    const altSafe = _esc(b.graph.alt || ('Figure ' + figNum));
+    const w = b.graph.width || GRAPH_DEFAULT_W;
+    const h = b.graph.height || GRAPH_DEFAULT_H;
+    imgHTML = '<img class="figure-img" src="' + b.graph.imageDataUri + '"' +
+              ' alt="' + altSafe + '"' +
+              ' width="' + w + '" height="' + h + '">';
+  } else {
+    imgHTML = '<span class="missing-blank">[Figure ' + figNum + ' — not configured]</span>';
+  }
+
+  // Caption (optional). Routed through parseMarkdown in stemMode for the same
+  // markdown/math handling problem stems get; falls back to escaped text if
+  // the parser isn't loaded.
+  let capHTML = '';
+  const capText = (b.caption || '').trim();
+  if (capText) {
+    let inner;
+    if (typeof window.parseMarkdown === 'function') {
+      inner = window.parseMarkdown(capText, { stemMode: true });
+    } else {
+      inner = _esc(capText);
+    }
+    capHTML = '<figcaption class="fig-caption">' + inner + '</figcaption>';
+  }
+
+  // Figure body order depends on captionPosition.
+  const pos = (b.captionPosition === 'above') ? 'above' : 'below';
+  const figInner = (pos === 'above')
+    ? capHTML + imgHTML
+    : imgHTML + capHTML;
+
+  return [
+    '<div class="figure-cell grid-block"' + spanAttr + pbAttr + ' data-figure-num="' + figNum + '">',
+    '  <div class="fig-num">FIGURE ' + figNum + '</div>',
+    '  <figure class="figure-body" data-cap-pos="' + pos + '">',
+    '    ' + figInner,
+    '  </figure>',
     '</div>'
   ].join('\n');
 }

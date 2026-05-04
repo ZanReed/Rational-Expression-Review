@@ -228,6 +228,13 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 .graph-card-actions{display:flex;gap:4px;flex-shrink:0}
 .graph-orphan-warn{font-size:10px;color:var(--amber);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;margin-top:2px}
 
+/* ---------- FIGURE BLOCK CARD (v3) ---------- */
+/* Editor card for a top-level graph_block. Reuses the .graph-thumb /
+   .graph-card-body styling for the thumb + alt-text strip, but lays out
+   in a compact row with the Edit button right-aligned. */
+.figure-block-card .figure-block-row{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 12px;background:var(--cream);border:1px solid var(--rule);border-radius:4px}
+.figure-block-card .figure-block-row .graph-card-alt.empty{color:var(--ink-light);font-style:italic}
+
 /* ---------- GRAPH EDITOR MODAL ---------- */
 .modal.graph-modal{max-width:760px;padding:20px 22px}
 .graph-edit-host{width:100%;height:420px;border:1px solid var(--rule);border-radius:4px;background:white;overflow:hidden;margin-bottom:12px}
@@ -426,6 +433,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         <div id="problemsContainer"></div>
         <div class="add-btn-row">
           <button class="add-btn" onclick="addProblem()"><span class="plus">+</span> Add problem</button>
+          <button class="add-btn" onclick="addGraphBlock()"><span class="plus">+</span> Add graph block</button>
         </div>
       </div>
 
