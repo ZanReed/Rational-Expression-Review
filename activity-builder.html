@@ -11,6 +11,7 @@
 <script defer src="auth.js"></script>
 <script defer src="builder-template.js"></script>
 <script defer src="markdown-parser.js"></script>
+<script defer src="bulk-importer.js"></script>
 <script defer src="builder.js"></script>
 <style>
 :root{
@@ -453,12 +454,14 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       <!-- ===== Problems ===== -->
       <div class="editor-section">
         <div class="section-label">Problems</div>
+        <div id="bulkImportStatus" style="display:none;align-items:center;gap:8px;background:var(--accent-lt);border:1px solid var(--accent);border-radius:3px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--accent)"></div>
         <div id="problemsContainer"></div>
         <div class="add-btn-row">
           <button class="add-btn" onclick="addProblem()"><span class="plus">+</span> Add problem</button>
           <button class="add-btn" onclick="addGraphBlock()"><span class="plus">+</span> Add graph block</button>
           <button class="add-btn" onclick="collapseAllProblems()" title="Collapse every problem to a single header row">Collapse all</button>
           <button class="add-btn" onclick="expandAllProblems()" title="Expand every problem so all fields are visible">Expand all</button>
+          <button class="add-btn" onclick="openBulkImportModal()" title="Paste bulk-formatted text to append many problems at once">Import problems</button>
         </div>
       </div>
 
@@ -620,6 +623,27 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       <button class="mb" onclick="closePublishModal()">Cancel</button>
       <button class="mb save" id="confirmPublishBtn" onclick="confirmPublish()">Publish</button>
     </div>
+  </div>
+</div>
+
+<!-- ========================= BULK IMPORT MODAL ========================= -->
+<div class="modal-backdrop" id="bulkImportBackdrop" onclick="if(event.target===this)closeBulkImportModal()">
+  <div class="modal" style="max-width:640px">
+    <h3>Import problems from text</h3>
+    <div class="modal-sub">
+      Paste text in the bulk-import format. Each <code>## Problem</code> heading creates one new problem at the end of your activity. Stems only — add blanks, dropdowns, and graphs after import using the GUI.
+    </div>
+
+    <div class="modal-field">
+      <textarea class="text-input" id="bulkImportText" rows="12" spellcheck="false" placeholder="## Problem&#10;First problem stem...&#10;&#10;## Problem&#10;Second problem stem..."></textarea>
+    </div>
+
+    <div class="modal-actions" id="bulkImportActions">
+      <button class="mb" onclick="closeBulkImportModal()">Cancel</button>
+      <button class="mb save" onclick="parseBulkImportPreview()">Parse preview</button>
+    </div>
+
+    <div id="bulkImportPreview" style="display:none;margin-top:18px;border-top:1px solid var(--rule);padding-top:16px"></div>
   </div>
 </div>
 

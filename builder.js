@@ -3234,6 +3234,203 @@ function renderAll() {
 }
 
 // =============================================================================
+// BULK IMPORT — modal flow
+// -----------------------------------------------------------------------------
+// Wires window.BulkImporter (loaded from bulk-importer.js) into the builder UI.
+//
+// UI flow:
+//   1. Teacher clicks "Import problems" -> openBulkImportModal()
+//   2. Pastes text, clicks "Parse preview" -> parseBulkImportPreview()
+//      Preview pane shows N count, warnings, and stem snippets.
+//      Action row swaps to [Back to edit] + [Append problems]. If 0 problems
+//      parsed, Append is hidden (only Back to edit is shown).
+//   3. Clicks "Append problems" -> appendBulkProblems()
+//      Runs _appendBulkProblems(), closes modal, shows status pill.
+//   4. Cancel / Escape / clicking the backdrop closes and discards everything.
+//
+// The status pill is manual-dismiss (per teacher preference) — it persists
+// until the X is clicked or another import replaces it.
+// =============================================================================
+let _bulkImportLastParse = null;   // cached parse result between Preview and Append
+let _bulkImportEscHandler = null;  // bound on open, removed on close so listeners don't leak
+
+function openBulkImportModal() {
+  // Reset in case the modal was closed mid-flow last time.
+  _bulkImportLastParse = null;
+  document.getElementById('bulkImportText').value = '';
+  const previewEl = document.getElementById('bulkImportPreview');
+  previewEl.style.display = 'none';
+  previewEl.innerHTML = '';
+  _renderBulkImportInitialActions();
+
+  document.getElementById('bulkImportBackdrop').classList.add('open');
+  // Focus the textarea so the teacher can paste immediately.
+  setTimeout(() => {
+    const ta = document.getElementById('bulkImportText');
+    if (ta) ta.focus();
+  }, 0);
+
+  // Bind Escape to close. Stored so closeBulkImportModal can detach it.
+  _bulkImportEscHandler = function (e) {
+    if (e.key === 'Escape') closeBulkImportModal();
+  };
+  document.addEventListener('keydown', _bulkImportEscHandler);
+}
+window.openBulkImportModal = openBulkImportModal;
+
+function closeBulkImportModal() {
+  document.getElementById('bulkImportBackdrop').classList.remove('open');
+  // Reset so reopening starts fresh (per spec).
+  document.getElementById('bulkImportText').value = '';
+  const previewEl = document.getElementById('bulkImportPreview');
+  previewEl.style.display = 'none';
+  previewEl.innerHTML = '';
+  _bulkImportLastParse = null;
+  if (_bulkImportEscHandler) {
+    document.removeEventListener('keydown', _bulkImportEscHandler);
+    _bulkImportEscHandler = null;
+  }
+}
+window.closeBulkImportModal = closeBulkImportModal;
+
+// Reset the modal's action row to its "edit" state (Cancel + Parse preview).
+function _renderBulkImportInitialActions() {
+  document.getElementById('bulkImportActions').innerHTML =
+    '<button class="mb" onclick="closeBulkImportModal()">Cancel</button>' +
+    '<button class="mb save" onclick="parseBulkImportPreview()">Parse preview</button>';
+}
+
+function parseBulkImportPreview() {
+  if (!window.BulkImporter || typeof window.BulkImporter.parse !== 'function') {
+    console.error('[bulk-import] BulkImporter not loaded. Check that bulk-importer.js is included before builder.js in activity-builder.html.');
+    return;
+  }
+  const text = document.getElementById('bulkImportText').value;
+  const result = window.BulkImporter.parse(text);
+  _bulkImportLastParse = result;
+  _renderBulkImportPreview(result);
+}
+window.parseBulkImportPreview = parseBulkImportPreview;
+
+// Render the preview pane with header, warnings (if any), and a numbered list
+// of stem snippets. Plain text only — no math rendering in v1 (per spec).
+function _renderBulkImportPreview(result) {
+  const previewEl = document.getElementById('bulkImportPreview');
+  const n = result.problems.length;
+  const m = builderState.problems.length;
+
+  let html = '';
+
+  // Header. DECISION: when the activity is empty (m===0), drop the
+  // "(after Problem 0)" parenthetical — reads weird otherwise.
+  const headerText = (m === 0)
+    ? n + ' problem' + (n === 1 ? '' : 's') + ' will be appended'
+    : n + ' problem' + (n === 1 ? '' : 's') + ' will be appended (after Problem ' + m + ')';
+  html += '<div style="font-weight:600;font-size:14px;margin-bottom:10px;color:var(--ink)">' +
+          _esc(headerText) + '</div>';
+
+  // Warnings, if any. Amber pill, ul of messages.
+  if (result.warnings.length > 0) {
+    html += '<div style="background:#fbf3e6;border:1px solid #d4a85a;border-radius:3px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#5a4520">';
+    html += '<div style="font-weight:600;margin-bottom:4px">Warning' +
+            (result.warnings.length === 1 ? '' : 's') + ' (' + result.warnings.length + '):</div>';
+    html += '<ul style="margin:0;padding-left:18px">';
+    result.warnings.forEach(w => {
+      html += '<li>' + _esc(w.message) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // Numbered list of stem snippets. Numbering starts at M+1 so the teacher
+  // sees what number each new problem will become in the activity.
+  if (n > 0) {
+    html += '<ol start="' + (m + 1) + '" style="margin:0;padding-left:24px;font-size:12px;color:var(--ink-mid);line-height:1.6">';
+    result.problems.forEach(p => {
+      // Collapse internal whitespace so each snippet stays on one row, then
+      // truncate at ~80 chars. Math/markdown remain literal — no rendering.
+      const oneLine = p.stem.replace(/\s+/g, ' ').trim();
+      const snippet = oneLine.length > 80 ? oneLine.slice(0, 80) + '…' : oneLine;
+      html += '<li style="margin-bottom:2px">' + _esc(snippet) + '</li>';
+    });
+    html += '</ol>';
+  }
+
+  previewEl.innerHTML = html;
+  previewEl.style.display = 'block';
+
+  // Swap action buttons. DECISION: when 0 problems parsed, hide Append
+  // entirely — the only useful next action is Back to edit. A disabled
+  // Append button would be visual noise.
+  const actions = document.getElementById('bulkImportActions');
+  if (n === 0) {
+    actions.innerHTML =
+      '<button class="mb save" onclick="_bulkImportBackToEdit()">Back to edit</button>';
+  } else {
+    actions.innerHTML =
+      '<button class="mb" onclick="_bulkImportBackToEdit()">Back to edit</button>' +
+      '<button class="mb save" onclick="appendBulkProblems()">Append problems</button>';
+  }
+}
+
+function _bulkImportBackToEdit() {
+  const previewEl = document.getElementById('bulkImportPreview');
+  previewEl.style.display = 'none';
+  previewEl.innerHTML = '';
+  _bulkImportLastParse = null;
+  _renderBulkImportInitialActions();
+  setTimeout(() => {
+    const ta = document.getElementById('bulkImportText');
+    if (ta) ta.focus();
+  }, 0);
+}
+window._bulkImportBackToEdit = _bulkImportBackToEdit;
+
+function appendBulkProblems() {
+  // Defensive: button shouldn't be reachable with 0 problems, but guard anyway.
+  if (!_bulkImportLastParse || _bulkImportLastParse.problems.length === 0) return;
+  const n = _bulkImportLastParse.problems.length;
+  _appendBulkProblems(_bulkImportLastParse.problems);
+  closeBulkImportModal();
+  _showBulkImportStatus('Appended ' + n + ' problem' + (n === 1 ? '' : 's') + '.');
+}
+window.appendBulkProblems = appendBulkProblems;
+
+// Internal append helper. Matches the spec snippet: one _newProblem() per
+// parsed stem, then saveDraft → renderProblems → refreshPreview in that order
+// (same lifecycle as addProblem). Imported problems start expanded.
+function _appendBulkProblems(parsedProblems) {
+  parsedProblems.forEach(parsed => {
+    const p = _newProblem();
+    p.stem = parsed.stem;
+    // No blanks pushed — teacher adds them via GUI after import.
+    builderState.problems.push(p);
+  });
+  saveDraft();
+  renderProblems();
+  refreshPreview();
+}
+
+// Manual-dismiss status pill above the problems list. Replaces any prior
+// message (so back-to-back imports don't stack).
+function _showBulkImportStatus(msg) {
+  const host = document.getElementById('bulkImportStatus');
+  if (!host) return;
+  host.innerHTML =
+    '<span style="flex:1">' + _esc(msg) + '</span>' +
+    '<button onclick="_dismissBulkImportStatus()" aria-label="Dismiss" ' +
+    'style="background:transparent;border:0;font-size:18px;line-height:1;cursor:pointer;color:var(--accent);padding:0 4px">&times;</button>';
+  host.style.display = 'flex';
+}
+
+function _dismissBulkImportStatus() {
+  const host = document.getElementById('bulkImportStatus');
+  if (!host) return;
+  host.innerHTML = '';
+  host.style.display = 'none';
+}
+window._dismissBulkImportStatus = _dismissBulkImportStatus;
+
+// =============================================================================
 // INIT
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
