@@ -90,6 +90,29 @@ textarea.text-input{font-family:var(--mono);font-size:12px;resize:vertical;min-h
 .bb-btn.danger:hover{border-color:var(--red-rule);color:var(--red);background:var(--red-bg)}
 .empty-hint{padding:18px;text-align:center;font-size:12px;color:var(--ink-light);font-style:italic;background:var(--cream);border:1px dashed var(--rule);border-radius:5px}
 
+/* ---------- COLLAPSE + DRAG (problem list only) ----------
+   Scoped to #problemsContainer so the matching .block-card on sidebar
+   tool cards (rendered into #sidebarToolsContainer) is unaffected. */
+#problemsContainer .block-header-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+#problemsContainer .block-header{cursor:grab;user-select:none}
+#problemsContainer .block-header:active{cursor:grabbing}
+#problemsContainer .block-header button{cursor:pointer}  /* override grab cursor on action buttons */
+#problemsContainer .bb-btn.collapse-toggle{font-size:12px;color:var(--ink-light)}
+#problemsContainer .bb-btn.collapse-toggle:hover{color:var(--accent)}
+/* Collapsed cards: hide everything except the header. Header margin-bottom
+   is reset to 0 so the card height is just header + card padding. */
+#problemsContainer .block-card.collapsed > *:not(.block-header){display:none}
+#problemsContainer .block-card.collapsed .block-header{margin-bottom:0}
+#problemsContainer .block-card.collapsed{padding-top:8px;padding-bottom:8px}
+/* Dragged card stays in the layout but fades so the drop indicator reads
+   as the "live" position. */
+#problemsContainer .block-card.dragging{opacity:.35}
+#problemsContainer .block-card.dragging .block-header{cursor:grabbing}
+/* Drop-position indicator — a thin accent-colored bar inserted between
+   cards during dragover. pointer-events:none so it doesn't interfere with
+   the cursor's hit-testing of the cards underneath. */
+#problemsContainer .drop-indicator{height:3px;background:var(--accent);border-radius:2px;margin:4px 0;pointer-events:none}
+
 /* ---------- MATH-FIELD ---------- */
 math-field{display:block;width:100%;padding:8px 10px;margin:4px 0 8px 0;border:1px solid var(--rule);border-radius:3px;font-size:14px;background:white;min-height:36px}
 math-field:focus,math-field:focus-within{border-color:var(--accent);outline:none}
@@ -434,6 +457,8 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
         <div class="add-btn-row">
           <button class="add-btn" onclick="addProblem()"><span class="plus">+</span> Add problem</button>
           <button class="add-btn" onclick="addGraphBlock()"><span class="plus">+</span> Add graph block</button>
+          <button class="add-btn" onclick="collapseAllProblems()" title="Collapse every problem to a single header row">Collapse all</button>
+          <button class="add-btn" onclick="expandAllProblems()" title="Expand every problem so all fields are visible">Expand all</button>
         </div>
       </div>
 

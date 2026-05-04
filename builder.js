@@ -21,6 +21,24 @@ const DRAFT_STORAGE_KEY = 'builder_draft_v1';
 // Declared as `let` so loadDraft and clearDraft can reassign.
 let builderState = null;
 
+// =============================================================================
+// EDITOR UI STATE — purely presentational, not serialized
+// =============================================================================
+// Collapsed-problem tracking and drag-and-drop state. Kept OUT of builderState
+// on purpose: this is local-session UI noise, not activity content. It must
+// not appear in saved JSON, must not round-trip through GitHub or Drive, and
+// should reset to a sensible default whenever the editor (re-)mounts.
+//
+// Default rule (chosen with the user): when a saved activity is restored from
+// localStorage, every problem starts collapsed so the editor opens to a tidy
+// table-of-contents view rather than a wall of expanded cards. Newly added
+// problems start expanded so the teacher can edit them immediately.
+const editorUI = {
+  collapsed: new Set(),  // problem/figure block IDs currently collapsed
+  dragSrcId: null,       // ID of the block being dragged (null when idle)
+  dropIndicator: null    // shared DOM node moved between cards during dragover
+};
+
 function slugify(s) {
   return String(s).toLowerCase()
     .replace(/[^a-z0-9\s_-]/g, '')
@@ -108,6 +126,10 @@ function loadDraft() {
     if (!raw) return;
     const parsed = JSON.parse(raw);
     builderState = _migrateState(parsed);
+    // UI: when a saved activity is restored, start every problem collapsed so
+    // the editor opens to an at-a-glance overview. Re-expanding is one click.
+    editorUI.collapsed.clear();
+    builderState.problems.forEach(p => editorUI.collapsed.add(p.id));
   } catch (e) {
     console.warn('Draft load failed:', e);
   }
@@ -115,6 +137,7 @@ function loadDraft() {
 function clearDraft() {
   localStorage.removeItem(DRAFT_STORAGE_KEY);
   builderState = _freshState();
+  editorUI.collapsed.clear();
   renderAll();
 }
 
@@ -448,6 +471,151 @@ function moveProblem(id, dir) {
 }
 
 // =============================================================================
+// COLLAPSE / EXPAND — per-problem and bulk
+// =============================================================================
+// editorUI.collapsed holds the IDs of currently-collapsed problem/figure
+// blocks. Membership is the source of truth; the renderer reads it on each
+// pass. Toggling triggers a re-render so the chevron glyph and the
+// .collapsed class on the card stay in sync. State is in-memory only —
+// see editorUI declaration for the rationale.
+
+function toggleCollapseProblem(id) {
+  if (editorUI.collapsed.has(id)) editorUI.collapsed.delete(id);
+  else                            editorUI.collapsed.add(id);
+  renderProblems();
+}
+
+function collapseAllProblems() {
+  builderState.problems.forEach(p => editorUI.collapsed.add(p.id));
+  renderProblems();
+}
+
+function expandAllProblems() {
+  editorUI.collapsed.clear();
+  renderProblems();
+}
+
+// =============================================================================
+// DRAG-AND-DROP REORDERING — native HTML5 DnD
+// =============================================================================
+// Only the .block-header is draggable, not the whole card. This keeps
+// textareas/inputs in the body usable for normal text selection and makes
+// the drag ghost compact (the browser uses the dragged element's bounding
+// box for the ghost — using the whole card would produce a tall, awkward
+// ghost on expanded cards).
+//
+// Drop targeting: during dragover we look at every block-card EXCEPT the
+// one being dragged, find which card the cursor is above the midline of,
+// and treat that as the insertion point. Filtering out the dragging card
+// means the computed index maps directly to the post-removal array index,
+// which simplifies the reorder math.
+
+function _ensureDropIndicator() {
+  if (!editorUI.dropIndicator) {
+    const ind = document.createElement('div');
+    ind.className = 'drop-indicator';
+    editorUI.dropIndicator = ind;
+  }
+  return editorUI.dropIndicator;
+}
+
+function _removeDropIndicator() {
+  const ind = editorUI.dropIndicator;
+  if (ind && ind.parentNode) ind.parentNode.removeChild(ind);
+}
+
+// Compute the insertion index (in the post-removal array) given the cursor's
+// Y position. Returns an integer in [0, otherCards.length].
+function _computeDropIndex(otherCards, clientY) {
+  for (let i = 0; i < otherCards.length; i++) {
+    const r = otherCards[i].getBoundingClientRect();
+    if (clientY < r.top + r.height / 2) return i;
+  }
+  return otherCards.length;
+}
+
+function _onCardDragStart(e, id, card) {
+  // If the drag was initiated from a click on a header button (chevron,
+  // move-up, move-down, remove), bail. The user wanted to click the
+  // button, not drag the card. Some browsers fire dragstart on the parent
+  // even when the child has draggable=false, so this guard is necessary.
+  if (e.target && e.target.closest && e.target.closest('button')) {
+    e.preventDefault();
+    return;
+  }
+  editorUI.dragSrcId = id;
+  card.classList.add('dragging');
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move';
+    // Some browsers refuse to start a drag without dataTransfer data set.
+    try { e.dataTransfer.setData('text/plain', id); } catch (_) {}
+  }
+}
+
+function _onCardDragEnd(e, card) {
+  editorUI.dragSrcId = null;
+  card.classList.remove('dragging');
+  _removeDropIndicator();
+}
+
+function _onProblemsContainerDragOver(e) {
+  if (!editorUI.dragSrcId) return;
+  // Must preventDefault to allow drop and to get dragover events flowing.
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  const container = e.currentTarget;
+  const draggingCard = container.querySelector('.block-card.dragging');
+  if (!draggingCard) return;
+  const otherCards = Array.from(container.querySelectorAll('.block-card'))
+    .filter(c => c !== draggingCard);
+  const insertBefore = _computeDropIndex(otherCards, e.clientY);
+  // Don't display an indicator at the no-op position (where the dragged
+  // card already lives in the array) — distracting and slightly misleading.
+  const srcIdx = builderState.problems.findIndex(p => p.id === editorUI.dragSrcId);
+  if (insertBefore === srcIdx) { _removeDropIndicator(); return; }
+  const ind = _ensureDropIndicator();
+  if (insertBefore < otherCards.length) {
+    container.insertBefore(ind, otherCards[insertBefore]);
+  } else {
+    container.appendChild(ind);
+  }
+}
+
+function _onProblemsContainerDragLeave(e) {
+  // Only clear if the cursor genuinely left the container — dragleave fires
+  // every time we move between children, which would cause flicker.
+  const container = e.currentTarget;
+  if (!container.contains(e.relatedTarget)) _removeDropIndicator();
+}
+
+function _onProblemsContainerDrop(e) {
+  if (!editorUI.dragSrcId) return;
+  e.preventDefault();
+  const container = e.currentTarget;
+  const draggingCard = container.querySelector('.block-card.dragging');
+  if (!draggingCard) { _removeDropIndicator(); return; }
+  const otherCards = Array.from(container.querySelectorAll('.block-card'))
+    .filter(c => c !== draggingCard);
+  const insertBefore = _computeDropIndex(otherCards, e.clientY);
+  _reorderProblemById(editorUI.dragSrcId, insertBefore);
+}
+
+function _reorderProblemById(srcId, insertBefore) {
+  const srcIdx = builderState.problems.findIndex(p => p.id === srcId);
+  if (srcIdx < 0) return;
+  // Insert at the same spot is a no-op; bail without a wasted re-render.
+  if (insertBefore === srcIdx) return;
+  const [item] = builderState.problems.splice(srcIdx, 1);
+  // insertBefore was computed against the array WITHOUT the source already
+  // accounted for (otherCards filtered out the dragging card), so it can be
+  // used directly on the post-removal array.
+  builderState.problems.splice(insertBefore, 0, item);
+  saveDraft();
+  renderProblems();
+  refreshPreview();
+}
+
+// =============================================================================
 // PROBLEM RENDERING — unified model with inline blanks
 // =============================================================================
 // v3 dispatcher: walks builderState.problems[] and renders each entry into
@@ -457,6 +625,15 @@ function moveProblem(id, dir) {
 function renderProblems() {
   const container = document.getElementById('problemsContainer');
   if (!container) return;
+  // One-time wiring: the dragover/drop listeners live on the container itself
+  // so they survive innerHTML replacement below. Cards re-bind their dragstart
+  // handlers on every render (fine — they're freshly created elements).
+  if (!container._dragWired) {
+    container.addEventListener('dragover', _onProblemsContainerDragOver);
+    container.addEventListener('drop', _onProblemsContainerDrop);
+    container.addEventListener('dragleave', _onProblemsContainerDragLeave);
+    container._dragWired = true;
+  }
   container.innerHTML = '';
   if (builderState.problems.length === 0) {
     container.innerHTML = '<div class="empty-hint">No problems yet. Click "Add problem" below.</div>';
@@ -483,17 +660,32 @@ function _renderProblemCard(p, idx, displayNum) {
   const card = document.createElement('div');
   card.className = 'block-card';
   card.setAttribute('data-id', p.id);
+  const isCollapsed = editorUI.collapsed.has(p.id);
+  if (isCollapsed) card.classList.add('collapsed');
 
-  // ----- Header: number, feedback toggles, action buttons
+  // ----- Header: chevron + number + feedback toggles + action buttons.
+  // Header is the drag handle — making the entire card draggable would
+  // hijack text-selection inside the textareas below, so the header
+  // gets draggable=true and child buttons get draggable=false to keep
+  // them clickable without initiating a card drag.
   const header = document.createElement('div');
   header.className = 'block-header';
+  header.draggable = true;
   header.innerHTML =
-    '<span class="block-num">Problem ' + displayNum + '</span>' +
+    '<div class="block-header-left">' +
+      '<button class="bb-btn collapse-toggle" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" onclick="toggleCollapseProblem(\'' + p.id + '\')">' + (isCollapsed ? '▸' : '▾') + '</button>' +
+      '<span class="block-num">Problem ' + displayNum + '</span>' +
+    '</div>' +
     '<div class="block-actions">' +
       '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + p.id + '\', -1)">↑</button>' +
       '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + p.id + '\', 1)">↓</button>' +
       '<button class="bb-btn danger" title="Remove" onclick="removeProblem(\'' + p.id + '\')">✕</button>' +
     '</div>';
+  // Buttons inside the header must NOT initiate a drag — otherwise clicking
+  // ↑/↓/✕/chevron would start dragging the parent card in some browsers.
+  header.querySelectorAll('button').forEach(b => { b.draggable = false; });
+  header.addEventListener('dragstart', e => _onCardDragStart(e, p.id, card));
+  header.addEventListener('dragend',   e => _onCardDragEnd(e, card));
   card.appendChild(header);
 
     // ----- Per-problem feedback toggles
@@ -708,17 +900,27 @@ function _renderGraphBlockCard(b, idx, figureNum) {
   const card = document.createElement('div');
   card.className = 'block-card figure-block-card';
   card.setAttribute('data-id', b.id);
+  const isCollapsed = editorUI.collapsed.has(b.id);
+  if (isCollapsed) card.classList.add('collapsed');
 
-  // ----- Header
+  // ----- Header (chevron + figure label + actions). Same drag-handle
+  // pattern as _renderProblemCard — see comments there for the rationale.
   const header = document.createElement('div');
   header.className = 'block-header';
+  header.draggable = true;
   header.innerHTML =
-    '<span class="block-num">Figure ' + figureNum + '</span>' +
+    '<div class="block-header-left">' +
+      '<button class="bb-btn collapse-toggle" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" onclick="toggleCollapseProblem(\'' + b.id + '\')">' + (isCollapsed ? '▸' : '▾') + '</button>' +
+      '<span class="block-num">Figure ' + figureNum + '</span>' +
+    '</div>' +
     '<div class="block-actions">' +
       '<button class="bb-btn" title="Move up" onclick="moveProblem(\'' + b.id + '\', -1)">↑</button>' +
       '<button class="bb-btn" title="Move down" onclick="moveProblem(\'' + b.id + '\', 1)">↓</button>' +
       '<button class="bb-btn danger" title="Remove" onclick="removeProblem(\'' + b.id + '\')">✕</button>' +
     '</div>';
+  header.querySelectorAll('button').forEach(btn => { btn.draggable = false; });
+  header.addEventListener('dragstart', e => _onCardDragStart(e, b.id, card));
+  header.addEventListener('dragend',   e => _onCardDragEnd(e, card));
   card.appendChild(header);
 
   // ----- Span / page-break controls (mirror problem card row, sans workspace)
