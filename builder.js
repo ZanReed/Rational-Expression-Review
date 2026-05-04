@@ -11,8 +11,17 @@
 //            publishToGitHub) — must be loaded BEFORE this file.
 // =============================================================================
 
-// Builder-specific constant (auth constants come from auth.js)
-const DRAFT_STORAGE_KEY = 'builder_draft_v1';
+// Builder-specific constants (auth constants come from auth.js).
+// DRAFT_STORAGE_KEY  — current in-progress edit, written on every saveDraft().
+//                     Always equals JSON.stringify(builderState).
+// LAST_SAVED_STATE_KEY — snapshot of builderState taken at the last successful
+//                     publish or load. Used by _isDraftDirty() to detect
+//                     unsaved changes before destructive actions (Load).
+//                     Compared with `updatedAt` stripped (saveDraft churns
+//                     that on every keystroke; if we left it in, every draft
+//                     would read as dirty after the first edit).
+const DRAFT_STORAGE_KEY      = 'builder_draft_v1';
+const LAST_SAVED_STATE_KEY   = 'builder_last_saved_v1';
 
 // =============================================================================
 // BUILDER STATE
@@ -110,6 +119,13 @@ function _freshState() {
     problems: [],
     sidebarTools: [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }],
     filename: 'activities/new_activity.html',
+    // Index-card metadata (unit, description, type, tags) for index.html.
+    // Pre-fills the publish modal so a load → re-publish round-trip doesn't
+    // require re-typing the four fields. Populated by _loadActivity() when
+    // an activity is loaded from GitHub, and by confirmPublish() whenever
+    // the teacher publishes (so this always reflects the most recently
+    // committed metadata, not stale load data).
+    indexMeta: { unit: '', desc: '', tags: [], type: 'activity' },
     createdAt: null,
     updatedAt: null
   };
@@ -173,6 +189,26 @@ function _migrateState(s) {
   }
   if (!Array.isArray(s.problems))     s.problems = [];
   if (!Array.isArray(s.sidebarTools)) s.sidebarTools = [{ id: 'save', type: 'save' }, { id: 'load', type: 'load' }];
+
+  // Index-card metadata. Added with the load-activity feature (May 2026).
+  // Older drafts and GitHub-loaded activities published before this point
+  // won't have it — seed defaults so the publish modal pre-fill code can
+  // read these fields unconditionally.
+  //
+  // FORWARD-COMPAT NOTE: any new top-level builderState field added after
+  // this point MUST get a defensive default here. Loaded activities can be
+  // arbitrarily old (any version that ever shipped a builder-state block),
+  // so _migrateState is the single chokepoint that keeps round-trip safe.
+  // Adding a field without a migration entry will mean activities loaded
+  // from GitHub crash or render with undefined values. See _loadActivity().
+  if (!s.indexMeta || typeof s.indexMeta !== 'object') {
+    s.indexMeta = { unit: '', desc: '', tags: [], type: 'activity' };
+  } else {
+    if (typeof s.indexMeta.unit !== 'string') s.indexMeta.unit = '';
+    if (typeof s.indexMeta.desc !== 'string') s.indexMeta.desc = '';
+    if (!Array.isArray(s.indexMeta.tags))     s.indexMeta.tags = [];
+    if (typeof s.indexMeta.type !== 'string') s.indexMeta.type = 'activity';
+  }
 
   // Migrate each block. v3 introduces graph_block (siblings to problems in
   // the same array). Dispatch on type so problem-shaped legacy entries keep
@@ -3033,6 +3069,13 @@ function _repopulateColumnPresetSelect() {
 // =============================================================================
 // AUTH / PIN UNLOCK
 // =============================================================================
+// _pendingAfterPin: optional callback queued by another flow (e.g. the load
+// modal) when it requires the teacher to enter their PIN before continuing.
+// Set by the caller before opening the PIN modal; flushed exactly once on
+// successful unlock. Cleared on cancel/close to avoid surprise re-firing on
+// the next unrelated unlock.
+let _pendingAfterPin = null;
+
 function openPinModal() {
   document.getElementById('pinInput').value = '';
   document.getElementById('pinError').style.display = 'none';
@@ -3041,6 +3084,9 @@ function openPinModal() {
 }
 function closePinModal() {
   document.getElementById('pinBackdrop').classList.remove('open');
+  // Cancel/close clears the queued callback. Only a successful checkPin()
+  // should fire it; otherwise it would silently fire on the next unlock.
+  _pendingAfterPin = null;
 }
 async function checkPin() {
   const pin = document.getElementById('pinInput').value.trim();
@@ -3057,8 +3103,16 @@ async function checkPin() {
     return;
   }
   _decryptedToken = tok;
-  closePinModal();
+  // Suppress closePinModal's pending-clear by snapshotting the callback
+  // first, clearing the slot ourselves, then closing. Order matters: we
+  // never want closePinModal to wipe a callback we're about to fire.
+  const cb = _pendingAfterPin;
+  _pendingAfterPin = null;
+  document.getElementById('pinBackdrop').classList.remove('open');
   _updateAuthUI(true);
+  if (typeof cb === 'function') {
+    setTimeout(cb, 0);
+  }
 }
 function lockBuilder() {
   _decryptedToken = null;
@@ -3086,6 +3140,27 @@ function openPublishModal() {
   document.getElementById('publishTitle').textContent = builderState.title;
   document.getElementById('publishStatus').textContent = '';
   document.getElementById('publishStatus').style.display = 'none';
+
+  // Pre-fill the four index-card fields from builderState.indexMeta. This is
+  // the round-trip pre-fill the load-activity feature asked for: a teacher
+  // who loaded an activity from the picker and clicks Publish should see the
+  // existing unit/desc/tags/type rather than four blank inputs. New activities
+  // (never published) have empty defaults from _freshState() so this just
+  // shows blanks, matching the previous behavior.
+  const im = (builderState && builderState.indexMeta) || { unit: '', desc: '', tags: [], type: 'activity' };
+  const unitEl = document.getElementById('publishUnit');
+  const descEl = document.getElementById('publishDesc');
+  const tagsEl = document.getElementById('publishTags');
+  const typeEl = document.getElementById('publishType');
+  if (unitEl) unitEl.value = im.unit || '';
+  if (descEl) descEl.value = im.desc || '';
+  if (tagsEl) tagsEl.value = (Array.isArray(im.tags) ? im.tags.join(', ') : '');
+  if (typeEl) typeEl.value = im.type || 'activity';
+
+  // Hide the save-as inline panel if it was left open from a prior session.
+  const saveAsPanel = document.getElementById('saveAsPanel');
+  if (saveAsPanel) saveAsPanel.style.display = 'none';
+
   document.getElementById('publishBackdrop').classList.add('open');
 }
 function closePublishModal() {
@@ -3112,6 +3187,18 @@ async function confirmPublish() {
     const ok = await publishToGitHub(builderState.filename, html, 'publishStatus');
     if (!ok) { btn.disabled = false; btn.textContent = 'Publish'; return; }
 
+    // Persist whatever the teacher just typed into the publish modal so the
+    // next openPublishModal() pre-fills with the same values rather than the
+    // ones from when the activity was originally loaded. This also captures
+    // metadata for activities that were authored from scratch (never had an
+    // indexMeta from a load round-trip).
+    builderState.indexMeta = {
+      unit: unit || '',
+      desc: desc || '',
+      tags: Array.isArray(tags) ? tags : [],
+      type: type || 'activity'
+    };
+
     if (alsoIndex) {
       btn.textContent = 'Updating index…';
       const indexOK = await _addToIndex({
@@ -3130,6 +3217,11 @@ async function confirmPublish() {
     }
 
     saveDraft();
+    // Stamp the last-saved snapshot AFTER saveDraft so the comparison in
+    // _isDraftDirty() reads as clean immediately. Without this, every
+    // post-publish state would still register as "dirty" against the
+    // pre-publish baseline.
+    _stampLastSaved();
     btn.disabled = false;
     btn.textContent = 'Publish';
   } catch (e) {
@@ -3429,6 +3521,683 @@ function _dismissBulkImportStatus() {
   host.style.display = 'none';
 }
 window._dismissBulkImportStatus = _dismissBulkImportStatus;
+
+// =============================================================================
+// LOAD ACTIVITY — modal flow
+// -----------------------------------------------------------------------------
+// Reload an already-published activity into the builder for editing. Every
+// published activity contains its full editable state at:
+//
+//   <script id="builder-state" type="application/json">...stringified state...</script>
+//
+// (See compileActivity()'s {{BUILDER_STATE_JSON}} substitution.) Loading is a
+// fetch + extract + assign + render flow with one defensive _migrateState
+// call so older published activities pick up any newly-added schema fields.
+//
+// UI flow:
+//   1. Teacher clicks "Load activity" -> openLoadActivityModal()
+//   2. _fetchActivityIndex() fetches index.html, regexes out INDEX_DATA,
+//      filters out any resource missing a `file` field (pre-builder entries).
+//   3. _renderActivityPicker() draws a sorted, filterable list. Each row
+//      has a Load button that calls _handleLoadClick(resourceId).
+//   4. _handleLoadClick checks _isDraftDirty(). If dirty, an inline
+//      confirmation panel appears in-modal; if clean, load proceeds.
+//   5. _loadActivity() fetches the activity HTML, extracts the
+//      builder-state block, parses + migrates, replaces builderState,
+//      renders, stamps last-saved, closes modal, and shows a status pill.
+//
+// Failure modes (rendered inline in the modal, not as alert()):
+//   - PIN locked         -> "Enter your PIN first" + button to open PIN modal
+//   - index.html 404     -> "Could not read the activity index..."
+//   - INDEX_DATA missing -> same as above
+//   - empty index        -> empty-state message
+//   - activity 404       -> "Activity file not found in repo"
+//   - 401 on either      -> "Authentication failed — re-enter your PIN"
+//   - builder-state miss -> "Published before the current builder schema"
+//   - JSON parse fail    -> "Saved state is corrupted"
+//
+// "Save as…" lives in the publish modal. It writes a new filename/slug to
+// builderState, leaves indexMeta intact (so the new activity inherits the
+// loaded one's metadata), and falls through to the normal publish flow.
+// =============================================================================
+
+// ---- Module state (kept local to this section; resets on modal close) ----
+let _loadActivityResources    = null;  // cached fetched resources (filtered)
+let _loadActivityFilter       = '';    // current substring filter
+let _loadActivityFetchInFlight = false; // prevents double-fetch on rapid clicks
+let _loadActivityEscHandler   = null;  // bound on open, removed on close
+let _loadActivityPendingResource = null; // resource awaiting dirty-confirm
+
+// ---- Dirty detection -------------------------------------------------------
+// _isDraftDirty: returns true iff the current builderState differs from the
+// snapshot stored at the last successful publish or load. The comparison
+// strips `updatedAt` because saveDraft() bumps it on every edit; if we kept
+// it in the comparison, the very first keystroke after publish would flag
+// the draft dirty even when no semantic change had happened (this is the
+// failure mode that broke a naive "compare to DRAFT_STORAGE_KEY" approach
+// in the spec discussion).
+//
+// If no last-saved snapshot exists yet (first-ever session, or storage was
+// cleared), we treat the comparison baseline as a fresh state. That makes
+// brand-new builds with no problems read as clean (no dialog needed) but
+// builds with real content read as dirty (correctly preventing data loss).
+
+function _stateForCompare(s) {
+  if (!s || typeof s !== 'object') return '';
+  // Shallow clone, drop the volatile timestamp. updatedAt is the only known
+  // top-level field that mutates without a content change; if more get added
+  // later, list them here.
+  const clone = Object.assign({}, s);
+  delete clone.updatedAt;
+  return JSON.stringify(clone);
+}
+
+function _isDraftDirty() {
+  const current = _stateForCompare(builderState);
+  let baseline = localStorage.getItem(LAST_SAVED_STATE_KEY);
+  if (baseline == null) {
+    // No baseline stored yet. Compare against a fresh state so a teacher
+    // who has typed real content sees the dirty warning, but a brand-new
+    // empty builder skips it.
+    baseline = _stateForCompare(_freshState());
+  }
+  return current !== baseline;
+}
+
+function _stampLastSaved() {
+  try {
+    localStorage.setItem(LAST_SAVED_STATE_KEY, _stateForCompare(builderState));
+  } catch (e) {
+    console.warn('[load-activity] last-saved snapshot failed:', e);
+  }
+}
+
+// ---- Public entry points ---------------------------------------------------
+
+function openLoadActivityModal() {
+  // Reset modal state so reopening starts fresh.
+  _loadActivityResources = null;
+  _loadActivityFilter = '';
+  _loadActivityPendingResource = null;
+  _loadActivityFetchInFlight = false;
+
+  document.getElementById('loadActivityBackdrop').classList.add('open');
+
+  // Bind Escape close (mirrors bulk-import's pattern).
+  _loadActivityEscHandler = function (e) {
+    if (e.key === 'Escape') closeLoadActivityModal();
+  };
+  document.addEventListener('keydown', _loadActivityEscHandler);
+
+  // Token gate. If PIN isn't entered, render the gated state and queue a
+  // re-open after unlock instead of attempting the fetch.
+  if (!_decryptedToken) {
+    _renderLoadGatedState();
+    return;
+  }
+
+  // Show a loading state, then kick off the fetch.
+  _renderLoadLoadingState();
+  _fetchActivityIndex().then(result => {
+    if (result.error) {
+      _renderLoadErrorState(result.error);
+      return;
+    }
+    if (!result.resources || result.resources.length === 0) {
+      _renderLoadEmptyState();
+      return;
+    }
+    _loadActivityResources = result.resources;
+    _renderActivityPicker(_loadActivityResources, _loadActivityFilter);
+  });
+}
+window.openLoadActivityModal = openLoadActivityModal;
+
+function closeLoadActivityModal() {
+  document.getElementById('loadActivityBackdrop').classList.remove('open');
+  _loadActivityResources = null;
+  _loadActivityFilter = '';
+  _loadActivityPendingResource = null;
+  if (_loadActivityEscHandler) {
+    document.removeEventListener('keydown', _loadActivityEscHandler);
+    _loadActivityEscHandler = null;
+  }
+}
+window.closeLoadActivityModal = closeLoadActivityModal;
+
+// ---- Index fetch -----------------------------------------------------------
+// Returns: Promise<{ resources: [...], error: string|null }>. Errors are
+// surfaced as strings so the caller can route them into the modal's error
+// state without try/catch noise at every call site.
+
+async function _fetchActivityIndex() {
+  try {
+    const url = 'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/contents/index.html?t=' + Date.now();
+    const r = await fetch(url, {
+      headers: {
+        Authorization: 'Bearer ' + _decryptedToken,
+        Accept: 'application/vnd.github+json'
+      },
+      cache: 'no-store'
+    });
+    if (r.status === 401) {
+      return { resources: null, error: 'Authentication failed — re-enter your PIN.' };
+    }
+    if (r.status === 404) {
+      return { resources: null, error: 'index.html not found in the repo. Publish your index page first.' };
+    }
+    if (!r.ok) {
+      return { resources: null, error: 'Could not read the activity index (HTTP ' + r.status + ').' };
+    }
+    const meta = await r.json();
+    const indexHTML = fromBase64(meta.content.replace(/\n/g, ''));
+
+    // Same regex shape as _addToIndex uses; INDEX_DATA is the canonical block.
+    const re = /<script id="INDEX_DATA" type="application\/json">([\s\S]*?)<\/script>/;
+    const match = indexHTML.match(re);
+    if (!match) {
+      return { resources: null, error: 'Could not read the activity index. Try reloading or re-publishing your index page.' };
+    }
+    let data;
+    try {
+      data = JSON.parse(match[1]);
+    } catch (e) {
+      console.error('[load-activity] INDEX_DATA parse error:', e);
+      return { resources: null, error: 'The activity index appears corrupted. Open index.html and check the INDEX_DATA block.' };
+    }
+    if (!Array.isArray(data.resources)) {
+      return { resources: [], error: null };
+    }
+    // Filter pre-builder entries: anything without a `file` field can't be
+    // fetched, so it can't be loaded back into the builder regardless.
+    // (Some older entries also lack a builder-state block in their HTML;
+    // those are caught at extraction time with a friendlier error.)
+    const filtered = data.resources.filter(r => r && typeof r.file === 'string' && r.file.length > 0);
+    return { resources: filtered, error: null };
+  } catch (e) {
+    console.error('[load-activity] index fetch failed:', e);
+    return { resources: null, error: 'Network error while fetching the activity index. Check your connection and try again.' };
+  }
+}
+
+// ---- Picker rendering ------------------------------------------------------
+
+// Natural sort: handles "Unit 7" / "Unit 10" correctly, unlike pure lexical.
+function _naturalCompare(a, b) {
+  return String(a == null ? '' : a).localeCompare(String(b == null ? '' : b), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function _renderActivityPicker(resources, filterText) {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+
+  // Filter: substring match on title, unit, and tags (joined). Case-insensitive.
+  const ft = (filterText || '').trim().toLowerCase();
+  const filtered = ft
+    ? resources.filter(r => {
+        const hay = [
+          r.title || '',
+          r.unit || '',
+          (Array.isArray(r.tags) ? r.tags.join(' ') : '')
+        ].join(' ').toLowerCase();
+        return hay.indexOf(ft) >= 0;
+      })
+    : resources.slice();
+
+  // Sort: unit (natural) then title (natural).
+  filtered.sort((a, b) =>
+    _naturalCompare(a.unit, b.unit) || _naturalCompare(a.title, b.title)
+  );
+
+  // Build the search input + list. Search input value preserved across renders.
+  let html = '';
+  html += '<div style="margin-bottom:12px">';
+  html += '<input type="text" class="text-input" id="loadActivityFilter" placeholder="Filter by title, unit, or tag…" ' +
+          'value="' + _escAttr(filterText || '') + '" oninput="_onLoadFilterInput(this.value)" autocomplete="off">';
+  html += '</div>';
+
+  if (filtered.length === 0) {
+    if (ft) {
+      html += '<div style="padding:12px;text-align:center;color:var(--ink-mid);font-size:13px">No activities match "' + _esc(ft) + '".</div>';
+    } else {
+      html += '<div style="padding:12px;text-align:center;color:var(--ink-mid);font-size:13px">No activities published yet.</div>';
+    }
+  } else {
+    html += '<div style="max-height:50vh;overflow-y:auto;border:1px solid var(--rule);border-radius:3px">';
+    filtered.forEach((r, idx) => {
+      const isLast = (idx === filtered.length - 1);
+      const borderRule = isLast ? '' : 'border-bottom:1px solid var(--rule);';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;' + borderRule + '">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:600;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(r.title || '(untitled)') + '</div>';
+      html += '<div style="font-size:11px;color:var(--ink-mid);margin-top:2px">';
+      html += _esc(r.unit || 'No unit') + ' · ';
+      html += '<span style="font-family:monospace;color:var(--ink-light)">' + _esc(r.file) + '</span>';
+      html += '</div>';
+      html += '</div>';
+      // Resource id is the lookup key passed back into _handleLoadClick. We
+      // _escAttr it because some legacy resources may have characters that
+      // would otherwise break the inline onclick.
+      html += '<button class="mb save" onclick="_handleLoadClick(\'' + _escAttr(r.id || '') + '\')" ' +
+              'style="flex-shrink:0">Load</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Footer actions row: just Cancel (Load buttons are per-row).
+  html += '<div class="modal-actions" style="margin-top:14px">';
+  html += '<button class="mb" onclick="closeLoadActivityModal()">Cancel</button>';
+  html += '</div>';
+
+  body.innerHTML = html;
+}
+
+function _onLoadFilterInput(value) {
+  _loadActivityFilter = value || '';
+  if (_loadActivityResources) {
+    // Re-render. Note: this rebuilds the input element too, but since we
+    // pass the current value back into it and the user is mid-typing in
+    // that very element, the focus is briefly lost. Mitigation: restore
+    // focus + caret position after re-render.
+    const beforeStart = (() => {
+      const el = document.getElementById('loadActivityFilter');
+      return el ? el.selectionStart : null;
+    })();
+    _renderActivityPicker(_loadActivityResources, _loadActivityFilter);
+    const after = document.getElementById('loadActivityFilter');
+    if (after) {
+      after.focus();
+      if (beforeStart != null) {
+        try { after.setSelectionRange(beforeStart, beforeStart); } catch (e) {}
+      }
+    }
+  }
+}
+window._onLoadFilterInput = _onLoadFilterInput;
+
+// ---- Specialized modal-body states (loading / error / empty / gated) ------
+
+function _renderLoadLoadingState() {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:24px;text-align:center;color:var(--ink-mid);font-size:13px">Loading activity index…</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" onclick="closeLoadActivityModal()">Cancel</button>' +
+    '</div>';
+}
+
+function _renderLoadErrorState(message) {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:12px;background:#fce8e6;border:1px solid var(--red);border-radius:3px;color:#5a1a1a;font-size:13px;margin-bottom:12px">' +
+    _esc(message) +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" onclick="closeLoadActivityModal()">Close</button>' +
+    '<button class="mb save" onclick="openLoadActivityModal()">Retry</button>' +
+    '</div>';
+}
+
+function _renderLoadEmptyState() {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:24px;text-align:center;color:var(--ink-mid);font-size:13px">No activities published yet.</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" onclick="closeLoadActivityModal()">Close</button>' +
+    '</div>';
+}
+
+function _renderLoadGatedState() {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:12px;background:var(--cream);border:1px solid var(--rule);border-radius:3px;color:var(--ink);font-size:13px;margin-bottom:12px">' +
+    'Enter your PIN first to load activities. The picker will reopen automatically after unlock.' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" onclick="closeLoadActivityModal()">Cancel</button>' +
+    '<button class="mb save" onclick="_loadActivityRequestPin()">Enter PIN</button>' +
+    '</div>';
+}
+
+function _loadActivityRequestPin() {
+  // Queue the load modal to reopen after the PIN modal succeeds. The PIN
+  // modal lives at a higher layer than the load modal in z-order, so we
+  // close the load modal first to keep the visual stack tidy. The pending
+  // callback fires only on successful unlock (cancel clears it).
+  closeLoadActivityModal();
+  _pendingAfterPin = function () { openLoadActivityModal(); };
+  openPinModal();
+}
+window._loadActivityRequestPin = _loadActivityRequestPin;
+
+// ---- Load click handling (with dirty-draft confirmation) ------------------
+
+function _handleLoadClick(resourceId) {
+  if (_loadActivityFetchInFlight) return;  // ignore double-click during fetch
+  if (!Array.isArray(_loadActivityResources)) return;
+  const resource = _loadActivityResources.find(r => r && r.id === resourceId);
+  if (!resource) {
+    _renderLoadErrorState('Activity not found in the index. Try reopening the loader.');
+    return;
+  }
+
+  if (_isDraftDirty()) {
+    // Show inline confirmation panel; the user must explicitly choose to
+    // replace their unsaved work.
+    _loadActivityPendingResource = resource;
+    _renderDirtyConfirmPanel(resource);
+    return;
+  }
+
+  // Clean draft — proceed straight to load.
+  _loadActivity(resource);
+}
+window._handleLoadClick = _handleLoadClick;
+
+function _renderDirtyConfirmPanel(resource) {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:14px;background:#fbf3e6;border:1px solid #d4a85a;border-radius:3px;color:#5a4520;font-size:13px;margin-bottom:14px;line-height:1.5">' +
+    'Loading <strong>' + _esc(resource.title || '(untitled)') + '</strong> will replace your current unsaved draft. Continue?' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" onclick="_cancelReplaceAndLoad()">Cancel</button>' +
+    '<button class="mb save" onclick="_confirmReplaceAndLoad()">Replace and load</button>' +
+    '</div>';
+}
+
+function _confirmReplaceAndLoad() {
+  const r = _loadActivityPendingResource;
+  _loadActivityPendingResource = null;
+  if (!r) return;
+  _loadActivity(r);
+}
+window._confirmReplaceAndLoad = _confirmReplaceAndLoad;
+
+function _cancelReplaceAndLoad() {
+  _loadActivityPendingResource = null;
+  // Return to the picker view.
+  if (_loadActivityResources) {
+    _renderActivityPicker(_loadActivityResources, _loadActivityFilter);
+  } else {
+    closeLoadActivityModal();
+  }
+}
+window._cancelReplaceAndLoad = _cancelReplaceAndLoad;
+
+// ---- The actual load --------------------------------------------------------
+
+async function _loadActivity(resource) {
+  if (_loadActivityFetchInFlight) return;
+  _loadActivityFetchInFlight = true;
+
+  _renderLoadFetchingState(resource);
+
+  try {
+    const url = 'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO +
+                '/contents/' + _encodePath(resource.file) + '?t=' + Date.now();
+    const r = await fetch(url, {
+      headers: {
+        Authorization: 'Bearer ' + _decryptedToken,
+        Accept: 'application/vnd.github+json'
+      },
+      cache: 'no-store'
+    });
+
+    if (r.status === 401) {
+      _renderLoadErrorState('Authentication failed — re-enter your PIN.');
+      return;
+    }
+    if (r.status === 404) {
+      _renderLoadErrorState('Activity file not found in repo. It may have been deleted.');
+      return;
+    }
+    if (!r.ok) {
+      _renderLoadErrorState('Failed to fetch activity (HTTP ' + r.status + ').');
+      return;
+    }
+
+    const meta = await r.json();
+    const html = fromBase64(meta.content.replace(/\n/g, ''));
+    const extracted = _extractBuilderState(html);
+    if (extracted.error) {
+      _renderLoadErrorState(extracted.error);
+      return;
+    }
+
+    // Run through migration. Even though the spec says no schema migration
+    // is needed (only one activity exists under the current schema), we
+    // still call _migrateState defensively because: (a) any future field
+    // added without a migration entry would silently break loaded
+    // activities, and (b) the cost is one extra function call. The forward-
+    // compat note in _migrateState reinforces this.
+    const migrated = _migrateState(extracted.state);
+
+    // Replace the live state. Mirror loadDraft()'s collapsed-on-restore
+    // behavior so the editor opens to a TOC view rather than a wall of
+    // expanded cards. Newly added problems start expanded by default.
+    builderState = migrated;
+    editorUI.collapsed.clear();
+    builderState.problems.forEach(p => editorUI.collapsed.add(p.id));
+
+    // Persist immediately. saveDraft() bumps updatedAt; _stampLastSaved()
+    // captures the post-save state (sans updatedAt) as the new clean
+    // baseline so subsequent dirty checks compare against the loaded
+    // activity, not the prior draft.
+    saveDraft();
+    _stampLastSaved();
+
+    renderAll();
+    closeLoadActivityModal();
+    _showLoadActivityStatus('Loaded "' + (resource.title || '(untitled)') + '".');
+  } catch (e) {
+    console.error('[load-activity] load failed:', e);
+    _renderLoadErrorState('Network error while loading the activity: ' + e.message);
+  } finally {
+    _loadActivityFetchInFlight = false;
+  }
+}
+
+function _renderLoadFetchingState(resource) {
+  const body = document.getElementById('loadActivityBody');
+  if (!body) return;
+  body.innerHTML =
+    '<div style="padding:24px;text-align:center;color:var(--ink-mid);font-size:13px">' +
+    'Loading <strong>' + _esc(resource.title || '(untitled)') + '</strong>…' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="mb" disabled>Cancel</button>' +
+    '</div>';
+}
+
+// ---- builder-state extraction ---------------------------------------------
+// Inverse of compileActivity()'s {{BUILDER_STATE_JSON}} substitution. Returns
+// { state: object, error: null } on success or { state: null, error: string }
+// on any failure. The two distinct error messages map to the two failure
+// modes spelled out in the spec's edge-case list.
+
+function _extractBuilderState(html) {
+  if (typeof html !== 'string' || html.length === 0) {
+    return { state: null, error: 'This activity\'s HTML appears empty.' };
+  }
+  // Same shape as the template emits. The template uses <\/script> in the
+  // source string which renders to </script> in the output HTML — that's
+  // what we match here.
+  const re = /<script id="builder-state" type="application\/json">([\s\S]*?)<\/script>/;
+  const match = html.match(re);
+  if (!match) {
+    return {
+      state: null,
+      error: 'This activity was published before the current builder schema and cannot be loaded for editing.'
+    };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(match[1]);
+  } catch (e) {
+    console.error('[load-activity] builder-state parse error:', e);
+    return {
+      state: null,
+      error: 'This activity\'s saved state is corrupted and cannot be loaded.'
+    };
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    return {
+      state: null,
+      error: 'This activity\'s saved state is not in the expected format.'
+    };
+  }
+  return { state: parsed, error: null };
+}
+
+// ---- Save as… (lives in the publish modal, but the logic belongs here) ----
+
+function openSaveAsPanel() {
+  const panel = document.getElementById('saveAsPanel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  // Pre-fill with the current filename and select-all so the teacher can
+  // immediately type a replacement. Use the slug-derived form (matches the
+  // existing default in compileActivity) rather than the raw filename so
+  // small typos in the path component don't propagate.
+  const input = document.getElementById('saveAsFilename');
+  if (input) {
+    input.value = builderState.filename || ('activities/' + (builderState.slug || 'untitled') + '.html');
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  }
+  // Hide any prior collision warning.
+  const warn = document.getElementById('saveAsCollisionWarn');
+  if (warn) warn.style.display = 'none';
+}
+window.openSaveAsPanel = openSaveAsPanel;
+
+function closeSaveAsPanel() {
+  const panel = document.getElementById('saveAsPanel');
+  if (panel) panel.style.display = 'none';
+  const warn = document.getElementById('saveAsCollisionWarn');
+  if (warn) { warn.style.display = 'none'; warn.dataset.acknowledged = ''; }
+}
+window.closeSaveAsPanel = closeSaveAsPanel;
+
+async function confirmSaveAs() {
+  const input = document.getElementById('saveAsFilename');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    _saveAsShowError('Please enter a filename.');
+    return;
+  }
+
+  // Normalize: must end in .html, default to activities/ folder if no slash.
+  let filename = raw;
+  if (filename.indexOf('/') < 0) filename = 'activities/' + filename;
+  if (!/\.html?$/i.test(filename)) filename += '.html';
+  // Whitespace and quote characters in paths break the GitHub contents API
+  // and are universally hostile in URLs; reject up front rather than letting
+  // publishToGitHub return a baffling error later.
+  if (/[\s"']/.test(filename)) {
+    _saveAsShowError('Filename can\'t contain spaces or quote characters.');
+    return;
+  }
+
+  // Same-as-current is a no-op (just re-publish via the regular Publish flow).
+  if (filename === builderState.filename) {
+    _saveAsShowError('That\'s the current filename. Use Publish to overwrite, or pick a new name.');
+    return;
+  }
+
+  // Collision check against INDEX_DATA. Warn-and-allow per the agreed model:
+  // first click warns, second click on the same filename proceeds.
+  const warn = document.getElementById('saveAsCollisionWarn');
+  if (warn && warn.dataset.acknowledged !== filename) {
+    const collision = await _checkFilenameCollision(filename);
+    if (collision) {
+      warn.style.display = 'block';
+      warn.textContent = 'An activity already exists at "' + filename + '" (' + collision + '). Click Save as again to overwrite it.';
+      warn.dataset.acknowledged = filename;
+      return;
+    }
+  }
+
+  // Update state. Per the agreed model: keep indexMeta intact (the new
+  // activity inherits the current unit/desc/tags/type so the teacher
+  // doesn't have to retype). The publish flow will write any modal-modified
+  // values back to indexMeta after a successful publish.
+  const slug = filename.replace(/^.*\//, '').replace(/\.html?$/i, '');
+  builderState.filename = filename;
+  builderState.slug = slug;
+  saveDraft();
+
+  // Close save-as panel, refresh the publish modal's filename display, and
+  // proceed to the normal publish flow.
+  closeSaveAsPanel();
+  document.getElementById('publishFilename').textContent = builderState.filename;
+  // Stamp last-saved snapshot to prevent a "you have unsaved changes"
+  // dialog from firing later just because we changed filename/slug.
+  // (The publish flow's own saveDraft + _stampLastSaved will cover the
+  // post-publish state too.)
+  _stampLastSaved();
+  // Fall through to the regular publish.
+  confirmPublish();
+}
+window.confirmSaveAs = confirmSaveAs;
+
+function _saveAsShowError(msg) {
+  const warn = document.getElementById('saveAsCollisionWarn');
+  if (!warn) return;
+  warn.style.display = 'block';
+  warn.textContent = msg;
+  // Don't set acknowledged — this isn't a "click again to override" case,
+  // it's a hard validation error. The user must edit the input first.
+  warn.dataset.acknowledged = '';
+}
+
+async function _checkFilenameCollision(filename) {
+  // Fast path: check the in-memory cache from the load modal if it's still
+  // fresh. Otherwise re-fetch the index.
+  let resources = _loadActivityResources;
+  if (!Array.isArray(resources)) {
+    const result = await _fetchActivityIndex();
+    if (result.error) {
+      // If we can't reach the index, fall back to "no collision detected"
+      // rather than blocking the publish. The user can always check
+      // index.html manually if worried.
+      console.warn('[save-as] collision check skipped:', result.error);
+      return null;
+    }
+    resources = result.resources || [];
+  }
+  const hit = resources.find(r => r && r.file === filename);
+  return hit ? (hit.title || filename) : null;
+}
+
+// ---- Status pill -----------------------------------------------------------
+// Mirrors the bulk-import status pill. Manual dismiss; replaces any prior
+// message rather than stacking.
+
+function _showLoadActivityStatus(msg) {
+  const host = document.getElementById('loadActivityStatus');
+  if (!host) return;
+  host.innerHTML =
+    '<span style="flex:1">' + _esc(msg) + '</span>' +
+    '<button onclick="_dismissLoadActivityStatus()" aria-label="Dismiss" ' +
+    'style="background:transparent;border:0;font-size:18px;line-height:1;cursor:pointer;color:var(--accent);padding:0 4px">&times;</button>';
+  host.style.display = 'flex';
+}
+
+function _dismissLoadActivityStatus() {
+  const host = document.getElementById('loadActivityStatus');
+  if (!host) return;
+  host.innerHTML = '';
+  host.style.display = 'none';
+}
+window._dismissLoadActivityStatus = _dismissLoadActivityStatus;
 
 // =============================================================================
 // INIT

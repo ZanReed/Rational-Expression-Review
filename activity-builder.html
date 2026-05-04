@@ -455,6 +455,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
       <div class="editor-section">
         <div class="section-label">Problems</div>
         <div id="bulkImportStatus" style="display:none;align-items:center;gap:8px;background:var(--accent-lt);border:1px solid var(--accent);border-radius:3px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--accent)"></div>
+        <div id="loadActivityStatus" style="display:none;align-items:center;gap:8px;background:var(--accent-lt);border:1px solid var(--accent);border-radius:3px;padding:6px 10px;margin-bottom:8px;font-size:12px;color:var(--accent)"></div>
         <div id="problemsContainer"></div>
         <div class="add-btn-row">
           <button class="add-btn" onclick="addProblem()"><span class="plus">+</span> Add problem</button>
@@ -486,6 +487,7 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 
     <div class="editor-footer">
       <button class="publish-btn" id="publishBtn" onclick="openPublishModal()" disabled>Publish to GitHub</button>
+      <button class="add-btn" onclick="openLoadActivityModal()" title="Load a previously-published activity into the editor for revision">Load activity</button>
       <button class="clear-btn" onclick="if(confirm('Discard the current draft and start fresh?'))clearDraft()">Clear draft</button>
     </div>
 
@@ -619,8 +621,25 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
 
     <div id="publishStatus"></div>
 
+    <!-- Save as… inline panel. Hidden by default; shown when teacher clicks
+         the Save as… button in the action row. Allows duplicating the
+         currently-loaded activity to a new filename without overwriting. -->
+    <div id="saveAsPanel" style="display:none;margin-top:14px;padding:12px;background:var(--cream);border:1px solid var(--rule);border-radius:3px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--ink)">Save as a new activity</div>
+      <div style="font-size:12px;color:var(--ink-mid);margin-bottom:8px">Enter a new filename. The current activity will be duplicated, not overwritten. Your unit/description/tags carry over.</div>
+      <div class="modal-field" style="margin-bottom:8px">
+        <input type="text" class="text-input" id="saveAsFilename" placeholder="activities/my_new_activity.html" autocomplete="off">
+      </div>
+      <div id="saveAsCollisionWarn" style="display:none;padding:8px 10px;background:#fbf3e6;border:1px solid #d4a85a;border-radius:3px;font-size:12px;color:#5a4520;margin-bottom:8px"></div>
+      <div class="modal-actions" style="margin:0">
+        <button class="mb" onclick="closeSaveAsPanel()">Cancel</button>
+        <button class="mb save" onclick="confirmSaveAs()">Save as</button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="mb" onclick="closePublishModal()">Cancel</button>
+      <button class="mb" onclick="openSaveAsPanel()" title="Duplicate this activity to a new filename instead of overwriting">Save as…</button>
       <button class="mb save" id="confirmPublishBtn" onclick="confirmPublish()">Publish</button>
     </div>
   </div>
@@ -644,6 +663,21 @@ details.advanced[open] summary{margin-bottom:6px;color:var(--ink)}
     </div>
 
     <div id="bulkImportPreview" style="display:none;margin-top:18px;border-top:1px solid var(--rule);padding-top:16px"></div>
+  </div>
+</div>
+
+<!-- ========================= LOAD ACTIVITY MODAL ========================= -->
+<!-- Reload an already-published activity into the builder for editing. The
+     modal body is fully rendered by builder.js (_renderActivityPicker and
+     friends) so it can show different states — picker, loading, error,
+     gated-on-PIN, dirty-confirm — without HTML-level branching. -->
+<div class="modal-backdrop" id="loadActivityBackdrop" onclick="if(event.target===this)closeLoadActivityModal()">
+  <div class="modal" style="max-width:640px">
+    <h3>Load activity</h3>
+    <div class="modal-sub">
+      Choose an activity to load into the editor. Your current draft will be replaced.
+    </div>
+    <div id="loadActivityBody"></div>
   </div>
 </div>
 
