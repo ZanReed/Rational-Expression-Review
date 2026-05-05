@@ -174,7 +174,7 @@ body.teacher-mode .add-unit-row{display:flex}
         <button onclick="saveGitHubToken()" class="mb save" style="font-size:11px;white-space:nowrap">Encrypt &amp; save</button>
         <button onclick="testGitHubToken()" class="mb" style="font-size:11px;white-space:nowrap" id="testTokenBtn">Test</button>
       </div>
-      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">✓ Token works!</div>
+      <div id="tokenStatus" style="margin-top: 5px; font-family: var(--sans); font-size: 11px; color: var(--green);">🔓 Token unlocked.</div>
     </div>
     <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #d4b800">
       <label class="sl">Change PIN (re-encrypt token + push to Drive)</label>
@@ -213,7 +213,7 @@ body.teacher-mode .add-unit-row{display:flex}
   </div>
 
   <!-- Scan results -->
-  <div class="scan-panel" id="scanResults" style="display: none;"><div style="font-size:12px;font-weight:600;color:var(--ink-mid);margin-bottom:8px">2 new files found:</div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">applications_of_exponentials.html</span><button onclick="quickAdd('applications_of_exponentials.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div><div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:white;border:1px solid var(--rule);border-radius:4px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:12px;flex:1">unit7_graphing_exponentials.html.html</span><button onclick="quickAdd('unit7_graphing_exponentials.html.html')" style="font-size:11px;padding:4px 10px;border:1px solid var(--green-rule);border-radius:3px;cursor:pointer;background:var(--green-bg);color:var(--green)">+ Add</button></div></div>
+  <div class="scan-panel" id="scanResults" style="display: none;"><span style="color:var(--red);font-size:12px">⚠ No token.</span></div>
 
   <!-- Add unit row (teacher only) -->
   <div class="add-unit-row">
@@ -435,15 +435,15 @@ body.teacher-mode .add-unit-row{display:flex}
       "title": "Logarithmic and Exponentials Review",
       "desc": "",
       "file": "activities/logarithmic_and_exponentials_review.html",
-      "unit": "Untitled Unit",
+      "unit": "Exponentials and Logarithms",
       "type": "activity",
       "tags": []
     }
   ],
   "unitOrder": [
     "Exponentials and Logarithms",
-    "Unit 8 — Rational Functions",
-    "Untitled Unit"
+    "Untitled Unit",
+    "Unit 8 — Rational Functions"
   ]
 }</script>
 <script>
